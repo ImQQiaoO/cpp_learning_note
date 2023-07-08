@@ -1,0 +1,2060 @@
+# 字符串、向量和数组
+
+## 字符串 std::string
+
+
+
+要想使用string，必须包含适当的头文件。并且可以进行如下的using声明。
+
+```C++
+#include <string>
+
+using std::string;
+```
+
+
+
+### 1. 定义和初始化string对象
+
+|        方式         |                             意义                             |
+| :-----------------: | :----------------------------------------------------------: |
+|      string s1      |                   默认初始化，s1是一个空串                   |
+|   string s2 (s1)    |                         s2是s1的副本                         |
+|   string s2 = s1    |                 等价于s2 (s1), s2是s1的副本                  |
+| string s3 ("value") | s3是字面值”value"的副本， 除了字面值最后的那个空字符外 (拷贝初始化) |
+| string s3 = "value" |   等价千s3("value"), s3是字面值”value"的副本 (直接初始化)    |
+| string s4 (n, 'c')  |       把s4初始化为由连续n个字符c组成的串 (直接初始化)        |
+
+`string s8 = string(lO, 'c');／／拷贝初始化． s8的内容是cccccccccc`
+
+等价于：
+`string temp (10, 'c');	// temp的内容是cccccccccc`
+`string s8 = temp;	//将temp拷贝给s8`
+
+
+
+
+
+
+
+### 2. string对象上的操作
+
+![string的操作](./images/string的操作.png)
+
+
+
+##### 读取未知数量的string对象
+
+```C++
+while (std::cin >> word) {
+    std::cout << word << std::endl;
+}
+/*
+  在C++中，条件表达式可以是任何可以隐式转换为bool类型的表达式，
+  但在Java中，条件表达式必须是一个布尔表达式。
+  输入运算符>>返回一个std::istream对象，该对象可以隐式转换为bool类型。
+  当输入运算符>>成功读取输入时，std::istream对象将被视为true，否则将被
+  视为false。
+  因此，当std::cin >> word成功读取输入时，while循环将继续执行，否则循环将终止。
+*/
+```
+
+
+
+##### 使用getline读取一整行
+
+
+
+```C++
+void readFile() {
+    std::ifstream fin;
+    fin.open("file.txt", std::ios::in);
+    if (!fin.is_open()) {
+        std::cout << "无法找到这个文件！" << std::endl;
+        return;
+    }
+    std::string line;
+    while (getline(fin, line)) {	//每次读取一行，直到文件末尾
+        std::cout << line << std::endl;
+    }
+    fin.close();
+}
+```
+
+
+
+```C++
+void readFile() {
+    std::ifstream fin;
+    fin.open("file.txt", std::ios::in);
+    if (!fin.is_open()) {
+        std::cout << "无法找到这个文件！" << std::endl;
+        return;
+    }
+    char buff[1024] = {0};  // 用于存放每行数据
+    while (fin.getline(buff, sizeof(buff))) {
+        std::cout << buff << std::endl;
+    }
+    fin.close();
+}
+```
+
+
+
+##### string的empty和size操作
+
+empty函数会根据string对象是否为空返回一个对应的布尔值。empty是string的一个成员函数。
+
+调用该函数的方法很简单，只要使用点操作符指明是哪个对象执行了empty函数就可以了。
+
+```C++
+	std::string line;
+	while (getline(fin, line)) {	//每次读入一整行，遇到空行直接跳过
+	    if (!line. empty())
+	    	std::cout << line << std::endl;
+	}
+```
+
+size函数返回string对象的长度（即string对象中字符的个数），可以使用size函数只输出长度超过80个字符的行：
+
+```C++
+  	std::string line;
+    while (getline(fin, line)) {	//每次读入一整行，输出其中超过80个字符的行
+        if (line.size() > 80)
+        	std::cout << line << std::endl;
+    }
+```
+
+
+
+##### string:: size_ type类型
+
+对于size函数，返回的是一个string::size_type类型的值。它是一个无符号类型的值(unsigned)，而且能足够存放下任何 string对象的大小。所有用于存放string类的size函数返回值的变量，都应该是string::size_type类型的。
+
+```C++
+int main() {
+    std::string str("hello world");
+    auto len = str.length();	//IDE智能提示len的类型为size_t
+    std::cout << len << std::endl;     //输出结果为 11
+    return 0;
+}
+```
+
+***注意：如果一个表达式中已经有了size()函数就不要再使用int了，这样可以避免混用int和unsigned可能带来的问题。***
+
+
+
+##### 比较string对象
+
+1. 相等性运算符(==和!=)分别检验两个string对象相等或不相等，string对象相等意味着它们的长度相同而且所包含的字符也全都相同。
+
+2. 关系运算符<、<=、>、>=分别检验一个string对象是否小于、小于等于、大于、大于等于另外一个string对象。
+
+上述这些运算符都依照（大小写敏感的）字典顺序：
+
+- ①. 如果两个string对象的长度不同， 而且较短string对象的每个字符都与较长string对象对应位置上的字符相同，就说较短string 对象小于较长string
+
+  对象。
+
+- ②. 如果两个string对象在某些对应的位置上不一致， 则string对象比较的结果其实是string对象中第一对相异字符比较的结果。
+
+下面是string对象比较的一个示例：
+
+```c++
+string str = "Hello";
+string phrase = "Hello World";
+string slang = "Hiya";
+```
+
+根据规则①可判断， 对象str小于对象phrase; 根据规则②可判断， 对象slang既大于str也大于phrase。
+
+
+
+##### 为string对象赋值
+
+对于string类而言， 允许把一个对象的值赋给另外一个对象
+
+```c++
+string st1(10, 'c'), st2;	// stl的内容是cccccccccc; st2是一个空宇符串
+st1 = st2; 		//赋值： 用st2的副本替换st1的内容
+		   		//此时st1和st2都是空字符串
+```
+
+
+
+##### 两个string对象相加
+
+对string对象使用加法运算符（＋）的结果是一个新的string对象，它所包含的字符由两部分组成：前半部分是加号左侧string对象所含的字符、后半部分是加号右侧string对象所含的字符：
+
+```C++
+string s1 = "hello, ", s2 = "world\n";
+string s3 = s1 + s2; 	// s3的内容是hello, world\n
+s1 += s2; 				//等价于s1 = s1 + s2
+```
+
+
+
+##### 字面值和string 对象相加
+
+标准库允许把字符字面值和字符串字面值转换成string对象， 所以在需要string对象的地方就可以使用这两种字面值来替代。
+
+```C++
+string s1= "hello", s2 = "world"; ／／在s1和s2中都没有标点符号
+string s3 = s1 + ", " + s2 +'\n';
+```
+
+***注意：当把string对象和字符字面值及字符串字面值混在一条语句中使用时，必须确保每个加法运算符（＋）的两侧的运算对象至少有一个是string:***
+
+```C++
+string s4 = s1 + "," 	//正确：把一个string对象和个字面值相加
+string s5 = "hello" + ", "; 	//错误： 两个运算对象都不是string
+string s6 = s1 + ", " + "world";	//正确：每个加法运算符都有一个运算对象是string
+string s7 = "hello" + ", " + s2; 	//错误：不能把宇面值直接相加
+```
+
+关于s6：它的工作机理和连续输入连续输出是一样的， 可以用如下的形式分组：`string s6 = (s1 + ", ") + "world";`
+
+​				其中，子表达式s1 + "， "的结果是一个string对象，它同时作为第二个加法运算符的左侧运算对象，因此上述语句和下面的两个语句是等价的:
+
+```C++
+string tmp = s1 + ", "; //正确： 加法运算符有一个运算对象是string
+s6 = tmp + "world";  //正确： 加法运算符有一个运算对象是string
+```
+
+关于s7:  s7的初始化是非法的， 根据其语义加上括号后就成了这样的形式：`string s7 = ("hello" + ", ") + s2;  //错误：不能把字面值直接相加`；括号内的			  子表达式试图把两个字符串字面值加在一起， 而编译器根本没法做到这一点， 所以这条语句是错误的。
+
+
+
+
+
+
+
+### 3. 处理string对象中的字符
+
+
+
+​	***关键问题是如何获取字符本身。***
+
+
+
+![](./images/字符的操作.png)
+
+
+
+
+
+##### 使用基于范围的for语句
+
+范围for (range for) 语句。这种语句遍历给定序列中的每个元素并对序列中的每个值执行某种操作，其语法形式是:
+
+```C++
+	for (declaration : expression)
+		statment
+```
+
+其中，*expression*部分是一个对象，用于表示一个序列。*declaration*部分负责定义一个变量，该变量将被用于访问序列中的基础元素。每次迭代，*declaration*部分的变量会被初始化为*expression*部分的下一个元素值。
+
+一个string对象表示一个字符的序列，因此string对象可以作为范围for语句中的 expression部分。举一个简单的例子，我们可以使用范围for语句把string对象中的字符每行一个输出出来:
+
+```C++
+int main() {
+    std::string str("hello world");
+    // 每行输出str中的一个字符
+    for (auto c : str) {             // 对于str中的每个字符
+        std::cout << c << std::endl;      // 输出当前字符，后面紧跟一个换行符
+    }
+    return 0;
+}
+```
+
+for循环把变量c和 str联系了起来，其中我们定义循环控制变量的方式与定义任意个普通变量是一样的。此例中，通过使用auto关键字让编译器来决定变量c的类型，这里c的类型是char。每次迭代，str的下一个字符被拷贝给c，因此该循环可以读作“对于字符串str中的每个字符c，”执行某某操作。此例中的“某某操作”即输出一个字符，然后换行。
+
+
+
+例：使用范围for语句和ispunct函数来统计string对象中标点符号的个数
+
+```C++
+int main() {
+    std::string str("hell=-o** world!!");
+    decltype(str.size()) punct_cnt = 0;  // punct_cnt的类型和str.size()的返回类型一样
+    for (auto item: str) {
+        if (ispunct(item)) {
+            ++punct_cnt;
+        }
+    }
+    std::cout << punct_cnt << " punctuation characters in " << str << std::endl;
+    // 6 punctuation characters in hell=-o** world!!
+    return 0;
+}
+```
+
+这里我们使用decltype关键字声明计数变量punct_cnt，它的类型是s.size函数返回值的类型，也就是string::size_type。
+
+使用范围for语句处理string对象中的每个字符并检查其是否是标点符号。如果是，使用递增运算符给计数变量加1。最后，待范围for语句结束后输出统计结果。
+
+
+
+##### 使用范围for语句改变字符串中的字符
+
+如果想要改变string对象中字符的值，必须把循环变量定义成引用类型。
+
+记住，所谓引用只是给定对象的一个别名，因此当使用引用作为循环控制变量时，这个变量实际上被依次绑定到了序列的每个元素上。使用这个引用，我们就能改变它绑定的字符。
+
+例： 将整个string对象转化成大写
+
+```c++
+int main() {
+    std::string str("hello world55");
+    for (auto &item: str) {
+        item = toupper(item);   // item是引用，所以改变item的值，str的值也会改变
+    }
+    std::cout << str << std::endl;   //输出结果为：HELLO WORLD55
+}
+```
+
+
+
+##### 只处理一部分字符
+
+访问string对象中的单个字符有两种方式:一种是使用下标，另外一种是使用迭代器。
+
+*下标运算符*（[ ]）接收的输入参数是string ::size_type类型的值。这个参数表示要访问的字符的位置；返回值是该位置上字符的引用。
+
+string对象的下标从0计起。如果string对象s至少包含两个字符，则s[0]是第1个字符、s[1]是第2个字符、s[s.size ()-1] 是最后一个字符。
+
+
+
+> - string对象的下标必须大于等于0而小于s.size().
+> - 在访问指定字符之前，首先检查s是否为空。
+> - 不管什么时候只要对string对象使用了下标，都要确认在那个位置上确实有值。
+
+
+
+只要字符串不是常量，就能为下标运算符返回的字符赋新值。使用下标运算符将string对象中的第一个字符修改为大写形式：
+
+```C++
+    std::string a = "hello";
+    if (a.empty()) {
+        std::cout << "string a is empty" << std::endl;
+    } else {
+        a[0] = toupper(str[0]);
+    }
+    std::cout << a << std::endl;    // 输出结果为Hello
+```
+
+
+
+##### 使用下标进行迭代
+
+例： 将字符串s的第一个词改成大写形式：
+
+```C++
+int main() {
+    std::string str = "Hello world!";
+    int cnt = 0;
+    for (decltype(str.size()) i = 0; i != str.size() && !isspace(str[i]); ++i) {
+        // i的类型为string::size_type
+        str[i] = toupper(str[i]);
+        cnt++;
+    }
+    std::cout << "循环执行了 " << cnt << " 次" << std::endl;  //输出结果为：循环执行了 5 次
+    std::cout << str << std::endl;  //输出结果为：HELLO world!
+    return 0;
+}
+```
+
+
+
+##### <a name="id1">使用下标进行随机访问</a>
+
+通过计算得到某个下标值，然后直接获取对应位置的字符。
+
+```C++
+#include <iostream>
+#include <vector>
+#include <sstream>
+
+int main() {
+    const std::string hexdigits = "0123456789ABCDEF";
+    std::string read_line;
+    std::cout << "请输入一串0 - 15的数字，"
+        << "以空格分隔，按回车结束： "
+        << std::endl;
+    std::getline(std::cin, read_line);
+
+    std::stringstream ss(read_line);
+    std::vector<char> result_vec;
+
+    int num;
+    while (ss >> num) {
+        if (num < 0 || num > 15) {
+            std::cout << "输入的数字超出范围！" << std::endl;
+            return 0;
+        }
+        result_vec.emplace_back(hexdigits[num]);
+    }
+
+    if (ss.fail() && !ss.eof()) {
+        std::cout << "输入的不是数字！" << std::endl;
+        return 0;
+    }
+
+    std::cout << "Your hex number is: ";
+    for (const auto& item : result_vec) {
+        std::cout << item;
+    }
+    return 0;
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+## 标准库类型vector std::vector
+
+标准库类型vector表示对象的集合，其中所有对象的类型都相同。集合中的每个对象都有一个与之对应的索引，索引用于访问对象。因为vector“容纳着”其他对象，所以它也常被称作容器(container)。
+
+要想使用vector，必须包含适当的头文件。并且可以进行如下的using声明。
+
+```C++
+#include <vector>
+
+using std::vector;
+```
+
+vector是一个类模板
+
+```c++
+vector<int> ivec;				 // ivec保存int类型的对象
+vector<Sales_item> sales_vec;	 // 保存sales item类型的对象
+vector<vector<string>> file;	 // 该向量的元素是vector对象
+```
+
+*vector 是模板而非类型，由vector生成的类型必须包含vector中元素的类型，例如 vector<int>。*
+
+
+
+
+
+
+
+### 1. 定义和初始化vector对象
+
+![](./images/vector初始化.png)
+
+允许把一个vector对象的元素拷贝给另外一个 vector对象。此时，新vector对象的元素就是原vector对象对应元素的副本。注意两个vector对象的类型必须相同:
+
+例：
+
+```C++
+vector<int> ivec;			// 初始状态为空
+// 在此处给 ivec添加一些值
+vector<int> ivec2 (ivec);	// 把ivec的元素拷贝给ivec2
+vector<int> ivec3 = ivec;	// 把ivec的元素拷贝给ivec3
+vector<string> svec(ivec2);	//错误:svec的元素是string对象，不是int
+```
+
+
+
+##### 列表初始化vector对象
+
+```C++
+vector<string> articles = {"a", "an", "the"};	// 正确， vector对象中包含三个元素，第一个是字符串"a"，第二个是字符												// 串"an"，最后一个是字符串"the"。
+vector<string> v2("a", "an", "the");  			//错误
+```
+
+
+
+##### 创建指定数量的元素
+
+还可以用vector对象容纳的元素数量和所有元素的统一初始值来初始化vector对象:
+
+```C++
+vector<int> ivec (10，-1); 			// 10个int类型的元素，每个都被初始化为-1
+vector<string> svec (10，"hi!");		//10个string类型的元素，//每个都被初始化为"hi!"
+```
+
+
+
+##### 值初始化
+
+通常情况下，可以只提供vector对象容纳的元素数量而不用略去初始值。此时库会创建一个值初始化的(value-initialized）元素初值，并把它赋给容器中的所有元素。这个初值由vector对象中元素的类型决定。
+
+如果vector对象的元素是内置类型，比如 int，则元素初始值自动设为0。如果元素是某种类类型，比如 string，则元素由类默认初始化:
+
+```C++
+vector<int> ivec(10);		// 10个元素，每个都初始化为0
+vector<string> svec (10);	//10个元素，每个都是空string对象
+```
+
+
+
+这种初始化方式有两个特殊限制：
+
+①.  有些类要求必须明确地提供初始值，如果vector对象中元素的类型不支持默认初始化，我们就必须提供初始的元素值。对这种类型的对象来说,只提供元素的数量而不设定初始值无法完成初始化工作。
+
+②. 如果只提供了元素的数量而没有设定初始值，只能使用直接初始化。
+
+```C++
+vector<int> vi = 10;	//错误:必须使用直接初始化的形式指定向量大小
+```
+
+> 这里的10是用来说明如何初始化vector对象的，我们用它的本意是想创建含有10个值初始化了的元素的vector对象，而非把数字10“拷贝”到vector中。因此，此时不宜使用拷贝初始化。
+
+
+
+##### 列表初始值还是元素数量？
+
+- 要注意vector在进行初始化时，传递初值使用的是圆括号()，还是花括号{} ！
+
+例如，用一个整数来初始化`vector<int>`时，整数的含义可能是vector对象的容量也可能是元素的值。
+
+类似的，用两个整数来初始化`vector<int>`时，这两个整数可能一个是vector对象的容量，另一个是元素的初值，也可能它们是容量为2的vector对象中两个元素的初值。通过使用花括号或圆括号可以区分上述这些含义:
+
+```C++
+vector<int> v1(10);		// v1有10个元素，每个的值都是0
+vector<int> v2{10};		// v2有1个元素，该元素的值是10
+
+vector<int> v3(10, 1);	// v3有10个元素，每个的值都是1
+vector<int> v4{10, 1};	// v4有2个元素，值分别是10和1
+```
+
+在上面的代码示例中：
+
+> - 使用的是**圆括号**，表示提供的值是用来**构造**(construct) vector对象的。
+>
+>   在上例中，v1的初始值说明了vector对象的容量；v3的两个初始值则分别说明了vector对象的容量和元素的初值。
+>
+> - 使用的是**花括号**，表示**列表初始化**（list initialize）该vector对象。
+>
+>   也就是说，初始化过程会尽可能地把花括号内的值当成是元素初始值的列表来处理，只有在无法执行列表初始化时才会考虑其他初始化方式。
+>
+>   在上例中，给 v2和v4提供的初始值都能作为元素的值，所以它们都会执行列表初始化，vector对象v2包含一个元素而vector对象v4包含两个元素。
+
+但是，在进行初始化一个含有string对象的vector对象时（如下例）：
+
+```C++
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+int main() {
+    vector<string> v5{"hi"};        // 列表初始化
+    vector<string> v6("hi");        // 错误，不能使用字符串字面值初始化vector对象
+    vector<string> v7(10);          // v7有10个默认初始化的元素
+    vector<string> v8{10};          // v8有10个默认初始化的元素
+    vector<string> v9{10, "hi"};    // v9有10个值为"hi"的元素
+    vector<string> v10(10, "hi");   // v10有10个值为"hi"的元素
+}
+```
+
+尽管在上面的例子中有很多语句在初始化vector时都使用了花括号，但其实只有v5是列表初始化。
+
+要想列表初始化 vector对象，花括号里的值必须与元素类型相同。显然不能用int初始化 string对象，所以v8和v9提供的值不能作为元素的初始值。
+
+确认无法执行列表初始化后，编译器会尝试用默认值初始化vector对象。
+
+
+
+
+
+
+
+### 2. 向vector对象中添加元素
+
+利用vector的成员函数push_back可以向vector对象中添加元素。
+
+push_back负责把一个值当成vector对象的尾元素“压到(push)” vector对象的“尾端( back)”。例如:
+
+```C++
+	std::vector <int> v1;
+    for (int i = 0; i != 10; ++i) {
+        v1.push_back(i);
+    }
+```
+
+> C++标准要求vector应该能在运行时高效快速地添加元素。
+>
+> 因此既然vector对象能高效地增长，那么在定义vector对象的时候设定其大小就没有什么必要了，只有一种例外，即当所有元素的值都一样。一旦元素的值有所不同，更有效的办法是先定义一个空的vector对象，再在运行时向其中添加具体值。
+
+
+
+***注意：范围 for 语句体内不应改变其所遍历序列的大小！！***
+
+原因：在范围for语句中，预存了end()的值。一旦在序列中添加（删除）元素，end函数的值就可能变得无效了。
+
+```C++
+#include <vector>
+
+using namespace std;
+
+int main() {
+    vector<int> v{1, 2, 3, 4, 5};  // 列表初始化
+    for (auto &item: v) {
+        item *= 2;
+    }
+    //这个范围for语句等价于下面的传统for语句
+    for (auto begin = v.begin(), end = v.end(); begin != end; ++begin) {
+        auto &item = *begin;
+        item *= 2;
+    }
+    return 0;
+}
+
+```
+
+
+
+##### <a name="id2">如何修改vector对象的大小	</a>
+
+- 删除vector对象中的元素：
+
+```C++
+	// 删除vector对象中的元素：
+	std::vector<int> v{1, 2, 3, 4, 5};
+    for (auto it = v.begin(); it != v.end(); ) {
+        if (*it % 2 == 0) {
+            it = v.erase(it);
+        } else {
+            ++it;
+        }
+    }
+```
+
+-  向vector对象中添加元素：
+
+```C++
+    // 添加vector对象中的元素：
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        if (*it % 2 == 0) {
+            it = v.insert(it, *it);
+            ++it;   // 跳过刚刚添加的元素
+        }
+    }
+```
+
+
+
+
+
+
+
+### 3. 其他vector操作
+
+std::vector的其他操作与std::string相似。（下图中只是vector支持的操作中的一部分）
+
+![](./images/vector的其他操作.png)
+
+
+
+访问vector对象中元素的方法和访问string对象中字符的方法差不多，也是通过元素在vector对象中的位置。
+
+例如，可以使用范围for语句处理vector对象中的所有元素:
+
+```C++
+#include <vector>
+#include <iostream>
+
+using namespace std;
+
+int main() {
+    vector<int> v{1, 2, 3, 4, 5, 6};  // 列表初始化
+    for (auto &item: v) {
+        item *= item;
+    }
+    for (auto item: v) {
+        cout << item << " ";
+    }
+    cout << endl;   // 输出值为：1 4 9 16 25 36
+    return 0;
+}
+```
+
+
+
+vector的empty和size两个成员与string的同名成员功能完全一致: 
+
+- empty检查vector对象是否包含元素然后返回一个布尔值; 
+- size则返回vector对象中元素的个数,返回值的类型是由vector定义的size_type类型。
+
+> 要使用size_type，需首先指定它是由哪种类型定义的。
+>
+> vector对象的类型总是包含着元素的类型：
+>
+> ```C++
+> vector<int>::size_type		//正确
+> vector::size_type			//错误
+> ```
+
+
+
+关于相等性运算符，与string的相等性运算符的功能一致。
+
+1. 两个vector对象相等当且仅当它们所含的元素个数相同，而且对应位置的元素值也相同。
+
+2. 关系运算符依照字典顺序进行比较:
+
+   如果两个vector对象的容量不同，但是在相同位置上的元素值都一样，则元素较少的vector对象小于元素较多的vector对象；
+
+   若元素的值有区别，则vector对象的大小关系由第一对相异的元素值的大小关系决定。
+
+
+
+*只有当元素的值可比较时，vector对象才能被比较！*
+
+
+
+##### 计算vector内对象的索引
+
+例： 假设有一组成绩的集合，其中成绩的取值是从0到100。以10分为一个分数段，要求统计各个分数段各有多少个成绩。显然，从0到100总共有101种可能的成绩取值，这些成绩分布在11个分数段上:每10个分数构成一个分数段，这样的分数段有10个，额外还有一个分数段表示满分100分。这样第一个分数段将统计成绩在0到9之间的数量;第二个分数段将统计成绩在10到19之间的数量，以此类推。最后一个分数段统计满分100分的数量。
+
+与string中<a href="#id1">使用下标进行随机访问</a>的代码类似：
+
+```C++
+#include <iostream>
+#include <sstream>
+#include <vector>
+
+using namespace std;
+
+int main() {
+    string read_line;
+    getline(cin, read_line);    // 输入值：42 65 95 100 39 67 95 76 88 76 83 92 76 93
+    stringstream ss(read_line);
+
+    vector<int> result_vec(11, 0);
+
+    int num;
+    while (ss >> num) {
+        if (num < 0 || num > 100) {
+            cout << "Invalid score" << endl;
+            return 0;
+        }
+        ++result_vec[num / 10];	// 将当前分数段的计数值加1
+    }
+
+    if (ss.fail() && !ss.eof()) {
+        std::cout << "输入的不是数字！" << std::endl;
+        return 0;
+    }
+
+    for (auto i : result_vec) {
+        cout << i << " ";   // 输出为：0 0 0 1 1 0 2 3 2 4 1
+    }
+
+    return 0;
+}
+```
+
+在上面的代码中：
+
+```C++
+	++result_vec[num / 10];
+
+	// 本注释上面这一行代码，等价于本注释下面两行代码
+
+	auto ind = num / 10;	//得到分数段索引
+	result_vec[ind] = result_vec[ind] + 1	//将计数值加1
+```
+
+
+
+##### 不能用下标形式添加元素
+
+正确：
+
+```C++
+	vector<int> ivec;
+	for (int ix = 0; ix != 10; ++ix) {
+	    ivec.push_back(ix);
+	}
+```
+
+错误：
+
+```C++
+    vector<int> ivec;
+    for (int ix = 0; ix != 10; ++ix) {
+        ivec[ix] = ix;      // 会报错，因为ivec是空的，没有元素，不能用下标访问
+    }
+```
+
+
+
+> vector对象(以及string对象)的下标运算符可用于访问已存在的元素，而不能用于添加元素。
+
+
+
+
+
+
+
+
+
+
+
+## 迭代器
+
+使用迭代器（iterator）是一种通用的访问容器中元素的方法。
+
+类似于指针类型，迭代器也提供了对对象的间接访问。就迭代器而言，其对象是容器中的元素或者string对象中的字符。使用迭代器可以访问某个元素，迭代器也能从一个元素移动到另外一个元素。
+
+迭代器有有效和无效之分。有效的迭代器指向某个元素，或指向尾元素的下一个位置，其它情况都属于无效。
+
+
+
+> 在 C++ 中，迭代器是一种抽象的概念，它可以被看作是一种类似于指针的对象，用于遍历容器中的元素。迭代器可以被看作是一种指针，但并不是所有迭代器都是指针。
+>
+> C++ 中的迭代器可以分为五种类型：输入迭代器、输出迭代器、前向迭代器、双向迭代器和随机访问迭代器。其中，输入迭代器和输出迭代器是最基本的迭代器类型，它们只支持读取和写入操作，不支持算术运算。前向迭代器、双向迭代器和随机访问迭代器则支持不同程度的算术运算，例如前向迭代器只支持单向遍历，双向迭代器支持双向遍历，随机访问迭代器支持随机访问。
+>
+> 对于指针类型的容器，例如数组和指针，它们的迭代器就是指针。对于其他类型的容器，例如 vector、list、set 等，它们的迭代器并不一定是指针，而是一种类似于指针的对象，用于遍历容器中的元素。例如，vector 的迭代器是一种随机访问迭代器，它可以像指针一样进行算术运算，但并不是指针类型。
+
+
+
+
+
+
+
+### 1. 使用迭代器
+
+和指针不一样的是，获取迭代器不是使用取地址符，有迭代器的类型同时拥有返回迭代器的成员。比如，这些类型都拥有名为 begin和 end 的成员，
+
+其中 begin 成员负责返回指向第一个元素(或第一个字符)的迭代器。如有下述语句:
+
+```C++
+	// 由编译器决定b和e的类型
+	// b表示v的第一个元素，e表示v尾元素的下一位置
+	auto b = v.begin(), e = v.end();	//b和e的类型相同
+```
+
+end 成员则负责返回指向容器(或string对象)“尾元素的下一位置(onc past the end)"的迭代器，也就是说，该迭代器指示的是容器的一个本不存在的“尾后(off the end)”元素。
+
+这样的迭代器没什么实际含义，仅是个标记而已，表示我们已经处理完了容器中的所有元素。
+
+end成员返回的迭代器常被称作尾后迭代器（off-the-end iterator）或者简称为尾迭代器(end iterator)。特殊情况下如果容器为空，则begin和 end返回的是同一个迭代器。
+
+
+
+***一般情况下，我们不在乎迭代器准确的类型到底是什么。***
+
+
+
+##### <a name="idde">迭代器运算符</a>
+
+![](./images/迭代器运算符.png)
+
+和指针类似，可以通过解引用迭代器来获取它所指示的元素。
+
+执行解引用的迭代器必须合法并确实指示着某个元素。试图解引用一个非法迭代器或者尾后迭代器都是未被定义的行为(UB)。
+
+
+
+例：利用迭代器将string对象的第一个字母改为大写形式：
+
+```C++
+    string str("some string");
+    if (str.begin() != str.end()) {	
+        auto it = str.begin();
+        *it = toupper(*it);
+    }
+    cout << str << endl;		// 输出结果为：Some string
+```
+
+
+
+
+
+##### 将迭代器从一个元素移动到另外一个元素
+
+迭代器使用递增（++）运算符来从一个元素移动到下一个元素。
+
+从逻辑上来说，迭代器的递增和整数的递增类似，整数的递增是在整数值上“加1",迭代器的递增则是将迭代器“向前移动一个位置”。
+
+> 因为 end 返回的迭代器并不实际指示某个元素,所以不能对其进行递增或角引用的操作。
+
+例：将字符串对象中第一个单词改为大写：
+
+```c++
+    string str("some string");
+    for (auto it = str.begin(); it != str.end() && !isspace(*it); ++it) {
+        *it = toupper(*it);
+    }
+    cout << str << endl;    // 输出结果为：SOME string
+```
+
+
+
+##### 迭代器类型
+
+就像不知道string 和 vector 的size_type 成员到底是什么类型一样，一般来说我们也不知道(其实是无须知道)迭代器的精确类型。
+
+而实际上，那些拥有迭代器的标准库类型使用iterator和const_iterator来表示迭代器的类型:
+
+```C++
+vector<int>::iterator it;		// it能读写vector<int>的元素
+string::iterator it2;			// it2能读写string对象中的字符
+
+vector<int>::const_iterator it3;	// it3只能读元素，不能写元素
+string::const_iterator it4;			// it4只能读字符，不能写字符
+```
+
+const_iterator和常量指针差不多，能读取但不能修改它所指的元素值。相反，iterator的对象可读可写。
+
+- 如果vector对象或string对象是一个常量，只能使用const_iterator;
+- 如果vector对象或string对象不是常量，那么既能使用iterator也能使用const_iterator。
+
+
+
+##### begin 和 end 运算符
+
+begin和end返回的具体类型由对象是否是常量决定，如果对象是常量，begin和end返回const_iterator; 如果对象不是常量，返回iterator:
+
+```C++
+	vector<int> v;
+	const vector<int> cv;
+	auto it1 = v.begin();	// it1的类型是vector<int>::iterator
+	auto it2 = cv.begin();	// it2的类型是vector<int>::const_iterator
+	auto it3 = v.cbegin();  // it3的类型是vector<int>::const_iterator
+```
+
+有时候这种默认的行为并非我们所要。如果对象只需读操作而无须写操作的话最好使用常量类型(比如 const_iterator)。为了便于专门得到const_iterator类型的返回值,C++11新标准引入了两个新函数,分别是cbegin和cend（见上例中it3）。
+
+
+
+##### 结合解引用和成员访问操作
+
+解引用迭代器可获得迭代器所指的对象，如果该对象的类型恰好是类，就有可能希望进一步访问它的成员。
+
+例如，对于一个由字符串组成的vector对象来说，要想检查其元素是否为空，令it是该vector对象的迭代器，只需检查it所指字符串是否为空就可以了，其代码如下所示:
+
+```C++
+	(*it).empty
+```
+
+`(*it).empty ()`中的圆括号必不可少，该表达式的含义是先对it解引用，然后解引用的结果再执行点运算符。
+
+如果不加圆括号，点运算符将由it来执行，而非it解引用的结果：
+
+```C++
+	(*it).empty		// 解引用it，然后调用结果对象的empty成员
+    *it.empty		// 错误:试图访问it对象中的名为empty的成员，但it是个迭代器，没有empty成员
+```
+
+
+
+为了简化以上的表达式，**箭头运算符** (->) 把箭头运算符把解引用和成员访问两个操作结合在一起，也就是说，it->mem和(*it).mem表达的意思相同。
+
+
+
+例：假设用一个名为text的字符串向量存放文本文件中的数据，其中的元素要么是一句话要么是一个用于表示段落分隔的空字符串。如果要输出text中第一段的内容，可以利用迭代器写一个循环令其遍历text，直到遇到空字符串的元素为止。完整代码如下：
+
+```C++
+#include <iostream>
+#include <fstream>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+void readFile(vector<string>* v) {
+    ifstream fin;
+    fin.open("file.txt", ios::in);
+    if (!fin.is_open()) {
+        cout << "无法找到这个文件！" << endl;
+        return;
+    }
+    string line;
+    while (getline(fin, line)) {    //每次读取一行，直到文件末尾
+        v->push_back(line);
+    }
+    fin.close();
+}
+
+int main() {
+    vector<string> text;
+    readFile(&text);
+    for (auto it = text.begin(); it != text.end() && !it->empty(); ++it) {
+        cout << *it << endl;
+    }
+
+    return 0;
+}
+```
+
+`file.txt`：
+
+```
+A
+B
+
+C
+```
+
+输出内容：
+
+```
+A
+B
+```
+
+
+
+##### 某些对vector对象的操作会使迭代器失效
+
+虽然vector对象可以动态地增长，但是也会有一些副作用。
+
+已知的一个限制是不能在范围for循环中向vector对象添加元素。
+
+另外一个限制是任何一种可能改变vector对象容量的操作，比如 push_back，都会使该vector对象的迭代器失效，我们应该更新迭代器，使其重新生效。
+
+请见<a href="#id2">如何修改vector对象的大小</a>。
+
+
+
+
+
+
+
+### 2. 迭代器运算
+
+迭代器的递增运算令迭代器每次移动一个元素，所有的标准库容器都有支持递增运算的迭代器。
+
+类似的，也能用==和!=对任意标准库类型的两个有效迭代器进行比较。
+
+
+
+<a name="idq1">迭代器支持的运算</a>
+
+![](./images/迭代器支持的运算.png)
+
+
+
+##### 迭代器的算术运算
+
+可以令迭代器和一个整数值相加（或相减），其返回值是向前（或向后）移动了若干个位置的迭代器。
+
+执行这样的操作时，结果迭代器或者指示原vector对象（或string对象）内的一个元素，或者指示原vector对象（或string对象）尾元素的下一位置。
+
+例：
+
+```C++
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+int main()
+{
+	vector<int> v{1, 2, 3, 4};
+    // 添加vector对象中的元素：
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        // 将原vector偶数位置的元素的值变为原来的两倍，放到这个位置的后面
+    	if (*it % 2 == 0) {
+            it = v.insert(it + 1, (*it * 2));
+        }
+    }
+
+    for (int i : v) {       // 输出内容：1 2 4 3 4 8 
+        cout << i << " ";
+    }
+    cout << "\n";
+
+    // 计算得到最接近vi中间位置的迭代器
+    auto mid = v.begin() + v.size() / 2;
+    cout << *mid << endl;   // 输出内容：3
+
+    return 0;
+}
+```
+
+如果vi有20个元素，vi.size() / 2得10，此例中即令mid等于vi.begin() +10。已知下标从0开始，则迭代器所指的元素是vi[10]，也就是从首元素开始向前相隔10个位置的那个元素。
+
+
+
+对于string或vector的迭代器来说,除了判断是否相等,还能使用关系运算符(<、<=、>、>=)对其进行比较。
+
+参与比较的两个迭代器必须合法而且指向的是同一个容器的元素（或者尾元素的下一位置)。
+
+例如，假设it和mid是同一个vector对象的两个迭代器，可以用下面的代码来比较它们所指的位置孰前孰后:
+
+```C++
+	if (it < mid)
+		// 处理vi前半部分的元素
+```
+
+只要两个迭代器指向的是同一个容器中的元素或者尾元素的下一位置，就能将其相减，所得结果是两个迭代器的距离。
+
+所谓距离指的是右侧的迭代器向前移动多少位置就能追上左侧的迭代器，其类型是名为 **difference_type** 的带符号整型数。
+
+string和vector都定义了 difference_type，因为这个距离可正可负，所以 difference_type 是带符号类型的。
+
+
+
+##### 使用迭代器运算
+
+使用迭代器进行二分查找（二分搜索）代码：
+
+```C++
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+int binary_search(const vector<int> &nums, int target) {
+    auto begin = nums.begin(), end = nums.end();
+    while (true) {
+        if (begin == end) {
+            return -1;
+        }
+        auto mid = begin + (end - begin) / 2;
+        if (target < *mid) {
+            end = mid;
+        } else if (target > *mid) {
+            begin = mid + 1;
+        } else {
+            return mid - nums.begin();
+        }
+    }
+}
+
+int main() {
+    vector<int> nums{1, 3, 5, 7, 9, 11, 13};
+
+    int target = 1;
+    int index = binary_search(nums, target);
+
+    if (index != -1) {
+        cout << "目标元素 " << target << " 的索引为 " << index << endl;
+    } else {
+        cout << "目标元素 " << target << " 不存在" << endl;
+    }
+
+    return 0;
+}
+```
+
+
+
+问题：为什么在二分查找中，用的是`mid = begin + (end - begin) / 2;`，而不是 `mid = (begin + end) /2;` ?
+
+> C++并没有定义两个迭代器的加法运算,实际上直接把两个迭代器加起来是没有意义的。
+>
+> 与之相反，C++定义了迭代器的减法运算，两个迭代器相减的结果是它们之间的距离，也就是说，将运算符右侧的迭代器向前移动多少个元素后可以得到左侧的迭代器，参与运算的两个迭代器必须指向同一个容器中的元素或尾后元素。
+>
+> 另外，C++还定义了迭代器与整数的加减法运算，用以控制迭代器在容器中左右移动。
+>
+> 在本题中，因为迭代器的加法不存在，所以`mid = (beg + end) / 2;`不合法`mid = beg + (end - beg) / 2`;的含义是，先计算end-beg的值得到容器中的元素个数，然后控制迭代器从开始处向右移动二分之一容器的长度，从而定位到容器正中间的元素。
+
+
+
+
+
+
+
+
+
+
+
+## 数组
+
+数组的大小确定不变，不能向数组中添加元素。
+
+因为数组的大小固定，因此对某些特殊的应用来说程序的运行时候性能比较好，但也损失了一些灵活性。
+
+如果不清楚元素的确切个数，请使用vector
+
+
+
+
+
+
+
+### 1. 定义和初始化内置数组
+
+编译时数组的维度（数组中的元素个数）应该是已知的。换句话说，维度必须是一个常量表达式：
+
+```C++
+	unsigned cnt = 42;              // 不是常量表达式
+	constexpr unsigned sz = 42;     // 常量表达式
+	int arr[10];                    // 含有10个整数的数组
+	int *parr[sz];                  // 含有42个整型指针的数组
+	string bad[cnt];                // 错误：cnt不是常量表达式
+	string strs[get_size()];        // 当get_size是constexpr时正确
+```
+
+默认情况下，数组的元素被默认初始化。
+
+定义数组的时候必须指定数组的类型，不允许用auto关键字由初始值的列表推断类型。另外和 vector一样，数组的元素应为对象，因此不存在引用的数组。
+
+
+
+
+
+##### 显式初始化数组元素
+
+可以对数组的元素进行列表初始化，此时允许忽略数组的维度。
+
+如果在声明时没有指明维度，编译器会根据初始值的数量计算并推测出来；相反，如果指明了维度，那么初始值的总数量不应该超出指定的大小。
+
+如果维度比提供的初始值数量大，则用提供的初始值初始化靠前的元素，剩下的元素被初始化成默认值：
+
+```C++
+    const unsigned sz = 3;
+    int ial[sz] = {0, 1, 2};			// 含有3个元素的数组,元素值分别是0,1,2
+    int a2[] = {0, 1, 2};				// 含有3个元素的数组,元素值分别是0,1,2
+    int a3[5] = {0, 1, 2};				// 含有5个元素的数组,元素值分别是0,1,2,0,0
+    string a4[3] = {"hi", "bye"};	    // 含有3个元素的数组,元素值分别是"hi","bye",""
+    int a5[2] = {0, 1, 2};			    // 错误! 初始值过多
+```
+
+
+
+
+
+
+
+##### 字符数组的特殊性
+
+字符数组有一种额外的初始化形式，我们可以用字符串字面值对此类数组初始化。
+
+**当使用这种方式时，一定要注意字符串字面值的结尾处还有一个空字符，这个空字符也会像字符串的其他字符一样被拷贝到字符数组中去:**
+
+```C++
+    char a1[] = {'C', '+', '+'};   			// 列表初始化，没有空字符，维度为3
+    char a2[] = {'C', '+', '+', '\0'}; 		// 列表初始化，有显式的空字符，维度为4
+    char a3[] = "C++";  					// 自动添加空字符，维度为4
+    char a4[3] = "C++"; 					// 错误，没有空间存放空字符
+```
+
+
+
+
+
+
+
+##### 不允许拷贝和赋值
+
+不能将数组的内容拷贝给其他数组作为其初始值，也不能用数组为其他数组赋值。
+
+```c++
+    int a[] = {1, 2, 3};
+    int a2 = a; 	// 错误：不允许使用一个数组初始化另一个数组
+    a2 = a; 		// 错误：不允许把一个数组直接赋值给另一个数组
+```
+
+
+
+
+
+
+
+##### 理解数组的复杂声明
+
+和vector一样，数组能存放大多数类型的对象。例如，可以定义一个存放指针的数组。又因为数组本身就是对象，所以允许定义数组的指针及数组的引用。在这几种情况中，定义存放指针的数组比较简单和直接，但是定义数组的指针或数组的引用就稍微复杂一点了:
+
+```C++
+    int arr[10];  				// arr是含有10个整数的数组
+    int *ptrs[10];  			// ptrs是含有10个int*的数组
+    int &refs = /* ? */;  		// 错误：不存在引用的数组
+    int (*Parray)[10] = &arr;  	// Parray指向一个含有10个int*的数组
+    int (&arrRef)[10] = arr;  	// arrRef引用一个含有10个int的数组
+	int *(&arry)[10] = ptrs;	// arry是数组的引用，该数组中含有10个指针
+```
+
+对于ptrs：ptrs是一个大小为10的数组，数组中存放的是指向int的指针。
+
+对于Parray：(*Parray)表示Parray是一个指针，它指向一个int数组，数组中包含10个元素。
+
+对于arrRef：(&arrRef)表示arrRef是一个引用，它引用的对象是一个大小为10的数组，数组中元素的类型是int。
+
+对于arry：arry是一个含有10个int型指针的数组的引用。
+
+> 要想理解数组声明的含义,最好的办法是从数组的名字开始按照由内向外的顺序阅读。
+
+```C++
+    int arr[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+	int *ptrs[10] = {&arr[0], &arr[1], &arr[2], &arr[3], &arr[4], &arr[5], &arr[6], &arr[7], &arr[8], &arr[9]};
+
+	cout << **Parray << endl;           // 输出结果为 1
+    cout << *(*Parray + 1) << endl;     // 输出结果为 2
+
+    cout << arrRef[0] << endl;          // 输出结果为 1
+    cout << arrRef[1] << endl;          // 输出结果为 2
+
+	cout << *arry[0] << endl;           // 输出结果为 1
+    cout << *arry[1] << endl;           // 输出结果为 2
+```
+
+
+
+
+
+
+
+### 2. 访问数组元素
+
+使用数组下标的时候，通常将其定义为size_t类型，这是一种机器相关的无符号类型。
+
+
+
+可以使用范围for语句来遍历数组。
+
+```c++
+for (auto i : arr)
+    cout << i << " ";
+cout << endl;
+```
+
+使用数组重写vector中<a href="#id1">使用下标进行随机访问</a>的代码
+
+```C++
+#include <iostream>
+#include <sstream>
+
+using namespace std;
+
+int main() {
+    string read_line;
+    getline(cin, read_line);    // 输入值：42 65 95 100 39 67 95 76 88 76 83 92 76 93
+    stringstream ss(read_line);
+
+    int result_arr[11] = {};
+
+    int num;
+    while (ss >> num) {       // while (ss >> num) 会一直读取，直到遇到空白符
+        if (num < 0 || num > 100) {
+            cout << "Invalid score" << endl;
+            return 0;
+        }
+        ++result_arr[num / 10];
+    }
+
+    if (ss.fail() && !ss.eof()) {
+        std::cout << "输入的不是数字！" << std::endl;
+        return 0;
+    }
+
+    for (auto i : result_arr) {
+        cout << i << " ";   // 输出为：0 0 0 1 1 0 2 3 2 4 1
+    }
+
+    return 0;
+}
+
+```
+
+
+
+
+
+##### 检查下标的值
+
+与string和vector一样，数组的下标是否在合理范围之内由程序员负责检查。
+
+
+
+> 大多数常见的安全问题都源于缓冲区溢出错误。当数组或其他类似数据结构的下标越界并试图访问非法内存区域时，就会产生此类错误。
+
+
+
+
+
+
+
+### 3. 指针和数组
+
+
+
+在很多用到数组名字的地方，编译器都会自动地将其替换为一个**指向数组首元素的指针**。
+
+```C++
+    string strs[] = {"one", "two", "three"};
+    string *p = strs;
+    cout << *p << endl;     // 输出为：one
+    string *p1 = &strs[0];		// 等价于 string *p = strs;
+    cout << *p1 << endl;    // 输出为：one
+```
+
+
+
+**decltype**
+
+下面得到一个含有10个整数的数组类型：
+
+```c++
+int a1[10] = {};
+decltype(a1) a2 = {};
+a2[2] = 5; 				// 将5复制给a2中下标为2的元素
+```
+
+**auto**
+
+下面得到一个整型指针：
+
+```c++
+int a1[10] = {};
+auto a2(a1);		// a2是一个整形指针，指向a1的第一个元素
+a2 = 42; 			// 错误： ia2是一个指针，不能用int值给指针赋值
+```
+
+
+
+
+
+##### 指针也是迭代器
+
+string和vector的迭代器支持的运算，指针都支持。
+
+使用递增运算符既可以让指向数组元素的指针向前移动到下一个位置上。
+
+这样可以获取数组尾元素的下一个位置的指针（其中N为数组长度）：
+
+```c++
+	int *end = &a[N];
+```
+
+利用这点，我们也可以写出一个循环来输出arr中的全部元素：
+
+```C++
+    int *end = &result_arr[11];
+    for (int *i = result_arr; i != end; ++i) {
+        cout << *i << " ";
+    }
+```
+
+
+
+
+
+
+
+##### 标准库函数begin和end
+
+C++11提供了begin和end函数，可以获取数组首元素的指针和尾后指针：
+
+```c++
+	int ia[] = {1, 2, 3, 4, 5};
+	int *beg_p = begin(a);		// 指向ia首元素的指针
+	int *end_p = end(a);		// 指向ia尾元素的下一位置的指针
+```
+
+例：
+
+```c++
+    int ia[] = {1, 2, 3, -3, 4, 5};
+    int *pbeg = begin(ia);
+    int *pend = end(ia);
+    while (*pbeg != *pend && *pbeg >= 0) {
+        ++pbeg;
+    }
+    cout << "数组中第一个负数是" << *pbeg << endl;
+```
+
+尾后指针不能解引用和递增操作。
+
+和迭代器一样，两个指针相减的结果是它们之间的距离。参与运算的两个指针必须指向同一个数组当中的元素。
+
+
+
+
+
+
+
+##### 指针运算
+
+指向数组元素的指针可以执行[表3.6](#idde) ，[表3.7](#idq1)中列出的所有迭代器运算。
+
+这些运算，包括解引用、递增、比较、与整数相加、两个指针相减等，用在指针和用在迭代器上意义完全一致。
+
+
+
+给（从）一个指针加上（减去）某整数值，结果仍是指针。新指针指向的元素与原来的指针相比前进了(后退了)该整数值个位置：
+
+```C++
+    constexpr size_t sz = 5;
+    int arr[sz] = {1, 2, 3, 4, 5};
+    int *ip = arr;          // equivalent to int *ip = &arr[0]
+    int *ip2 = ip + 4;      // ip2 points to arr[4], the last element in arr
+```
+
+ip加上4所得的结果仍是一个指针，该指针所指的元素与ip原来所指的元素相比前进了4个位置。
+
+给指针加上一个整数，得到的新指针仍需指向同一数组的其他元素，或者指向同一数组的尾元素的下一位置。但是计算所得的指针超出上述范围就会产生错误:
+
+```C++
+    int *pend = arr + sz;   // pend points just past the last element in arr
+    int *p2 = arr + 10;     // error: there is no arr[10]
+```
+
+
+
+和迭代器类似，两个指针相减的结果就是它们之间的距离。参与运算的两个指针必须指向同一个数组当中的元素：
+
+```C++
+    constexpr size_t sz = 5;
+    int arr[sz] = {1, 2, 3, 4, 5};
+	auto n = end(arr) - begin(arr);  	// n = 5
+```
+
+两指针相减的结果是**ptrdiff_t**的标准库类型。由于差值可能为负值，所以ptrdiff_t是一种带符号的类型。
+
+
+
+我们也可以通过这种方式来遍历数组中的元素：
+
+```C++
+int main() {
+    constexpr size_t sz = 5;
+    int arr[sz] = {1, 2, 3, 4, 5};
+    int *p = arr;
+    int *p2 = arr + sz;
+    while (p != p2) {			//  括号内写成(p < p2)也可
+        cout << *p << endl;
+        ++p;
+    }
+    return 0;
+}
+```
+
+
+
+但是，如果两个指针分别指向不相关的对象，则不能比较它们：
+
+```C++
+    int n = 0, m = 54;
+    int *p3 = &n, *p4 = &m;
+    while (p3 < p4)    	// p3和p4指向的是不同的对象，所以比较毫无意义！
+```
+
+
+
+上述指针运算同样适用于空指针和所指对象并非数组的指针。
+
+在后一种情况下，两个指针必须指向同一个对象或该对象的下一位置。
+
+如果p是空指针，允许给p加上或减去一个值为o的整型常量表达式(参见2.4.4节，第58页)。两个空指针也允许彼此相减，结果当然是0。
+
+
+
+##### 解引用和指针运算的交互
+
+给（从）一个指针加上（减去）某整数值，结果仍是指针。假设结果指针指向了一个元素，则允许解引用该结果指针:
+
+```C++
+    int arr[] = {1, 2, 3, 4, 5};
+    auto last = *(arr + 4);       // 是arr[4]的值，等价于arr[4]
+	
+	auto cal = *arr + 4;        // 等价于arr[0] + 4
+```
+
+
+
+
+
+
+
+##### 下标和指针
+
+对数组使用下标运算符时，编译器会自动将数组名解释为一个指向数组首元素的指针。
+
+```C++
+	int arr[5] = {1, 2, 3, 4, 5};
+	int x = arr[2]; // 使用下标运算符访问数组元素
+
+	int *p = arr;		// p指向arr的首元素
+	int y = *(p + 2); 	// 等价于 int x = arr[2];
+```
+
+
+
+只要指针指向的是数组中的元素(或者数组中尾元素的下一位置)，都可以执行下标运算：
+
+
+
+```C++
+int main() {
+    int ia[] = {1, 2, 3, 4, 5};
+    int *p = &ia[2];    // 指向索引为2的元素
+    int j = p[1];       // 指向索引为3的元素
+    int k = p[-2];      // 指向索引为0的元素
+    cout << "j是" << j << " " << "k是" << k << endl;
+
+    vector<int> ivec = {1, 2, 3, 4, 5};
+    int *p1 = &ivec[2]; // 指向索引为2的元素
+    int l = p1[1];      // 指向索引为3的元素
+    int m = p1[-2];     // 指向索引为0的元素
+    cout << "l是" << l << " " << "m是" << m << endl;
+
+    return 0;
+}
+```
+
+虽然标准库类型string和 vector也能执行下标运算，但是数组与它们相比还是有所不同。标准库类型限定使用的下标必须是无符号类型，而内置的下标运算无此要求，上面的最后一个例子很好地说明了这一点。内置的下标运算符可以处理负值，当然，结果地址必须指向原来的指针所指同一数组中的元素（或是同一数组尾元素的下一位置)。
+
+
+
+
+
+
+
+### 4. C风格字符串
+
+> 尽管C++支持C风格字符串,但在C++程序中最好还是不要使用它们。这是因为C风格字符串不仅使用起来不太方便,而且极易引发程序漏洞,是诸多安全问题的根本原因。
+
+C风格字符串是为了表达和使用字符串而形成的一种约定俗成的写法。
+
+按此习惯书写的字符串存放在字符数组中并以空字符结束(null terminated)。以空字符结束的意思是在字符串最后一个字符后面跟着一个空字符('\0')。一般利用指针来操作这些字符串。
+
+
+
+
+
+##### C标准库String函数
+
+![](./images/C标准库string函数.png)
+
+***传入此类函数的指针必须指向以空字符串作为结束的数组！！***
+
+例：
+
+```C++
+int main() {
+    char ca[] = {'C', '+', '+'};	// 应该写成：char ca[] = {'C', '+', '+', '\0'};，输出结果为3
+    cout << strlen(ca) << endl;		// 严重错误：ca没有以空字符结束
+    return 0;
+}
+```
+
+此例中，ca虽然也是一个字符数组但它不是以空字符作为结束的，因此上述程序将产生未定义的结果。strlen函数将有可能沿着ca在内存中的位置不断向前寻找，直到遇到空字符才停下来。
+
+
+
+
+
+##### 比较字符串
+
+比较标准库string对象的时候，我们可以使用普通的关系运算符和相等性运算符：
+
+```C++
+    string s1 = "a string example";
+    string s2 = "a different string";
+    if (s1 < s2) {}    // false
+```
+
+但是如果把这些运算符用在两个C-Style字符串上，实际比较的是指向数组首元素的指针，而不是字符串本身：
+
+```C++
+    const char ca1[] = "A string example";
+    const char ca2[] = "A different string";
+    if (ca1 < ca2){}	// 未定义行为，试图比较两个无关地址
+```
+
+实际上，上面的if条件比较的是两个 `const char*` 的值。这两个指针的指向并不是同一个对象，所以这是未定义行为。
+
+
+
+要想比较两个C风格字符串需要调用strcmp函数，此时比较的就不再是指针了。
+
+如果两个字符串相等，strcmp返回0；
+
+如果前面的字符串较大，返回正值；
+
+如果后面的字符串较大，返回负值：
+
+```C++
+	if (strcmp(ca1, ca2) < 0)	// 和两个string对象的比较s1 < s2的效果一样
+```
+
+
+
+
+
+
+
+##### 目标字符串的大小由调用者指定
+
+连接或拷贝C风格字符串也与标准库string对象的同类操作差别很大。例如，要想把刚刚定义的那两个string对象s1和 s2连接起来，可以直接写成下面的形式：
+
+```C++
+	// 将largeStr初始化成s1、一个空格和s2的连接
+	string largeStr = s1 + " " + s2;
+```
+
+同样的操作如果放到ca1和ca2这两个数组身上就会产生错误了。表达式cal + ca2试图将两个指针相加，显然这样的操作没什么意义，也肯定是非法的。
+
+正确的方法是使用strcat函数和 strcpy函数。不过要想使用这两个函数，还必须提供一个用于存放结果字符串的数组，该数组必须足够大以便容纳下结果字符串及末尾的空字符。下面的代码虽然很常见，但是充满了安全风险，极易引发严重错误：
+
+```C++
+	// 如果我们计算错了largestr的大小将引发严重错误
+	strcpy(largeStr, ca1);		// 把ca1拷贝给largeStr
+	strcat(largeStr, " ");		// 在largeStr的末尾加上一个空格
+	strcat(largeStr, ca2);		// 把ca2连接到largeStr后面
+```
+
+一个潜在的问题是，我们在估算largeStr所需的空间时不容易估准，而且 largeStr所存的内容一旦改变，就必须重新检查其空间是否足够。
+
+
+
+> 对大多数应用来说,使用标准库string要比使用C风格字符串更安全、更高效。
+
+
+
+
+
+
+
+### 5. 与旧代码的接口
+
+##### 混用string对象和C风格字符串
+
+char[] 转化为 string:
+
+任何出现字符串字面值的地方都可以用以空字符结束的字符数组来替代:
+
+- 允许使用以空字符结束的字符串数组来初始化string对象或为string对象赋值。
+- 在string 对象的加法运算中允许使用以空字符结束的字符数组作为其中一个运算对象（不能两个运算对象都是）；在string对象的复合赋值运算中允许使用以空字符结束的字符数组作为右侧的运算对象。
+
+
+
+string 转化为 char[]:
+
+```C++
+	char *str = s;					// 错误：不能用string对象初始化char*
+	const char *str = s.c_str();	// 正确
+```
+
+`c_str`函数的返回值是一个C风格的字符串。也就是说，函数的返回结果是一个指针，**该指针指向一个以空字符结束的字符数组**，而这个数组所存的数据恰好与那个string对象的一样。结果指针的类型是 `const char*`，从而确保我们不会改变字符数组的内容。
+
+> 虽然`p`指向的是字符数组的首地址，但它本身并不是字符数组的数组名
+
+
+
+
+
+
+
+##### 使用数组初始化vector对象
+
+不允许使用一个数组为另一个内置类型的数组赋初值，也不允许使用vector对象初始化数组。
+
+相反的，允许使用数组来初始化vector对象。要实现这一目的，只需指明要拷贝区域的首元素地址和尾后地址就可以了:
+
+与此同时，用于初始化vector对象的值也可能仅是数组的一部分:
+
+```C++
+    int arr[] = {1, 2, 3, 4, 5};
+    vector<int> vec(begin(arr), end(arr));    // 用arr的所有元素初始化vec
+    vector<int> vec1(arr + 2, arr + 5);         // 用arr[2]~arr[4]初始化vec1  内容为：3 4 5
+```
+
+
+
+
+
+
+
+
+
+### 6. 多维数组
+
+
+
+***严格地说，C++中并没有多维数组，通常所说的多维数组其实是数组的数组！！***
+
+
+
+##### 多维数组的初始化
+
+```c++
+	int ia[3][4] =
+	{   // 有三个元素，其中每个元素都是长度为4的int型数组
+	    {0, 1, 2, 3},   // initializers for the row indexed by 0
+	    {4, 5, 6, 7},   // initializers for the row indexed by 1
+	    {8, 9, 10, 11}  // initializers for the row indexed by 2
+	};
+	// 等效初始化，每行不包含可选的嵌套大括号
+	int ib[3][4] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+	// explicitly initialize only element 0 in each row
+	int ic[3][4] = {{ 0 }, { 4 }, { 8 }};
+	// explicitly initialize row 0; the remaining elements are value initialized
+	int id[3][4] = {0, 3, 6, 9};
+```
+
+注意：在声明多维数组时，如果不显式指定数组的大小，则只能省略最后一维的大小，而其他维度的大小必须显式指定。
+
+```C++
+	int a[][2] = {
+            {1, 2},
+            {4, 5},
+            {7, 8}
+    };
+    // 等价于
+ 	int a[3][2] = {
+            {1, 2},
+            {4, 5},
+            {7, 8}
+    };
+	// 更多维度的数组也与此同理
+	    int arr[][3][4] = {		// arr[2][3][4]
+            {{1,  2,  3,  4},  {5,  6,  7,  8},  {9,  10, 11, 12}},
+            {{13, 14, 15, 16}, {17, 18, 19, 20}, {21, 22, 23, 24}}
+    };
+```
+
+
+
+
+
+
+
+##### 多维数组的下标引用
+
+可以使用下标访问多维数组的元素，数组的每个维度对应一个下标运算符。如果表达式中下标运算符的数量和数组维度一样多，则表达式的结果是给定类型的元素。如果下标运算符数量比数组维度小，则表达式的结果是给定索引处的一个内层数组。
+
+```c++
+	// 用arr的首元素为ia的最后一行的最后一个元素赋值
+	ia[2][3] = arr[0][0][0];
+	int (&row)[4] = ia[1];  // 把row绑定到ia的第二个4元素数组上
+```
+
+多维数组寻址公式：
+
+![3-10](images/3-10.png)
+
+
+
+
+
+
+
+##### 使用范围`for`语句处理多维数组
+
+使用范围`for`语句处理多维数组时，为了避免数组被自动转换成指针，语句中的外层循环控制变量必须声明成引用类型。
+
+```c++
+for (const auto &row : ia)  // for every element in the outer array
+    for (auto col : row)    // for every element in the inner array
+        cout << col << endl;
+```
+
+如果`row`不是引用类型，编译器初始化`row`时会自动将数组形式的元素转换成指向该数组内首元素的指针，这样得到的`row`就是`int*`类型，而之后的内层循环则试图在一个`int*`内遍历，程序将无法通过编译。
+
+```c++
+for (auto row : ia)
+    for (auto col : row)
+```
+
+*使用范围`for`语句处理多维数组时，除了**最内层**的循环，其他所有外层循环的控制变量都应该定义成引用类型。*
+
+
+
+
+
+
+
+##### 指针和多维数组
+
+因为多维数组实际上是数组的数组，所以由多维数组名称转换得到的指针指向第一个内层数组。
+
+```c++
+int ia[3][4];       // array of size 3; each element is an array of ints of size 4
+int (*p)[4] = ia;   // p指向含有4个整数的数组
+p = &ia[2];         // p指向ia的尾元素
+```
+
+```C++
+    int arr[3][4] = {
+            {1, 2,  3,  4},
+            {5, 6,  7,  8},
+            {9, 10, 11, 12}
+    };
+
+    int (*p)[4] = arr;  		// p指向arr的第一行
+    cout << p[1][2] << endl;  	// 输出值为7
+    p = &arr[2];  				// p指向arr的第三行
+    cout << p[0][1] << endl;  	// 输出值为10
+```
+
+声明指向数组类型的指针时，**必须**带有圆括号。
+
+```c++
+int *ip[4];     // array of pointers to int
+int (*ip)[4];   // pointer to an array of four ints
+```
+
+```C++
+	int arr[3][4] = {
+            {1, 2,  3,  4},
+            {5, 6,  7,  8},
+            {9, 10, 11, 12}
+    };
+	for (int (*p)[4] = arr; p != arr + 3; ++p) {
+        for (int *q = *p; q != *p + 4; ++q) {
+            cout << *q << " ";
+        }
+        cout << endl;
+    }
+```
+
+如果使用auto或者decltype就能尽可能避免在数组前面加上一个指针类型了（见下面的for）
+
+auto：
+
+```C++
+    for (auto p = arr; p != arr + 3; ++p) {
+        for (auto q = *p; q != *p + 4; ++q) {
+            cout << *q << " ";
+        }
+        cout << endl;
+    }
+```
+
+
+
+用begin和end函数也能实现相同的功能：
+
+```c++
+    for (auto p = begin(arr); p != end(arr); ++p) {
+        for (auto q = begin(*p); q != end(*p); ++q) {
+            cout << *q << " ";
+        }
+        cout << endl;
+    }
+```
+
+
+
+##### 类型别名简化多维数组的指针
+
+```C++
+	using int_array = int[4];
+    for (int_array *p = arr; p != arr + 3; ++p) {
+        for (int *q = *p; q != *p + 4; ++q) {
+            cout << *q << " ";
+        }
+        cout << endl;
+    }
+```
+
+
+
+
+
+
+
+
+
+# 表达式
+
+## 基础
+
+表达式（expression）由一个或多个运算对象（operand）组成，对表达式求值将得到一个结果（result）。字面值和变量是最简单的表达式，其结果就是字面值和变量的值。
+
+
+
+
+
+### 1. 基本概念
+
+C++定义了一元运算符（unary operator）和二元运算符（binary operator）。作用于一个运算对象的运算符是一元运算符；作用于两个运算对象的运算符是二元运算符。函数调用是一种特殊的运算符，它对运算对象的数量没有限制。
+
+除此之外，还有一个作用于三个运算对象的三元运算符。函数调用也是一种特殊的运算符，它对运算对象的数量没有限制。
+
+一些符号既能作为一元运算符，也能作为二元运算符。对于这类符号来说它的两种用法互不相干，完全可以当成两个不同的符号。
+
+
+
+##### 重载运算符
+
+C++语言定义了运算符作用于内置类型和复合类型的运算对象时所执行的操作。当运算符作用于类类型的运算对象时，用户可以自行定义其含义，称之为**重载运算符**（overloaded operator）。
+
+我们使用重载运算符时，其包括运算对象的类型和返回值的类型，都是由该运算符定义的；但是运算对象的个数、运算符的优先级和结合律都是无法改变的。
+
+
+
+##### 左值和右值
+
+C++的表达式要不然是**右值**（rvalue），要不然就是**左值**（lvalue）。当一个对象被用作右值的时候，用的是对象的值（内容）；当对象被用作左值的时候，用的是对象的身份（内存中的位置）。
+
+一个重要的原则（有例外）：在需要右值的地方可以用左值来代替，但是不能把右值当成左值（也就是位置）使用。当一个左值被当成右值使用时，实际使用的是它的内容（值）。到目前为止，已经有几种我们熟悉的运算符是要用到左值的。
+
+- 赋值运算符需要一个(非常量)左值作为其左侧运算对象，得到的结果也仍然是一个左值。
+- 取地址符作用于一个左值运算对象，返回一个指向该运算对象的指针，这个指针是一个右值。
+- 内置解引用运算符、下标运算符、迭代器解引用运算符、string和 vector的下标运算符的求值结果都是左值。
+- 内置类型和迭代器的递增递减运算符*作用于*左值运算对象，其前置版本（本书之前章节所用的形式）所得的结果也是左值。
+
+
+
+使用decltype时，左值右值也有所不同。如果表达式的求值结果是左值，decltype作用于该表达式（不是变量）得到一个引用类型；如果表达式的求值结果是右值，decltype作用于该表达式（不是变量）得到的就是该右值的类型（非引用类型）。
+
+例：p的类型是`int*` ， 由于解引用运算符生成左值，所以`decltype(*p)`的结果是`int&`;
+
+```C++
+    int a = 10;
+    int *p = &a;
+    decltype(*p) b = a; // b是a的引用 (*p是左值)
+    cout << "b is " << b << endl;   // 输出结果：b is 10
+```
+
+另一方面，由于取地址运算符生成右值，所以`decltype(&p)`的结果是`int**`，这是一个指向整形指针的指针。
+
+
+
+
+
+### 2. 优先级与结合律
+
+复合表达式（compound expression）指含有两个或多个运算符的表达式。优先级与结合律决定了运算对象的组合方式。
+
+一般来说，表达式最终的值依赖于其子表达式的组合方式。高优先级运算符的运算对象要比低优先级运算符的运算对象更为紧密地组合在一起。如果优先级相同，则其组合规则由结合律确定。例如，乘法和除法的优先级相同且都高于加法的优先级。因此，乘法和除法的运算对象会首先组合在一起，然后才能轮到加法和减法的运算对象。算术运算符满足左结合律，意味着如果运算符的优先级相同，将按照从左向右的顺序组合运算对象：
+
+```C++
+	cout << 6 + 3 * 4 / 2 + 2 << endl;	// 12
+```
+
+
+
+##### 括号无视优先级与结合律
+
+```C++
+	cout << (6 + 3) * (4 / 2 + 2) << endl;	// 36
+	cout << ((6 + 3) * 4) / 2 + 2 << endl;	// 20
+	cout << 6 + 3 * 4 / (2 + 2) << endl;	// 9
+```
+
+
+
+##### 优先级与结合律有何影响
+
+优先级会影响程序的正确性，例1：
+
+```C++
+	int arr[5] = {2, 4, 6, 8, 10};
+	int x = arr[2]; // 使用下标运算符访问数组元素
+
+	int *p = arr;		// p指向arr的首元素
+	int y = *(p + 2); 	// 等价于 int x = arr[2]; 	y = 6
+	int m = *p + 2;		// 等价于 int m = arr[0] + 2;  m = 4
+```
+
+例2：IO相关的运算符满足左结合律，我们可以把几个IO运算组合在一条表达式当中。
+
+```C++
+	cin >> v1 >> v2;	//先读入v1，再读入v2
+```
+
+
+
+
+
+### 3. 求值顺序
