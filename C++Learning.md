@@ -3740,13 +3740,11 @@ Process finished with exit code 3
 异常类分别定义在4个头文件中：
 
 - 头文件`exception`定义了最通用的异常类`exception`。它只报告异常的发生，不提供任何额外信息。
-
 - 头文件`stdexcept`定义了几种常用的异常类。
 
-  ![5-2](.\images\stdexpt.png)
+![](./images/stdexpt.png)
 
 - 头文件`new`定义了`bad_alloc`异常类。
-
 - 头文件`type_info`定义了`bad_cast`异常类。
 
 
@@ -3759,7 +3757,7 @@ Process finished with exit code 3
 
 标准库异常类的继承体系：
 
-![5-3](C:\Users\ASUS\Desktop\cpp_note\Cpp-Primer-5th-Notes-CN\Chapter-5 Statements\Images\5-3.png)
+![5-3](./images/继承体系.png)
 
 
 
