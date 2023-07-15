@@ -1,5 +1,3 @@
-# 字符串、向量和数组
-
 ## 字符串 std::string
 
 
@@ -386,7 +384,7 @@ int main() {
     std::vector<char> result_vec;
 
     int num;
-    while (ss >> num) {
+    while (ss >> num) {		// 非空字符
         if (num < 0 || num > 15) {
             std::cout << "输入的数字超出范围！" << std::endl;
             return 0;
@@ -733,7 +731,7 @@ int main() {
     vector<int> result_vec(11, 0);
 
     int num;
-    while (ss >> num) {
+    while (ss >> num) {			// 非空字符
         if (num < 0 || num > 100) {
             cout << "Invalid score" << endl;
             return 0;
@@ -742,7 +740,7 @@ int main() {
     }
 
     if (ss.fail() && !ss.eof()) {
-        std::cout << "输入的不是数字！" << std::endl;
+        cout << "输入的不是数字！" << endl;
         return 0;
     }
 
@@ -2972,3 +2970,800 @@ reinterpret_cast通常为运算对象的位模式提供较低层次上的重新�
 ## 运算符优先级表
 
 ![](./images/运算符优先级表.png)
+
+
+
+
+
+
+
+
+
+
+
+# 语句
+
+## 简单语句
+
+C++语言中的大多数语句都以分号结束，一个表达式，比如ival+5，末尾加上分号就变成了**表达式语句**(expression statement)，表达式语句的作用是执行表达式并丢弃掉求值结果：
+
+```c++
+ival + 5;    // 无意义的表达式语句
+cout << ival;// 有意义的表达式语句
+```
+
+
+
+
+
+##### 空语句
+
+最简单的语句是**空语句**（null statement），它只有一个分号：
+
+```c++
+; // 空语句
+```
+
+如果在程序的某个地方，语法上需要一条语句但是逻辑上不需要，此时应该使用空语句。
+
+例如，我们想读取流的内容直到一个特定的值为止，除此之外什么也不做：
+
+```C++
+	while(cin >> s && s != sought)	// 重复读入数据直到到达文件末尾或者某次输入的值等于sought
+		;							// 空语句
+```
+
+> 使用空语句应当加上注释，让人知道这是有意省略的。
+
+
+
+不要漏写分号，也不要多写分号。多余的空语句并非总是无害的。
+
+```C++
+	ival = v1 + v2;;	// 正确，第二个分号表示一条多余的空语句
+```
+
+```c++
+// 额外的分号，此时循环体时那条空语句
+while (iter != svec.end()) ;    // while循环体是那条空语句
+    ++iter;     				// 递增运算不属于循环的一部分
+```
+
+
+
+
+
+##### 复合语句（块）
+
+复合语句（compound statement）是指用花括号括起来的（可能为空）语句和声明的序列。复合语句也叫做**块**（block），一个块就是一个作用域。在块中引入的名字只能在块内部以及嵌套在块中的子块里访问。通常，名字在有限的区域内可见，该区域从名字定义处开始，到名字所在（最内层）块的结尾处为止。
+
+语句块不以分号作为结束。
+
+空块是指内部没有任何语句的一对花括号。空块的作用等价于空语句。
+
+```C++
+	while (cin >> s && s != sought) {
+		// 空块
+	}
+```
+
+
+
+
+
+## 语句作用域
+
+可以在`if`、`switch`、`while`和`for`语句的控制结构内定义变量。定义在控制结构当中的变量只在相应语句的内部可见，一旦语句结束，变量也就超出其作用范围了：
+
+```c++
+	while (int i = get_num()) // 每次迭代时创建并初始化
+	    cout << i << endl;
+	i = 0;    // 错误，在循环外部无法访问
+```
+
+如果其他语句也要访问控制变量，则变量必须定义在语句的外面：
+
+```C++
+	// 寻找第一个负值元素
+	auto beg = v.begin();
+	while (beg != v.end && *beg >= 0)
+		++beg;
+	if (beg == v.end())
+		// 此时我们知道v中所有元素都大于等于0
+```
+
+
+
+
+
+
+
+## 条件语句
+
+### 1. `if`语句
+
+`if`语句的形式：
+
+```c++
+if (condition)
+    statement
+```
+
+`if-else`语句的形式：
+
+```c++
+if (condition)
+    statement
+else
+    statement2
+```
+
+其中`condition`是判断条件，可以是一个表达式或者初始化了的变量声明。`condition`必须用圆括号括起来。
+
+- 如果`condition`为真，则执行`statement`。执行完成后，程序继续执行`if`语句后面的其他语句。
+- 如果`condition`为假，则跳过`statement`。对于简单`if`语句来说，程序直接执行`if`语句后面的其他语句；对于`if-else`语句来说，程序先执行`statement2`，再执行`if`语句后面的其他语句。
+
+```C++
+int main() {
+    const vector<string> v = {"F", "D", "C", "B", "A", "A++"};
+    int grade;
+    string letter_grade;
+    cin >> grade;
+    if (grade < 60)
+        letter_grade = v[0];
+    else
+        letter_grade = v[(grade - 50) / 10];
+    cout << letter_grade << endl;
+    return 0;
+}
+```
+
+
+
+###### `if`语句可以嵌套
+
+```C++
+int main() {
+    const vector<string> v = {"F", "D", "C", "B", "A", "A++"};
+    int grade;
+    string letter_grade;
+    cin >> grade;
+    if (grade < 60) {
+        letter_grade = v[0];
+    }
+    else {
+        letter_grade = v[(grade - 50) / 10];
+        if (grade != 100) {
+            if (grade % 10 > 7)
+                letter_grade += "+";
+            else if (grade % 10 < 3)
+                letter_grade += "-";
+        }
+    }
+    cout << letter_grade << endl;
+    return 0;
+}
+```
+
+
+
+
+
+###### 注意使用花括号
+
+有些编码风格要求在if或else之后必须写上花括号(对whilel for语句的循环体两端也有同样的要求)。这么做的好处是可以避免代码混乱不清，以后修改代码时如果想添加别的语句，也可以很容易地找到正确位置。
+
+
+
+###### 悬垂else
+
+不明确某个给定的else是和哪个if匹配的问题在那些既有if语句又有if else语句的编程语言中是个普遍存在的。
+
+不同语言解决该问题的思路也不同，就C++而言，它规定else与离它最近的尚未匹配的if匹配，从而消除了程序的二义性。
+
+```C++
+	// 错误：实际的执行过程并非像缩进格式现实的那样；else分支匹配的是内层if语句	
+	if (grade % 10 >= 3)
+        if (grade % 10 > 7)
+            letter_grade += '+';	// 末尾是8或9的成绩添加一个加号
+	else
+		letter_grade += '-';		// 末尾是3、4、5、6、7的成绩添加一个减号
+```
+
+这段代码在实际执行的时候会等价于以下形式：
+
+```C++
+	if (grade % 10 >= 3)
+    	if (grade % 10 > 7)
+        	letter_grade += '+';	// 末尾是8或9的成绩添加一个加号
+		else
+			letter_grade += '-';	// 末尾是3、4、5、6、7的成绩添加一个减号
+```
+
+
+
+###### 使用花括号控制执行路径
+
+```C++
+	// 末尾是8、9的成绩添加一个加号，末尾是0、1、2的成绩添加一个减号
+	if (grade % 10 >= 3) {
+    	if (grade % 10 > 7)
+        	letter_grade += '+';	// 末尾是8、9的成绩添加一个加号
+    }else
+		letter_grade += '-';	// 末尾是0、1、2的成绩添加一个减号
+```
+
+
+
+
+
+
+
+### 2. `switch`语句
+
+形式：
+
+![5-1](images/5.1.png)
+
+
+
+`switch`语句先对括号里的表达式求值，值转换成整数类型后再与每个`case`标签（case label）的值进行比较。如果表达式的值和某个`case`标签匹配，程序从该标签之后的第一条语句开始执行，直到到达`switch`的结尾或者遇到`break`语句为止。***`case`标签必须是整型常量表达式***。
+
+
+
+> C++的switch语句只支持整数常量类型（如整型、字符型）作为判断条件，而且C++的switch语句并不支持Lambda表达式。
+>
+> 这一点与Java不同，Java的switch语句可以用于判断和选择任意类型的数值，例如整数、字符、字符串甚至枚举类型，而且Java的switch语句支持Lambda表达式。
+
+
+
+这是一个统计输入的内容中中元音字母数量的程序：
+
+```C++
+	unsigned aCnt = 0, eCnt = 0, iCnt = 0, oCnt = 0, uCnt = 0;
+	char ch;
+    string read_line;
+    getline(cin, read_line);
+    stringstream ss(read_line);
+	while (cin >> ch) {		// 非空字符
+		switch (ch) {
+			case 'a':
+				++aCnt;
+				break;
+			case 'e':
+				++eCnt;
+				break;
+			case 'i':
+				++iCnt;
+				break;
+			case 'o':
+				++oCnt;
+				break;
+			case 'u':
+				++uCnt;
+				break;
+		}
+	}
+```
+
+在`switch`语句中，任意两个`case`标签的值不能相同，否则就会引发错误。
+
+
+
+
+
+###### switch内部的控制流
+
+如果某个`case`标签匹配成功，将从该标签开始往后顺序执行所有`case`分支，除非程序显式地中断了这一过程，否则直到`switch`的结尾处才会停下来。
+
+要想避免执行后续`case`分支的代码，我们必须显式地告诉编译器终止执行过程。大多数情况下，在下一个`case`标签之前应该有一条 `break` 语句。
+
+
+然而，也有一些时候默认的`switch`行为才是程序真正需要的。每个`case`标签只能对应一个值，但是有时候我们希望两个或更多个值共享同一组操作。此时，我们就故意省略掉`break`语句，使得程序能够连续执行若干个`case`标签。
+
+
+
+例如，这段代码统计所有元音字母出现的总次数：
+
+```C++
+	unsigned cnt = 0;
+	char ch;
+    string read_line;
+    getline(cin, read_line);
+    stringstream ss(read_line);
+	while (cin >> ch) {		// 非空字符
+		switch (ch) {
+			case 'a':
+			case 'e':
+			case 'i':
+			case 'o':
+			case 'u':
+				++cnt;
+				break;
+		}
+	}
+```
+
+下面这样写也没问题：
+
+```C++
+	unsigned cnt = 0;
+	char ch;
+    string read_line;
+    getline(cin, read_line);
+    stringstream ss(read_line);
+	while (cin >> ch) {		// 非空字符
+		switch (ch) {
+			case 'a': case 'e': case 'i': case 'o': case 'u':
+				++cnt;
+				break;
+		}
+	}
+```
+
+> 通常情况下每个`case`分支后都有`break`语句。如果确实不应该出现`break`语句，最好写一段注释说明程序的逻辑。
+
+
+
+
+
+###### 漏写break容易引发缺陷
+
+以下是一段漏写break引发的统计结果错误：
+
+```C++
+	unsigned aCnt = 0, eCnt = 0, iCnt = 0, oCnt = 0, uCnt = 0;
+	char ch;
+	string read_line;
+	getline(cin, read_line);
+	stringstream ss(read_line);
+	while (cin >> ch) {		// 非空字符
+		switch (ch) {
+			case 'a':
+				++aCnt;
+			case 'e':
+				++eCnt;
+			case 'i':
+				++iCnt;
+			case 'o':
+				++oCnt;
+			case 'u':
+				++uCnt;
+		}
+	}
+```
+
+此时我们不妨假设`ch`的值是`'e'`。此时，程序直接执行`case 'e'`标签后面的代码，该代码把`eCnt`的值加1。接下来，程序将跨越`case`标签的边界，接着递增`iCnt`、`oCnt`和 `uCnt`.
+
+> 尽管`switch`语句没有强制要求在最后一个`case`标签后写上`break`，但为了安全起见，最好添加`break`。这样即使以后增加了新的`case`分支，也不用再在前面补充`break`语句了。
+
+
+
+
+
+###### default标签
+
+如果没有任何一个`case`标签能匹配上`switch`表达式的值，程序将执行`default`标签后的语句。
+
+例：这是一个统计非元音字母数量的程序：
+
+```C++
+	switch (ch) {
+			case 'a': case 'e': case 'i': case 'o': case 'u':
+				++vowel_cnt;
+				break;
+			default:
+				++other_cnt;
+				break;
+	}
+```
+
+
+
+> 即使不准备在`default`标签下做任何操作，程序中也应该定义一个`default`标签。其目的在于告诉他人我们已经考虑到了默认情况，只是目前不需要实际操作。
+>
+> 与此同时，标签不应该孤零零地出现，它后面必须跟上一条语句或者另外一个case标签。如果switch结构以一个空的default标签作为结束,则该default标签后面必须跟上一条空语句或一个空块。
+
+
+
+
+
+###### switch内部的变量定义
+
+switch 的执行流程有可能会跨过某些case标签。如果程序跳转到了某个特定的case，则switch 结构中该case标签之前的部分会被忽略掉。这种忽略掉一部分代码的行为引出了一个问题：如果被略过的代码中含有变量的定义该怎么办?
+
+答案是：如果在某处一个带有初值的变量位于作用域之外，在另一处该变量位于作用域之内，则从前一处跳转到后一处的行为是非法行为。
+
+```C++
+	case true:
+		// 因为程序的执行刘晨俄国可能绕开下面的初始化语句，所以该switch语句不合法
+		string file_name;
+		int ival = 0;
+		int jval;
+		break;
+	case false:
+		// 正确： jval虽然在作用域内，但是它没有被初始化
+		jval = next_num();	// 正确：给jval赋值
+		if (file_name.empty())	// file_name在作用域内，但是没有被初始化
+            // ...
+```
+
+在switch内部定义变量，一个好的办法是：在case分支下，通过使用块把变量定义在块内，从而确保后面所有case标签都在变量的作用域之外。
+
+```c++
+case true:
+    {
+        // 正确：声明语句位于语句块内部
+        string file_name = get_file_name();
+    }
+    break;
+```
+
+
+
+在switch内部定义变量，一个好的办法是：在case分支下，通过使用块把变量定义在块内，从而确保后面所有case标签都在变量的作用域之外。
+
+```c++
+case true:
+    {
+        // 正确：声明语句位于语句块内部
+        string file_name = get_file_name();
+    }
+    break;
+case false:
+	{
+    	if (file_name.empty())	// 错误：file_name不在作用域中
+	}
+```
+
+> 在这个`case`语句中，声明语句被放置在了一个语句块内部，这个语句块只包含了这个声明语句。这意味着这个变量的作用域被限制在了这个语句块内部，其他分支无法访问这个变量。如果您在其他分支中访问这个变量，编译器将会报错。
+>
+> 当然，如果在这个`case`语句中存在其他语句，而这些语句也需要访问这个变量，那么这个`case`语句就不再是正确的了。在这种情况下，您需要将声明语句放置在`switch`语句之前，或者将这个变量声明为`switch`语句外部的变量。
+
+
+
+
+
+## 迭代语句
+
+迭代语句通常称为循环，它重复执行操作直到满足某个条件才停止。`while`和`for`语句在执行循环体之前检查条件，`do-while`语句先执行循环体再检查条件。
+
+### 1. `while`语句
+
+`while`语句的形式：
+
+```c++
+	while (condition)
+ 	   statement
+```
+
+只要`condition`的求值结果为`true`，就一直执行`statement`（通常是一个块）。`condition`不能为空，如果`condition`第一次求值就是`false`，`statement`一次都不会执行。
+
+定义在`while`条件部分或者循环体内的变量每次迭代都经历从创建到销毁的过程。
+
+在不确定迭代次数，或者想在循环结束后访问循环控制变量时，使用`while`比较合适。
+
+
+
+### 2. 传统的`for`语句
+
+`for`语句的形式：
+
+```c++
+	for (initializer; condition; expression)
+    	statement
+```
+
+一般情况下，`initializer`负责初始化一个值，这个值会随着循环的进行而改变。`condition`作为循环控制的条件，只要`condition`的求值结果为`true`，就执行一次`statement`。执行后再由`expression`负责修改`initializer`初始化的变量，这个变量就是`condition`检查的对象。如果`condition`第一次求值就是`false`，`statement`一次都不会执行。`initializer`中也可以定义多个对象，但是只能有一条声明语句，因此所有变量的基础类型必须相同。
+
+`for`语句头中定义的对象只在`for`循环体内可见。
+
+
+
+- 传统for语句的执行流程：
+
+  1. 循环开始时，首先执行一次`initializer`；
+
+  2. 接下来判断`condition`，如果条件成立，则执行`for`循环体中的内容；否则，循环终止。如果第一次迭代时条件就为假，`for`循环体一次也不会执行；
+
+  3. 如果条件为真，执行循环体；
+
+  4.  最后执行`expression`。
+
+​		这是`for`循环执行一次的过程。其中第1步只在循环开始时执行一次，第2、3、4步重复执行直到条件为假时终止。
+
+- `initializer ` 部分可以定义多个对象，但是`initializer`只能有一条声明语句，因此，所有变量的基础类型必须相同。
+
+- `for`语句头能省略`initializer`、`condition`、`expression`中的任何一个。
+
+
+
+### 3. 范围`for`语句
+
+范围`for`语句的形式：
+
+```c++
+	for (declaration : expression)
+    	statement
+```
+
+其中`expression`表示一个序列，拥有能返回迭代器的`begin`和`end`成员。`declaration`定义一个变量，序列中的每个元素都应该能转换成该变量的类型（可以使用`auto`）。如果需要对序列中的元素执行写操作，循环变量必须声明成引用类型。每次迭代都会重新定义循环控制变量，并将其初始化为序列中的下一个值，之后才会执行`statement`。
+
+举例：把vector对象中每个元素都翻倍：
+
+```C++
+	vector<int> v = {1, 2, 3};
+	for (auto &value : v) {
+		value = value * 2;
+	}
+```
+
+等价于以下的传统`for`语句（二者同理）：
+
+```C++
+    for (auto iter = v.begin(); iter != v.end(); ++iter) {
+        *iter = *iter * 2;		// 直接通过迭代器进行修改
+    }
+```
+
+```C++
+    for (auto iter = v.begin(); iter != v.end(); ++iter) {
+        auto &value = *iter;     		// value必须是引用类型，这样才能对容器中的元素进行修改
+        value = value * 2;             // 这里修改的是value的值，而不是容器中的元素
+    }
+```
+
+
+
+### 4. `do-while`语句
+
+do while语句(do while statement) 和 while语句非常相似，唯一的区别是，do while语句先执行循环体后检查条件。不管条件的值如何，我们都至少执行一次循环。
+
+`do-while`语句的形式：
+
+```c++
+	do
+ 	   statement
+	while (condition);
+```
+
+计算`condition`的值之前会先执行一次`statement`，`condition`不能为空。如果`condition`的值为`false`，循环终止，否则重复执行`statement`。
+
+**注意：**
+
+- **如果一个变量作为循环的条件，那么这个变量不能定义在do的内部！！**
+
+- **因为`do-while`语句先执行语句或块，再判断条件，所以不允许在`condition`部分定义变量。**
+
+  （如果允许在条件部分定义变量，则变量的使用出现在定义之前，这显然是不合常理的！）
+
+
+
+
+
+## 跳转语句
+
+跳转语句中断当前的执行过程。C++提供了四种跳转语句，分别是`break`, `continue`,  `goto`, `return`
+
+
+
+### 1. `break`语句
+
+`break`语句只能出现在迭代语句或者`switch`语句的内部，负责终止离它最近的`while`、`do-while`、`for`或者`switch`语句，并从这些语句之后的第一条语句开始执行。
+
+```c++
+string buf;
+while (cin >> buf && !buf.empty())
+{
+    switch(buf[0])
+    {
+        case '-':
+            // 处理到第一个空白为止
+            for (auto it = buf.begin()+1; it != buf.end(); ++it)
+            {
+                if (*it == ' ')
+                break;  // #1, 离开for循环
+                // . . .
+            }
+            // break #1 将控制权转移到这里
+            // 剩余的 '-' 处理:
+            break;  // #2, 离开switch语句
+        case '+':
+    // . . .
+    } // 结束 switch
+// switch 的结束: break #2 将控制权转移到这里
+} // while 的结束
+```
+
+
+
+
+
+### 2. `continue`语句
+
+`continue`语句只能出现在迭代语句的内部，负责终止离它最近的循环的当前一次迭代并立即开始下一次迭代。和`break`语句不同的是，只有当`switch`语句嵌套在迭代语句内部时，才能在`switch`中使用`continue`。
+
+`continue`语句中断当前迭代后，具体操作视迭代语句类型而定：
+
+- 对于`while`和`do-while`语句来说，继续判断条件的值。
+
+- 对于传统的`for`语句来说，继续执行`for`语句头中的第三部分，之后判断条件的值。
+
+- 对于范围`for`语句来说，是用序列中的下一个元素初始化循环变量。
+
+
+
+### 3. `goto`语句
+
+***不要在程序中使用`goto`语句，它使得程序既难理解又难修改。***
+
+`goto`语句（labeled statement）是一种特殊的语句，在它之前有一个标识符和一个冒号。
+
+```c++
+end: return; // 带标签的语句，可以错位goto的目标
+```
+
+标签标识符独立于变量和其他标识符的名字，它们之间不会相互干扰。
+
+`goto`语句的形式：
+
+```c++
+goto label;
+```
+
+`goto`语句使程序无条件跳转到标签为`label`的语句处执行，但两者必须位于同一个函数内，同时`goto`语句也不能将程序的控制权从变量的作用域之外转移到作用域之内。
+
+
+
+
+
+
+
+## `try`语句块和异常处理
+
+异常是指程序运行时的反常行为，这些行为超出了函数正常功能的范围。当程序的某一部分检测到一个它无法处理的问题时，需要使用异常处理。
+
+
+
+异常处理机制包括`throw`表达式、`try`语句块和异常类。
+
+- 异常检测部分使用`throw`表达式表示它遇到了无法处理的问题（`throw`引发了异常）。
+
+- 异常处理部分使用`try`语句块处理异常。`try`语句块以关键字`try`开始，并以一个或多个`catch`子句结束。`try`语句块中代码抛出的异常通常会被某个`catch`子句处理，`catch`子句也被称作异常处理代码。
+
+- 异常类用于在`throw`表达式和相关的`catch`子句之间传递异常的具体信息。
+
+
+
+
+
+### 1. `throw`表达式
+
+`throw`表达式包含关键字`throw`和紧随其后的一个表达式，其中表达式的类型就是抛出的异常类型。
+
+```C++
+int main() {
+    int a = 0;
+    cin >> a;
+    if (a == 0) {
+        throw runtime_error("throw a runtime error");
+    } else {
+        cout << "a = " << a << endl;
+    }
+    return 0;
+}
+```
+
+输入0后输出结果为：
+
+```
+terminate called after throwing an instance of 'std::runtime_error'
+  what():  throw a runtime error
+```
+
+
+
+
+
+### 2. `try`语句块
+
+`try`语句块的通用形式：
+
+```c++
+try
+{
+    program-statements
+}
+catch (exception-declaration)
+{
+    handler-statements
+}
+catch (exception-declaration)
+{
+    handler-statements
+} // . . .
+```
+
+`try`语句块中的`program-statements`组成程序的正常逻辑，其内部声明的变量在块外无法访问，即使在`catch`子句中也不行。`catch`子句包含关键字`catch`、括号内一个对象的声明（异常声明，exception declaration）和一个块。当选中了某个`catch`子句处理异常后，执行与之对应的块。`catch`一旦完成，程序会跳过剩余的所有`catch`子句，继续执行后面的语句。
+
+如果最终没能找到与异常相匹配的`catch`子句，程序会执行名为`terminate`的标准库函数。该函数的行为与系统有关，一般情况下，执行该函数将导致程序非正常退出。类似的，如果一段程序没有`try`语句块且发生了异常，系统也会调用`terminate`函数并终止当前程序的执行。
+
+例：
+
+```C++
+    int a = 0;
+    while (true) {
+        cin >> a;
+        if (a == 0) {
+            try {
+                throw runtime_error("throw a runtime error");
+            } catch (runtime_error &err) {
+                cout << "The program " << err.what() << endl;
+                cout << "Try again? Enter y / n" << endl;
+                char c;
+                cin >> c;
+                if (!cin || c == 'n') {
+                    throw runtime_error("throw a runtime error");
+                } else {
+                    continue;
+                }
+            }
+        } else {
+            cout << "a = " << a << endl;
+            break;
+        }
+    }
+```
+
+输入/输出结果如下：
+
+```
+0
+The program throw a runtime error
+Try again? Enter y / n
+y
+0
+The program throw a runtime error
+Try again? Enter y / n
+n
+terminate called after throwing an instance of 'std::runtime_error'
+  what():  throw a runtime error
+
+Process finished with exit code 3
+
+```
+
+
+
+### 3. 标准异常（Standard Exceptions）
+
+异常类分别定义在4个头文件中：
+
+- 头文件`exception`定义了最通用的异常类`exception`。它只报告异常的发生，不提供任何额外信息。
+
+- 头文件`stdexcept`定义了几种常用的异常类。
+
+  ![5-2](.\images\stdexpt.png)
+
+- 头文件`new`定义了`bad_alloc`异常类。
+
+- 头文件`type_info`定义了`bad_cast`异常类。
+
+
+
+只能以默认初始化的方式初始化`exception`、`bad_alloc`和`bad_cast`对象，不允许为这些对象提供初始值。
+
+其他异常类的对象在初始化时必须提供一个`string`或一个C风格字符串，通常表示异常信息。`what` 函数返回的C风格字符串的内容与异常对象的类型有关。如果异常类型有一个字符串初始值，则`what`返回该字符串。对于其他无初始值的异常类型来说，`what`返回的内容由编译器决定。
+
+
+
+标准库异常类的继承体系：
+
+![5-3](C:\Users\ASUS\Desktop\cpp_note\Cpp-Primer-5th-Notes-CN\Chapter-5 Statements\Images\5-3.png)
+
+
+
+
+
+
+
