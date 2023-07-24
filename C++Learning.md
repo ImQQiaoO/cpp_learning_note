@@ -2674,7 +2674,7 @@ sizeof(str1)：40
 
 
 
-## 类型转换
+## <a name="368452">类型转换</a>
 
 考虑下面这条表达式，它的目的是将ival初始化为6：
 
@@ -5431,11 +5431,19 @@ inline const string & shorterString (const string &s1, const string &s2) {
 
 
 
-##### constexpr函数
+##### <a name="126745">constexpr函数</a>
 
 是指能用于**常量表达式**的函数。
 
 函数的**返回类型**及**所有形参**都得是字面值类型，且**函数体内必须有且只有一条r**eturn语句。
+
+
+
+> <a name="751584">什么是字面值类型</a>？
+>
+> 算术类型、引用和指针还有*某些类*都是字面值类型，自定义类、IO库、string类型则不属于字面值类型
+
+
 
 例：
 
@@ -5737,7 +5745,7 @@ pf = &lengthCompare; 		// 等价的赋值语句；&是可选的
 
 ```c++
 bool b1 = pf("hello", "goodbye");       // 调用lengthCompare
-bool b2 = (*pf)("hello", "goodbye");    // 等价的调用
+bool b2 = (*pf)("hello", "goodbye");    // 等价的调用，C语言中必须这样写！
 bool b3 = lengthCompare("hello", "goodbye");    // 等价的调用
 ```
 
@@ -5753,6 +5761,40 @@ pf = 0;					// 正确：pf不指向任何函数
 pf = sumLength;			// 错误：返回值类型不匹配
 pf = cstringCompare;	// 错误：形参类型不匹配
 pf = lengthCompare;		// 正确：函数和指针的类型精确匹配
+```
+
+
+
+##### 函数指针有什么用？* 回调函数
+
+在写调用者函数的时候，我们只约定回调函数的种类，不关心回调函数的功能。
+
+例：表白公司的业务流程模拟：
+
+```C++
+void ls() {
+    cout << "李四先翻了三个跟头再表白" << endl;
+}
+
+void zs() {
+    cout << "张三拿了朵花去表白" << endl;
+}
+
+void show(void (*p)()) {
+    // 表白之前的准备工作
+    cout << "表白公司完成了准备工作" << endl;
+    // 表白
+    p();
+    // 表白之后的收尾工作
+    cout << "表白公司完成了收尾工作" << endl;
+}
+
+int main() {
+    show(zs);
+    cout << endl;
+    show(ls);
+    return 0;
+}
 ```
 
 
@@ -5949,7 +5991,7 @@ std::istream &read(std::istream&, Sales_data&);
 
 
 
-##### 引入const成员函数
+##### <a name="874251">引入const成员函数</a>
 
 ```C++
     std::string isbn() const { return bookNo; }
@@ -6200,7 +6242,7 @@ struct Sales_data {
 
 
 
-##### 构造函数初始值列表
+##### <a name="987156">构造函数初始值列表</a>
 
 ```C++
     Sales_data(const std::string &s): bookNo(s) { }
@@ -6220,6 +6262,10 @@ struct Sales_data {
 
 
 构造函数不应该轻易覆盖掉类内初始值，除非新值与原值不同。如果编译器不支持类内初始值，则所有构造函数都应该显式初始化每个内置类型的成员。
+
+
+
+在类外使用初始值列表定义构造函数时，类内声明构造函数处不需要写初始值列表。
 
 
 
@@ -6523,7 +6569,7 @@ char Screen::get(pos r, pos c) const {	// 在类的内部声明成inline
 
 
 
-##### 可变数据成员
+##### 可变数据成员  (mutable)
 
 有时（但并不频繁）会发生这样一种情况，我们希望能修改类的某个数据成员，**即使是在一个`const`成员函数内。**可以通过在变量的声明中加入`mutable`关键字做到这一点。
 
@@ -6726,7 +6772,7 @@ Second obj2 = obj1;		// 错误：obj1和obj2的类型不同
 
 
 
-##### 类的声明
+##### <a name="523654">类的声明</a>
 
 就像可以把函数的声明和定义分离开来一样，我们也能仅仅声明类而暂时不定义它:
 
@@ -7303,7 +7349,7 @@ private:
 
 - 首先，在成员函数内查找该名字的声明。和前面一样，**只有在函数使用之前出现的声明才被考虑**。
 - 如果在成员函数内没有找到，则在类内继续查找，**这时类的所有成员都可以被考虑**。
-- 如果类内也没找到该名字的声明，在成员函数定义**之前**的作用域内继续查找。
+- 如果类内也没找到该名字的**声明**，在成员函数定义**之前**的作用域内继续查找。
 
 
 
@@ -7427,3 +7473,709 @@ void Screen::setHeight(pos var) {
 ```
 
 请注意，全局函数`verify`的声明在`Screen`类的定义之前是不可见的。然而，名字查找的第三步包括了成员函数出现**之前**的全局作用域。在此例中，`verify` 的声明位于`setHeight`的定义之前，因此可以被正常使用。
+
+
+
+
+
+## 5. 构造函数再探
+
+### 5.1 构造函数初始值列表
+
+当我们定义变量时习惯于立即对其进行初始化，而非先定义、再赋值：
+
+```C++
+	string foo = "Hello World";		// 定义并初始化
+	
+	string bar;						// 默认初始化成空string对象
+	bar = "Hello World";			// 为bar赋一个新值
+```
+
+如果没有在构造函数初始值列表中显式初始化成员，该成员会在构造函数体之前执行默认初始化。例：
+
+```C++
+// ①
+Sales_data::Sales_data(const string &s, unsigned cnt, double price) {
+	bookNo = s;
+	units_sold = cnt;
+	revenue = cnt * price;
+}
+// ② 构造函数初始值列表
+Sales_data(const std::string &s, unsigned n, double p): bookNo(s), units_sold(n), revenue(p*n) { }
+```
+
+上面的代码块中①与使用<a href="#987156">构造函数初始值列表</a>②的效果相同。但是这两者之间也是有区别的：①对数据成员进行了赋值操作，而②是初始化了它的数据成员。
+
+
+
+##### 构造函数的初始值有时必不可少
+
+有时我们可以忽略数据成员初始化（②）和赋值（①）之间的差异，但并非总能这样。
+
+**如果成员是`const`或者是引用的话，必须将其初始化。**类似的，**当成员属于某种类类型且该类没有定义默认构造函数时，也必须将这个成员初始化**，例：
+
+```C++
+class ConstRef
+{
+public:
+    ConstRef(int ii);
+private:
+    int i;
+    const int ci;
+    int &ri;
+};
+
+// 正确：显式地初始化引用和const成员
+ConstRef::ConstRef(int ii): i(ii), ci(ii), ri(i) { }
+
+// 错误：ci和ri必须被初始化
+ConstRef::ConstRef(int ii) {
+    // 赋值：
+    i = ii;			// 正确
+    ci = ii;		// 错误：不能给const赋值
+    ri = i;			// 错误：ri没被初始化
+}
+```
+
+随着构造函数体一开始执行，初始化就完成了。我们初始化const或者引用类型的数据成员的唯一机会就是通过构造函数初始值。
+
+
+
+
+
+##### 成员初始化的顺序
+
+构造函数初始值列表只说明用于初始化成员的值，而不限定初始化的具体执行顺序。
+
+**成员的初始化顺序与它们在类定义中的出现顺序一致**：第一个成员先被初始化，然后第二个，以此类推。**构造函数初始值列表中初始值的前后位置关系不会影响实际的初始化顺序。**
+
+```C++
+class X {
+	int i;
+	int j;
+public:
+	// 未定义行为：i在j之前被初始化
+	X(int val) : j(val), i(j) { }
+};
+```
+
+在此例中，从构造函数初始值的形式上来看仿佛是先用`val`初始化了`j`，然后再用`j`初始化`i`。实际上，`i`先被初始化，因此这个初始值的效果是试图使用未定义的值`j`初始化`i`！
+
+
+
+
+
+##### 默认实参和构造函数
+
+```C++
+class Sales_data {
+public:
+	// 定义默认构造函数，令其与只接收一个string实参的构造函数功能相同
+	Sales_data(std::string s = "") : bookNo(s) { }
+	// 其他构造函数与之前一致
+	Sales_data(std::string s, unsigned cnt, double rev) : bookNo(s), units_sold(cnt), revenue(rev * cnt) { }
+	Sales_data(std::istream &is) { read(is, *this); }
+	// 其他成员与之前版本一致
+};
+```
+
+此时，我们不提供实参或者给定了一个`string`实参的情况下，也能调用上述的构造函数。**该构造函数为我们的类提供了*默认构造函数*。**
+
+
+
+
+
+### 5.2 委托构造函数
+
+**委托构造函数**使用**它所属类的其他构造函数**执行它自己的初始化过程，或者说它把它自己的一些（或者全部）职责委托给了其他构造函数。
+
+和其他构造函数一样，一个委托构造函数也有一个成员初始值的列表和一个函数体。在委托构造函数内，成员初始值列表只有一个唯一的入口，就是类名本身。**和其他成员初始值一样，类名后面紧跟圆括号括起来的参数列表，参数列表必须与类中另外一个构造函数匹配。**
+
+例：使用委托构造函数重写`Sales_data`类：
+
+```C++
+class Sales_data {
+public:
+	// 非委托构造函数使用对应的实参初始化成员
+	Sales_data(std::string s, unsigned cnt, double price) : bookNo(s), units_sold(cnt), revenue(price * cnt) { }
+	// 其余所有构造函数全部委托给另一个构造函数
+	Sales_data() : Sales_data("", 0, 0) { }
+	Sales_data(std::string s) : Sales_data(s, 0, 0) { }
+	Sales_data(std::istream &is) : Sales_data() { read(is, *this); }
+	// 其他成员与之前的版本一致
+};
+```
+
+在这个`Sales_data`类中，除了一个构造函数外其他的都委托了它们的工作。第一个构造函数接受三个实参，使用这些实参初始化数据成员，然后结束工作。
+
+我们定义默认构造函数令其使用三参数的构造函数完成初始化过程，它也无须执行其他任务，这一点从空的构造函数体能看得出来。接受一个`string`的构造函数同样委托给了三参数的版本。
+
+
+
+istream&版本的构造函数执行过程：
+
+接受`istream&`的构造函数也是委托构造函数，它委托给了默认构造函数，默认构造函数又接着委托给三参数构造函数。当这些受委托的构造函数执行完后，接着执行`istream&`构造函数体的内容。它的构造函数体调用`read`函数读取给定的`istream`。
+
+
+
+当一个构造函数委托给另一个构造函数时，受委托的构造函数的初始值列表和函数体被依次执行。在`Sales_data`类中，受委托的构造函数体恰好是空的。**假如函数体包含有代码的话，将先执行这些代码，然后控制权才会交还给委托者的函数体。**
+
+就像下面的例子：
+
+```C++
+class Example {
+public:
+
+    Example(int val0, int val1, int val2) : val0(val0), val1(val1), val2(val2) { std::cout << "3 args" << std::endl; }
+
+    Example(int val0, int val1) : Example(0, 0, 0) { std::cout << "2 args" << std::endl; }
+
+    Example(int val0) : Example(0, 0) { std::cout << "1 args" << std::endl; }
+
+    Example() : Example(0) { std::cout << "0 args" << std::endl; }
+
+
+private:
+    int val0;
+    int val1;
+    int val2;
+};
+
+int main() {
+    Example example0;
+    return 0;
+}
+```
+
+输出结果为：
+
+```
+3 args
+2 args
+1 args
+0 args
+```
+
+
+
+
+
+### 5.3 默认构造函数的作用
+
+当对象被默认初始化或值初始化时会自动执行默认构造函数。
+
+默认初始化的发生情况：
+
+- 在块作用域内不使用初始值定义非静态变量或数组。
+- 类本身含有类类型的成员且使用合成默认构造函数。
+- 类类型的成员没有在构造函数初始值列表中显式初始化。
+
+值初始化的发生情况：
+
+- 数组初始化时提供的初始值数量少于数组大小。
+
+- 不使用初始值定义局部静态变量。
+
+- 通过`T()`形式（`T`为类型名）的表达式显式地请求值初始化。
+
+类必须包含一个默认构造函数以便在上述情况下使用，其中的大多数情况非常容易判断。
+
+例：类的某些数据成员缺少默认构造函数：
+
+```C++
+class NoDefault {
+public:
+    NoDefault(const std::string &);
+    // 还有其他成员，但是没有其他构造函数了
+};
+
+struct A {      // 默认情况下my_mem是public的
+    NoDefault my_mem;
+};
+
+A a;            // 错误：不能为A创建默认构造函数
+
+struct B {
+    B() {}     // 错误：b_member没有初始值
+
+    NoDefault b_member;
+};
+```
+
+> 在实际中，如果定义了其他构造函数，那么最好也提供一个默认构造函数。
+
+
+
+##### 使用默认构造函数 (如何使用空参构造创建对象)
+
+下面的`obj`的声明可以正常编译通过：
+
+```C++
+	Sales_data obj();							// 正确，声明了一个函数
+	if (obj.isbn() == Primer_5th_ed.isbn())		// 错误：obj是一个函数
+```
+
+但当我们试图使用`obj`时，编译器将报错，提示我们不能对函数使用成员访问运算符。问题在于，尽管我们想声明一个默认初始化的对象，`obj`实际的含义却是一个不接受任何参数的函数并且其返回值是`Sales_data`类型的对象。
+
+```C++
+// 进行默认初始化：
+Sales_data obj;
+// 声明了一个函数而非对象
+Sales_data obj();
+// 调用相应的构造函数
+Sales_data obj(parameter);
+```
+
+
+
+### 5.4 隐式的类类型转换
+
+C++在内置类型之间定义了几种<a href="#368452">自动转换规则</a>。同样的，我们也能为类定义隐式转换规则。
+
+如果构造函数只接受一个实参，则它实际上定义了转换为此类类型的隐式转换机制，有时我们把这种构造函数称作**转换构造函数**。
+
+> 能通过一个实参调用的构造函数定义了一条从构造函数的参数类型向类类型隐式转换的规则。
+
+例：
+
+在`Sales_data`类中，接受`string`的构造函数和接受`istream`的构造函数分别定义了从这两种类型向`Sales_data`隐式转换的规则。也就是说，在需要使用`Sales_data`的地方，我们可以使用`string`或者`istream`作为替代:
+
+```C++
+	Sales_data(std::string s = "") : bookNo(s) { }
+	Sales_data(std::istream &is) { read(is, *this); }
+```
+
+```C++
+	string null_book = "9-999-99999-9";
+	// 构造一个临时的Sales_data对象
+	// 该对象的unit_sold和revenue等于0， bookNo等于null_book
+	item.combine(null_book);	// null_book和item互换位置就不行了，因为null_book是字符串类型的对象
+```
+
+在这里我们用一个`string` 实参调用了`Sales_data`的 `combine` 成员。该调用是合法的，编译器用给定的`string`自动创建了一个`Sales_data`对象。新生成的这个(临时)`Sales_data`对象被传递给`combine`。因为 `combine`的参数是一个常量引用，所以我们可以给该参数传递一个临时量。
+
+
+
+##### 只允许一步类类型转换
+
+编译器只会自动地执行一步类型转换。例如，因为下面的代码隐式地使用了两种转换规则，所以它是错误的：
+
+```C++
+// 错误：需要用户定义的两种转换：
+// (1) 把"9-999-99999-9"转换成string
+// (2) 再把这个（临时的）string转换成Sales_data
+item.combine("9-999-99999-9");
+
+// 正确：显式地转换成string，隐式的转换成Sales_data
+item.combine(string("9-999-99999-9"));
+// 正确：隐式地转换成string，显式的转换成Sales_data
+item.combine(Sales_data("9-999-99999-9"));
+```
+
+
+
+##### 类类型转换不是总有效 ??
+
+```C++
+// 使用istream构造函数创建一个函数传递给combine
+item.combine(cin);
+```
+
+这段代码隐式地把`cin`转换成`Sales_data`，这个转换执行了接受一个 `istream`的`Sales_data`构造函数。该构造函数通过读取标准输入创建了一个(临时的)`Sales_data`对象，随后将得到的对象传递给`combine`。
+
+`Sales_data`对象是个临时量，一旦 `combine`完成我们就不能再访问它了。实际上，我们构建了一个对象，先将它的值加到`item`中，随后将其丢弃。
+
+
+
+
+
+##### 抑制构造函数的隐式转换 (explicit)
+
+在要求隐式转换的程序上下文中，可以通过将构造函数声明为`explicit`的加以阻止。
+
+```c++
+class Sales_data
+{
+public:
+    Sales_data() = default;
+    Sales_data(const std::string &s, unsigned n, double p):
+        bookNo(s), units_sold(n), revenue(p*n) { }
+    explicit Sales_data(const std::string &s): bookNo(s) { }
+    explicit Sales_data(std::istream&);
+    // 其他成员与之前的版本一致
+};
+```
+
+此时，没有任何构造函数能用于隐式地创建Sales_data对象，之前的两种用法都无法通过编译：
+
+```C++
+	item.combine(null_book);	// 错误：string构造函数是explicit的
+	item.combine(cin);			// 错误：istream构造函数是explicit的
+```
+
+
+
+`explicit`关键字只对接受一个实参的构造函数有效。无需将需要多个实参的构造函数指定为explicit的。
+
+只能在类内声明构造函数时使用explicit关键字，**在类外部定义时不能重复**。
+
+```C++
+// 错误：explicit关键字只允许出现在类内的构造函数声明处
+explicit Sales_data::Sales_data(istream& is) {
+	read(is, *this);
+}
+```
+
+
+
+##### explicit构造函数只能用于直接初始化 ??
+
+发生隐式转换的一种情况是当我们执行拷贝形式的初始化时（使用=）。此时，我们只能使用直接初始化而不能使用`explicit`构造函数：
+
+```C++
+	Sales_data item1(null_book);	// 正确：直接初始化
+	Sales_data item2 = null_book;	// 错误：不能将explicit构造函数用于拷贝形式的初始化过程
+```
+
+
+
+##### 为转换显式地使用构造函数
+
+尽管编译器不会将`explicit`的构造函数用于隐式转换过程，但是我们可以使用这样的构造函数显式地强制进行转换：
+
+```C++
+	// 正确：实参是一个显式构造的Sales_data对象
+	item.combine(Sales_data(test));
+    item.combine(static_cast<Sales_data>(test));
+	// 正确：static_cast可以使用explicit的构造函数
+	item.combine(static_cast<Sales_data>(cin));
+```
+
+在第一个调用中，我们直接使用`Sales_data`的构造函数，该调用通过接受`string`的构造函数创建了一个临时的`Sales_data`对象。在第二个调用中，我们使用`static_cast`执行了显式的而非隐式的转换。其中，`static_cast`使用`istream`构造函数创建了一个临时的`Sales_data`对象。
+
+
+
+##### 标准库中含有显式构造函数的类
+
+我们用过的一些标准库中的类含有单参数的构造函数:
+
+- 接受一个单参数的const char*的string构造函数**不是explicit的**。
+
+```C++
+// 这是一个接受一个单参数的const char*的string构造函数
+const char* cstr = "Hello, world!";
+string myString(cstr);
+```
+
+- 接受一个容量参数的vector构造函数**是explicit的**。
+
+
+
+
+
+### 5.5 聚合类 (感觉用这个特性写链表很方便？)
+
+聚合类满足如下条件：
+
+- 所有成员都是`public`的。
+- 没有定义任何构造函数。
+- 没有类内初始值。
+- 没有基类。
+- 没有虚函数。
+
+例如，这是一个聚合类：
+
+```C++
+struct Data {
+	int ival;
+	string s;
+};
+```
+
+
+
+我们可以提供一个**花括号括起来的成员初始值列表**，并**用它初始化聚合类的数据成员**：
+
+```C++
+	// val1.ival = 0; val1.s = string("Anna")
+	Data val1 = { 0, "Anna" };
+```
+
+**初始值的顺序必须与声明的顺序一致**，也就是说，第一个成员的初始值要放在第一个，然后是第二个，以此类推。下面的例子是错误的：
+
+```C++
+	// 错误：不能用“Anna”初始化ival，也不能用1024初始化s
+	Data val1 = { "Anna", 1024 };	// 错误
+```
+
+
+
+与初始化数组元素的规则一样，如果初始值**列表中的元素个数少于类的成员数量，则靠后的成员被值初始化。初始值列表的元素个数绝对不能超过类的成员数量。**
+
+
+
+显式地初始化类的对象的成员存在三个明显的缺点：
+
+- 要求类的所有成员都是public的。
+- 将正确初始化每个对象的每个成员的重任交给了类的用户（而非类的作者）。因为用户很容易忘掉某个初始值，或者提供一个不恰当的初始值，所以这样的初始化过程冗长乏味且容易出错。
+- 添加或删除一个成员之后，所有的初始化语句都需要更新。
+
+
+
+
+
+### <a name="981736">5.6 字面值常量类</a> ??
+
+<a href="#751584">字面值类型</a>的类可能含有<a href="#126745">constexpr函数</a>成员。这样的成员必须符合constexpr函数的所有要求，它们是<a href="#874251">隐式const的</a>。
+
+数据成员都是字面值类型的聚合类是字面值常量类。或者一个类不是聚合类，但符合下列条件，则也是字面值常量类：
+
+- 数据成员都是字面值类型。
+- 类至少含有一个`constexpr`构造函数。
+- 如果数据成员含有类内初始值，则内置类型成员的初始值必须是常量表达式。如果成员属于类类型，则初始值必须使用成员自己的`constexpr`构造函数。
+- 类必须使用析构函数的默认定义。
+
+
+
+`constexpr`构造函数可以声明成`=default`的形式(或者是删除函数的形式)。
+
+否则，`constexpr`构造函数就必须既符合构造函数的要求(意味着不能包含返回语句)，又符合`constexpr`函数的要求(意味着它能拥有的唯一可执行语句就是返回语句)。综合这两点可知，`constexpr`构造函数体一般来说应该是空的。我们通过前置关键字`constexpr`就可以声明一个`constexpr`构造函数了:
+
+例：
+
+```C++
+class Debug {
+public:
+	constexpr Debug(bool b = true) : hw(b), io(b), other(b) {}
+	constexpr Debug(bool h, bool i, bool o) : hw(h), io(i), other(o) {}
+	constexpr bool any() { return hw || io || other; }
+	void set_io(bool b) { io = b; }
+	void set_hw(bool b) { hw = b; }
+	void set_other(bool b) { hw = b; }
+	
+private:
+	bool hw;		// 硬件错误，而非IO错误
+	bool io;		// IO错误
+	bool other;		// 其他错误
+};
+```
+
+`constexpr`构造函数必须初始化所有数据成员，初始值或者使用`constexpr`构造函数，或者是一条常量表达式。
+
+`constexpr`构造函数用于生成`constexpr`对象以及`constexpr`函数的参数或返回类型:
+
+```c++
+constexpr Debug io_sub(false, true, false);		// 调试IO
+if(io_sub.any())								// 等价于if(true)
+	cerr << "print appropriate error messages" << endl;
+constexpr Debug prod(false);					// 无调试
+if(prod.any())									// 等价于if(false)
+	cerr << "print an error message" << endl;
+```
+
+
+
+
+
+## 6. 类的静态成员
+
+静态成员与类本身直接相关，而不是与类的各个对象保持关联。
+
+##### 声明静态成员
+
+我们通过在成员的声明之前加上关键字`static`使得其与类关联在一起。和其他成员一样，静态成员可以是`public`的或`private`的。静态数据成员的类型可以是常量、引用、指针、类类型等。
+
+例：
+
+```C++
+class Account {
+public:
+    void calculate() { amount += amount * interestRate; }
+    static double rate() { return interestRate; }
+    static void rate(double);
+
+private:
+    std::string owner;
+    double amount;
+    static double interestRate;
+    static double initRate();
+};
+```
+
+类的静态成员存在于任何对象之外，对象中不包含任何与静态数据成员有关的数据。
+
+因此，在这个例子中，每个`Account`对象将包含两个数据成员：`owner`和`amount`。**只存在一个`interestRate`对象而且它被所有`Account`对象共享。**
+
+**静态成员函数**也不与任何对象绑定在一起，**它们不包含this指针。 作为结果，静态成员函数不能声明成`const`的，而且我们也不能在`static`函数体内使用`this`指针。**这一限制既适用于`this`的显式使用，也对调用非静态成员的隐式使用有效。
+
+
+
+##### 使用类的静态成员
+
+使用作用域运算符直接访问
+
+```C++
+	double r;
+	r = Account::rate(); // 使用作用域运算符直接访问
+```
+
+虽然静态成员不属于类的某个对象，但是我们仍然可以使用类的对象、引用或者指针来访问静态成员:
+
+```C++
+	Account ac1;
+	Account *ac2 = &ac1;
+	// 调用静态成员函数rate的等价形式
+	r = ac1.rate(); 	// 通过Account的对象或引用
+	r = ac2->rate(); 	// 通过指向Account对象的指针
+```
+
+成员函数不用通过作用域运算符就能直接使用静态成员：
+
+```C++
+class Account {
+public:
+	void calculate() {
+		amount += amount * interestRate;
+	}
+	
+private:
+	static double interestRate;
+	// 其他成员与之前的版本一致
+};
+```
+
+
+
+
+
+##### 定义静态成员
+
+> 1. 静态成员变量不能在创建对象的时候进行初始化，必须在程序的**全局区**用代码清晰的初始化（用范围解析运算符::）。
+>
+> 请注意，下面的代码仅仅用作示例如何定理和使用类的静态变量，代码书写是不规范的：
+>
+> ```C++
+> class Person {
+> private:
+>     static std::string name;
+>     std::string address;
+> public:
+> 
+>     Person() = default;
+> 
+>     Person(const std::string &name, const std::string &address){
+>         this->name = name;
+>         this->address = address;
+>     }
+> 
+>     void show_name() {
+>         std::cout << name << std::endl;
+>     }
+> 
+> };
+> 
+> std::string Person::name = "";	// 可以指定初始值，也可以不指定，这行要放在全局区，即使放在主函数中也是不行的！
+> 
+> int main() {
+>     Person p1("Lihua", "Beijing");
+>     p1.show_name();
+>     return 0;
+> }
+> ```
+>
+> 2. **在静态成员函数中，只能访问静态成员，不能访问非静态成员。**
+>
+> 如果在上面的代码块的其他内容都不变的情况下，在public下面添加一个函数：
+>
+> ```C++
+>     static void show_address() {
+>         std::cout << address << std::endl;
+>     }
+> ```
+>
+> 这是错误的：因为静态成员函数中，只能访问静态成员，不能访问非静态成员。
+>
+> 3. **非静态成员函数可以访问静态成员。**
+>
+> 4. **私有静态成员变量在类外无法访问。**
+> 5. <a href="#658760">const成员变量可以在定义类的时候初始化。</a>
+
+
+
+和其他的成员函数一样，我们既可以在类的内部也可以在类的外部定义静态成员函数。**当在类的外部定义静态成员时，不能重复static关键字，该关键字只出现在类内部的声明语句**：
+
+```C++
+void Account::rate(double newRate) {
+	interestRate = newRate;		// 因为interestRate是private
+}
+```
+
+和类的所有成员一样，当我们指向类外部的静态成员时，必须指明成员所属的类名。`static`关键字则只出现在类内部的声明语句中。
+
+
+
+因为静态数据成员不属于类的任何一个对象，所以它们并不是在创建类的对象时被定义的。这意味着它们不是由类的构造函数初始化的。而且一般来说，**我们不能在类的内部初始化静态成员**（不能通过构造函数初始值列表初始化静态成员变量，但是可以通过为静态成员变量赋值（=），但是这样做是不被推荐的！）。相反的，**必须在类的外部定义和初始化每个静态成员**。和其他对象一样，一个静态数据成员只能定义一次。
+
+类似于全局变量，静态数据成员定义在任何函数之外。因此一旦它被定义，就将一直存在于程序的整个生命周期中。
+
+
+
+**我们定义静态数据成员的方式和在类的外部定义成员函数差不多。**我们需要指定对象的类型名，然后是类名、作用域运算符以及成员自己的名字:
+
+```C++
+// 定义并初始化一个静态成员
+double Account::interestRate = initRate();
+```
+
+这条语句定义了名为interestRate的对象，该对象是类Account的静态成员，其类型是double。从类名开始，这条定义语句的剩余部分就都位于类的作用域之内了。因此，我们可以直接使用initRate函数。注意，虽然initRate是私有的，我们也能用它初始化interestRate。和其他成员的定义一样，interestRate的定义也可以访问类的私有成员。
+
+
+
+
+
+##### <a name="658760">静态成员的类内初始化</a>
+
+类的静态成员不应该在类的内部初始化。然而，我们可以为静态成员提供const整数类型的类内初始值，不过要求静态成员必须是<a href="#981736">**字面值常量类型的constexpr**</a>（例如：string就不能使用静态成员的类内初始化！）。初始值必须是常量表达式，因为这些成员本身就是常量表达式，所以它们能用在所有适合于常量表达式的地方。例如，我们可以用一个初始化了的静态数据成员指定数组成员的维度：
+
+```C++
+class Account {
+public:
+    static double rate() { return interestRate; }
+    static void rate(double);
+    
+private:
+    static constexpr int period = 30;	// period是常量表达式
+    double daily_tbl[period];
+};
+```
+
+
+
+##### 静态成员能用于某些场景，而普通成员不能
+
+静态成员独立于任何对象。因此，在某些非静态数据成员可能非法的场合，静态成员却可以正常地使用。
+
+例，静态数据成员可以是<a href="#523654">不完全类型</a>，静态数据成员的类型可以是它所属的类类型。而非静态数据成员则受到限制，只能声明他所属类的指针或引用：
+
+```C++
+class Bar {
+    static Bar mem1;   // 正确，静态成员可以是不完全类型
+    Bar *mem2;    // 正确，指针成员可以是不完全类型
+    Bar mem3;   // 错误：数据成员必须是完全类型
+}
+```
+
+静态成员和普通成员的另外一个区别是我们可以使用静态成员作为默认实参：
+
+```C++
+class Screen
+{
+public:
+    // bkground 表示一个在类中稍后定义的静态成员
+    Screen& clear(char = bkground);
+private:
+    static const char bkground;
+};
+```
+
+非静态数据成员不能作为默认实参，因为它的值本身属于对象的一部分，这么做的结果是无法真正提供一个对象以便从中获取成员的值，最终将引发错误。
