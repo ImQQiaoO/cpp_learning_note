@@ -14,7 +14,7 @@ using std::string;
 
 
 
-### 1. 定义和初始化string对象
+### 1. 定义和初始化string对象 <a name="096683"> </a>
 
 |        方式         |                             意义                             |
 | :-----------------: | :----------------------------------------------------------: |
@@ -37,7 +37,7 @@ using std::string;
 
 
 
-### 2. string对象上的操作
+### 2. string对象上的操作 <a name="591980"> </a>
 
 ![string的操作](./images/string的操作.png)
 
@@ -127,7 +127,7 @@ size函数返回string对象的长度（即string对象中字符的个数），�
 
 
 
-##### string:: size_ type类型
+##### string::size_ type类型
 
 对于size函数，返回的是一个string::size_type类型的值。它是一个无符号类型的值(unsigned)，而且能足够存放下任何 string对象的大小。所有用于存放string类的size函数返回值的变量，都应该是string::size_type类型的。
 
@@ -1619,7 +1619,7 @@ C风格字符串是为了表达和使用字符串而形成的一种约定俗成�
 
 
 
-##### C标准库String函数
+##### C标准库string函数 <a name="935779"> </a>
 
 ![](./images/C标准库string函数.png)
 
@@ -1743,7 +1743,7 @@ string 转化为 char[]:
 
 
 
-##### 使用数组初始化vector对象
+##### <a name="307307">使用数组初始化vector对象</a>
 
 不允许使用一个数组为另一个内置类型的数组赋初值，也不允许使用vector对象初始化数组。
 
@@ -8727,5 +8727,1485 @@ for (const auto &entry : people) {
 
 > 较旧的编译器可能需要在两个尖括号之间键入空格，例如**`vector<vector<string> >`**。
 
+<a name="708836"> </a>
+
+当顺序容器构造函数的一个版本接收容器大小参数，它就使用了元素类型的默认构造函数。但是有些类没有默认构造函数。我们可以定义一个保存这种类型对象的容器，但我们**在构造这种容器时不能只传递给它一个元素数目参数**：
+
+```C++
+	// 假定<noDefault是一个没有默认构造函数的类型
+	vector<noDefault> v1(10, init);		// 正确：提供了元素初始化器
+	vector<noDefault> v2(10);			// 错误：必须提供一个元素初始化器
+```
 
 
+
+<a name="615819">容器操作：</a>
+
+![](./images/容器操作.png)
+
+
+
+### 2.1 迭代器
+
+与容器一样，迭代器有着公共的接口：如果一个迭代器提供某个操作，那么所有提供相同操作的迭代器对这个操作的实现方式都是相同的。
+
+例如，标准容器类型上的所有迭代器都允许我们访问容器中的元素，而所有迭代器都是通过解引用运算符来实现这个操作的。类似的,标准库容器的所有迭代器都定义了递增运算符，从当前元素移动到下一个元素。
+
+这是<a href="#idde">容器迭代器支持的所有操作</a>。但是，`forward_list`迭代器不支持递减运算符(--)。
+
+这是<a href="#idq1">迭代器支持的算数运算</a>，这些运算只能用于`string`、`vector`、`deque`和`array`的迭代器，我们不能将它们用于其他任何容器类型的迭代器。
+
+
+
+##### 迭代器范围
+
+一个**迭代器范围**由一对迭代器表示。这两个迭代器通常被称为`begin`和`end`，分别指向同一个容器中的元素或尾元素之后的位置。这两个迭代器通常被称为`begin`和`end`，或者是`first`和`last`。它们标记了集合中元素的一个范围。
+
+虽然第二个迭代器(`end`)也被称为`last`，但这种叫法有些误导，因为第二个迭代器从来都不会指向范围中的最后一个元素，而是指向尾元素之后的位置。迭代器范围中的元素包含`first`所表示的元素以及从`first`开始直至`last`（但不包含`last`）之间的所有元素。
+
+这种元素范围被称为**左闭合区间**，这是其数学表述 `[begin, end)` 。
+
+表示范围自`begin`开始，于`end`之前结束。迭代器`begin`和`end`必须指向相同的容器。`end`可以与`begin`指向相同的位置，但不能指向`begin`之前的位置。
+
+
+
+> 对构成范围的迭代器的要求：
+>
+> 如果满足如下条件，两个迭代器begin和end构成一个迭代器范围：
+>
+> - 它们指向同一个容器中的元素,或者是容器最后一个元素之后的位置，且
+> - 我们可以通过反复递增begin来到达end。换句话说，end不在begin之前。
+
+
+
+##### 使用左闭合范围蕴含的编程假定
+
+编译器采用左闭合范围是因为这种范围有三种方便的性质，
+
+标准库使用左闭合范围是因为这种范围有三种方便的性质。假定`begin`和`end`构成一个合法的迭代器范围，则：
+
+- 如果`begin`和`end`相等，则范围为空
+- 如果`begin`与`end`不等，则范围至少包含一个元素，且`begin`指向该范围中的第一个元素
+- 我们可以对`begin`递增若干次，使得`begin == end  `
+
+例：
+
+```C++
+	while (begin != end) {
+		*begin = val;		// 正确：范围非空，因此begin指向一个元素
+		++begin;			// 移动迭代器，获取下一个元素
+	}
+```
+
+
+
+### 2.2 容器类型成员
+
+每个容器都定义了多个类型，如<a href="#615819">上表</a>所示。我们已经使用过其中三种；`size_type`、`iterator`和 `const_iterator`。
+
+除此之外，大多数容器还提供反向迭代器。例如，对一个反向迭代器进行`++`操作，会得到上一个元素。
+
+
+
+通过类型别名，我们可以在不了解容器中元素类型的情况下使用它。
+
+- 如果需要元素类型，可以使用容器的`value_type`。
+- 如果需要元素类型的一个引用，可以使用`reference`或`const_reference`。这些元素相关的类型别名在泛型编程中非常有用。
+
+为了使用这些类型，我们必须显式使用其类名：
+
+```C++
+	// iter是通过list<string>定义的一个迭代器类型
+	list<string>::iterator iter;
+	
+	// count是通过vector<int>定义的一个different_type类型
+	vector<int>::difference_type count;
+```
+
+
+
+### 2.3 `begin`和`end`成员
+
+`begin`和`end`操作生成指向容器中第一个元素和尾元素之后位置的迭代器。这两个迭代器最常见的用途是形成一个包含容器中所有元素的迭代器范围。
+
+`begin`和`end`操作有多个版本：带`r`的版本返回反向迭代器。以`c`开头的版本（C++11新增）返回`const`迭代器。不以`c`开头的版本都是重载的，当对非常量对象调用这些成员时，返回普通迭代器，对`const`对象调用时，返回`const`迭代器。
+
+```c++
+list<string> a = {"Milton", "Shakespeare", "Austen"};
+auto it1 = a.begin();    // list<string>::iterator
+auto it2 = a.rbegin();   // list<string>::reverse_iterator
+auto it3 = a.cbegin();   // list<string>::const_iterator
+auto it4 = a.crbegin();  // list<string>::const_reverse_iterator
+```
+
+不以`c`开头的函数都是被重载过的。也就是说，实际上有两个名为`begin`的成员。一个是`const`成员，返回容器的`const_iterator`类型。另一个是非常量成员，返回容器的`iterator`类型。`rbegin`、`end`和 `rend`的情况类似。与const指针和引用类似，可以将一个普通的`iterator`转换为对应的`const_iterator`，但反之不行。
+
+
+
+以`c`开头的版本是C++11引入的：
+
+```C++
+	// 显式指定类型
+	list<string>::iterator it5 = a.begin();
+	list<string>::const_iterator it6 = a.begin();
+	
+	// 是iterator还是const_iterator依赖于a的类型
+	auto it7 = a.begin();		// 仅当a是const时，it7是const_iterator
+	auto it8 = a.cbegin();		// it8是const_iterator
+```
+
+当`auto`与`begin`或`end`结合使用时，返回的迭代器类型依赖于容器类型。但调用以`c`开头的版本仍然可以获得`const`迭代器，与容器是否是常量无关。
+
+
+
+> 当程序不需要写操作时，应该使用`cbegin`和`cend`。
+
+
+
+### 2.4 容器定义和初始化 <a name="352891"> </a>
+
+每个容器类型都定义了一个默认的构造函数。除`array`之外，其他容器的默认构造函数都会创建一个指定类型的空容器，且都可以接受指定容器大小和元素初始值的参数。
+
+![](./images/容器定义和初始化.png)
+
+
+
+
+
+##### 将一个容器初始化为另一个容器的拷贝
+
+将一个新容器创建为另一个容器的拷贝的方法有两种：
+
+- 直接拷贝整个容器
+- 拷贝由一个迭代器对指定的元素范围（array除外）   *(联想复习：<a href="#307307">数组通过`begin()`和`end()`函数初始化`vector`对象</a> )*
+
+
+
+为了创建一个容器为另一个容器的拷贝，**两个容器的类型及其元素类型必须匹配**。
+
+不过，**当传递迭代器参数来拷贝一个范围时，就不要求容器类型是相同的了。而且，新容器和原容器中的元素类型也可以不同，只要能将要拷贝的元素转换为要初始化的容器的元素类型即可。**
+
+```C++
+	// 每个容器有三个元素，用给定的初始化器进行初始化
+	list<string> authors = {"Milton", "Shakespeare", "Austen"};
+	vector<const char*> articles = {"a", "an", "the"};
+	list<string> list2(authors);        // 正确：类型匹配
+	deque<string> authList(authors);    // 错误：容器类型不匹配
+	vector<string> words(articles);     // 错误：容器类型必须匹配
+	// 正确：可以将const char* 元素转换为 string
+	forward_list<string> words(articles.begin(), articles.end());	// 构造
+```
+
+接受两个迭代器参数的构造函数用这两个迭代器表示我们想要拷贝的一个元素范围。两个迭代器分别标记想要拷贝的第一个元素和**尾元素之后的位置**。新容器的大小与范围中元素的数目相同。新容器中的每个元素都用范围中对应元素的值进行初始化。
+
+例：
+
+```C++
+	// 拷贝元素，直到（但不包括）it指向的元素
+	deque<string> authList(authors.begin(), it);
+```
+
+
+
+##### 列表初始化
+
+C++11以后，我们可以对一个容器进行列表初始化。
+
+```C++
+	// 每个容器有三个元素，用给定的初始化器进行初始化
+	list<string> authors = {"Milton", "Shakespeare", "Austen"};
+	vector<const char*> articles = {"a", "an", "the"};
+```
+
+当这样做时，我们就显式地指定了容器中每个元素的值。对于除`array`之外的容器类型，初始化列表还隐含地指定了容器的大小：容器将包含与初始值一样多的元素。
+
+
+
+##### 与顺序容器大小相关的构造函数
+
+除了与关联容器相同的构造函数外，顺序容器(`array`除外)还提供另一个构造函数，它接受一个容器大小和一个（可选的）元素初始值。如果我们不提供元素初始值，则标准库会创建一个值初始化器：
+
+```C++
+	vector<int> ivec(10, -1);			// 10个int元素，每个都初始化为-1
+	list<string> svec(10, "hi");		// 10个strings；每个都初始化为"hi"
+	forward_list<int> ivec;				// 10个元素，每个都初始化为0
+	deque<int> svec(10);				// 10个元素，每个都是空string
+```
+
+> 如果元素类型是内置类型或者是<a href="#708836">具有默认构造函数</a>的类类型，可以**只为构造函数提供一个容器大小参数**。
+>
+> 如果元素类型没有默认构造函数，除了大小参数外，还必须指定一个显式的元素初始值。
+
+
+
+只有顺序容器的构造函数才接受大小参数,关联容器并不支持。
+
+
+
+##### 标准库`array`具有固定大小
+
+和传统数组一样，标准库`array`的大小也是类型的一部分。
+
+定义一个`array`时，要指定元素类型，也要指定容器大小：
+
+```C++
+	array<int, 42>      // 类型为：保存42个int的数组
+	array<string, 10>   // 类型为：保存10个string数组
+	
+	array<int, 10>::size_type i;   // 数组类型包括元素类型和大小
+	array<int>::size_type j;       // 错误：array<int>不是一个类型
+```
+
+`array`的一些特性：
+
+1. 由于大小是`array`类型的一部分，`array`不支持普通的容器构造函数。
+2. 由于`array`大小固定的特性，默认构造的`array`是非空的：它包含了与其大小一样多的元素。这些元素都被默认初始化（就像内置数组中的元素那样）。
+3. 如果我们对`array`进行列表初始化，初始值的数目必须等于或小于`array`的大小。如果初始值数目小于`array`的大小，则它们被用来初始化array中靠前的元素，所有剩余元素都会进行值初始化。
+4. 如果元素类型是一个类类型，那么该类必须有一个默认构造函数，以使值初始化能够进行。
+
+```C++
+	array<int, 10> ia1;										// 10个默认初始化的int
+	array<int, 10> ia2 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};	// 列表初始化
+	array<int, 10> ia3 = {42};								// ia3[0]为42，剩余元素为0
+```
+
+
+
+**虽然我们不能对内置数组类型进行拷贝或对象赋值操作，但`array`并无此限制:**
+
+```C++
+	int digs[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	int cpy[10] = digs;				// 错误：内置数组不支持拷贝或赋值
+	array<int, 10> digits = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	array<int, 10> copy = digits;	// 正确：只要数组类型匹配即合法
+```
+
+与其他容器一样,`array`也要求初始值的类型必须与要创建的容器类型相同。此外，`array`还要求元素类型和大小也都一样，因为大小是`array`类型的一部分。
+
+
+
+##### 习题
+
+1. 对6种创建和初始化`vector`对象的方法，每一种都给出一个实例。解释每个`vector`包含什么值。
+
+> - ```C++
+>   	vector<int> ilist1;		/* 默认初始化，vector为空——size返回0，表明容器中尚未拥有元素；capacity返回0，意味着尚未分配存储空间。这种初始化方式适合于元素个数和值未知，需要在程序运行中动态添加的情况。*/
+>   ```
+>
+> - ```C++
+>   	vector<int> ilist2(ilist);	/* ilist2初始化为ilist的拷贝，ilist必须与ilist2类型相同，即也是int的vector类型，ilist2将具有与ilist相同的容量和元素。*/
+>   	// 等价方式
+>   	vector<int> ilist2 = ilist1;
+>   ```
+>
+> - ```C++
+>   	vector<int> ilist = {1, 2, 3.0, 4, 5, 6, 7};	/* ilist初始化为列表中元素的拷贝，列表中的元素类型必须与ilist的元素类型相容，在本例中必须是与整型相容的数值类型。对于整型，会直接拷贝其值，对于其他类型则需进行类型转换（如3.0 转换为3）。这种初始化方式适合元素数量和值预先可知的情况。*/
+>   	// 等价方式
+>   	vector<int> ilist{1, 2, 3.0, 4, 5, 6, 7};
+>   ```
+>
+> - ```C++
+>   	vector<int> ilist3(ilist.begin() + 2, ilist.end() - 1);		/* ilist3初始化为两个迭代器指定范围中的元素的拷贝，范围中的元素类型必须与ilist3的元素类型相容，在本例中ilist3被初始化为{3，4，5,6}。注意，由于只要求范围中元素类型与待初始化的容器的元素类型相容，因此，迭代器来自于不同类型的容器是可能的，例如，用一个 double的 list 的范围来初始化 ilist3是可行的。另外，由于构造函数只是读取范围中的元素并进行拷贝，因此使用普通迭代器还是const迭代器来指出范围并无区别。这种初始化方法特别适合于获取一个序列的子序列。*/
+>   ```
+>
+> - ```C++
+>   	vector<int> ilist4(7);	/* 默认值初始化，ilist4中将包含7个元素，每个元素进行缺省的值初始化，对于int，也就是被赋值为0，因此ilist4被初始化为包含7个0。当程序运行初期元素大致数量可预知，而元素的值需动态获取时，可采用这种初始化方式。*/
+>   ```
+>
+> - ```C++
+>   	vector<int> ilist5(7, 3);	/* 指定值初始化，ilist5被初始化为包含7个值为3的int*/
+>   ```
+
+
+
+
+
+### 2.5 赋值和`swap`
+
+下表列出的与赋值相关的运算符可用于所有容器：
+
+![](./images/容器赋值运算.png)
+
+赋值运算符将其左边容器中的全部元素替换为右边容器中元素的拷贝：
+
+```C++
+	c1 = c2;			// 将c1的内容替换为c2中元素的拷贝
+	c1 = {a, b, c};		// 赋值后，c1大小为3
+```
+
+第一个赋值运算后，左边容器将与右边容器相等。如果两个容器原来大小不同，赋值运算后两者的大小都与右边容器的原大小相同。第二个赋值运算后，`c1`的`size`变为3，即花括号列表中值的数目。
+
+
+
+与内置数组不同，标准库`array`类型允许赋值。赋值号左右两边的运算对象必须具有相同的类型：
+
+```C++
+	array<int, 10> a1 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	array<int, 10> a2 = {0};		// 所有元素均为10
+	a1 = a2;						// 替换a1中的元素
+	a2 = {0};						// 错误：不能将一个花括号列表赋予数组
+```
+
+
+
+```C++
+int main() {
+    std::array<int, 5> arr = {1, 2, 3, 4, 5};
+    arr = {1, 2, 3, 4};
+    for (auto &item: arr) {
+        std::cout << item << std::endl;    // 输出内容为： 1 2 3 4 0
+    }
+    return 0;
+}
+```
+
+**但是，由于右边运算对象的大小可能与左边运算对象的大小不同，因此`array`类型不支持`assign`，也不允许用花括号包围的值列表进行赋值。**
+
+
+
+##### 使用`assign`（仅顺序容器） *先清空，再拷贝 <a name="726796"> </a>
+
+赋值运算符要求左边和右边的运算对象具有相同的类型。它将右边运算对象中所有元素拷贝到左边运算对象中。
+
+顺序容器（`array`除外）还定义了一个名为`assign`的成员，允许我们从一个不同但相容的类型赋值，或者从容器的一个子序列赋值。`assign`操作用参数所指定的元素(的拷贝）替换左边容器中的所有元素。例：
+
+```C++
+	list<string> names;
+	vector<const char*> old_style;
+	names = old_style;		// 错误：容器类型不匹配
+	// 正确：可以将const char*转换为string
+	names.assign(old_style.cbegin(), old_style.cend());		//不同于构造时使用迭代器划定位置拷贝
+```
+
+这段代码中对`assign`的调用将`names`中的元素替换为迭代器指定的范围中的元素的拷贝。`assign`的参数决定了容器中将有多少个元素以及它们的值都是什么。
+
+> 由于其旧元素被替换,因此传递给assign的迭代器不能指向调用assign的容器。
+
+
+
+`assign`的第二个版本接受一个整型值和一个元素值。它用指定数目且具有相同给定值的元素替换容器中原有的元素：
+
+```C++
+	// 等价于slist1.clear();
+	// 后跟slist.insert(slist1.begin(), 10, "Hiya!");
+	list<string> slist1(1);		// 1个元素，为空string
+	slist1.assign(10, "Hiya!");	// 10个元素，每个都是"Hiya!"
+```
+
+
+
+##### 使用`swap`
+
+`swap`操作交换**两个相同类型容器**的内容。调用`swap`之后，两个容器中的元素将会交换：
+
+```C++
+	vector<string> svec1(10);		// 10个元素的vector
+	vector<string> svec2(24);		// 24个元素的vector
+	swap(svec1, svec2);
+```
+
+调用`swap`后,`svec1`将包含24个`string`元素,`svec2`将包含10个`string`。
+
+**除`array`外**，交换两个容器内容的操作保证会很快——**元素本身并未交换，`swap`只是交换了两个容器的内部数据结构**。
+
+> **除`array`外**，`swap`不对任何元素进行拷贝、删除或插入操作，因此可以保证在常数时间内完成。
+
+
+
+- 关于`swap`的几个要点：
+
+1. 由于元素不会被移动，**（除string外）**，指向容器的迭代器、引用和指针在swap操作之后都不会失效。**它们仍指向swap操作之前所指向的那些元素**。
+
+   ```C++
+   int main() {
+       vector<int> ivec0 = {1, 3, 5, 7, 9};
+       auto iter0 = ivec0.begin();
+       vector<int> ivec1 = {0, 2, 4, 6, 8};
+       auto iter1 = ivec1.begin();
+       swap(ivec0, ivec1);
+       cout << *iter0 << endl;     // 输出结果为：1
+       cout << *iter1 << endl;     // 输出结果为：0
+       return 0;
+   }
+   ```
+
+2. 和其他容器不同，对一个`string`调用`swap`会导致迭代器、引用和指针失效。
+
+3. 和其他容器不同，**`swap`两个`array`会真正交换它们的元素**。因此，交换两个`array`所需的时间与`array`中元素的数目成正比。因此，对于`array`，在 `swap`操作之后，指针、引用和迭代器所绑定的元素保持不变，但元素值已经与另一个`array`中对应元素的值进行了交换。
+
+   ```C++
+       array<int, 5> arr0 = {1, 3, 5, 7, 9};
+       auto arr0_iter = arr0.begin();
+       array<int, 5> arr1 = {0, 2, 4, 6, 8};
+       auto arr1_iter = arr1.begin();
+       swap(arr0, arr1);
+       cout << *arr0_iter << endl;     // 输出结果为：0
+       cout << *arr1_iter << endl;     // 输出结果为：1
+   ```
+
+4. 在新标准库中，容器既提供成员函数版本的`swap`，也提供非成员版本的`swap`。**非成员版本的`swap`在泛型编程中是非常重要的**。**统一使用非成员版本的`swap`**是一个好习惯。
+
+   ```C++
+   	swap(arr0, arr1);	// 成员版本swap
+   	arr0.swap(arr1);	// 非成员版本swap
+   ```
+
+
+
+
+
+### 2.6 容器大小操作
+
+每个容器都有三个与大小相关的操作，除了一个例外：
+
+1. `size`成员返回容器中元素的数量；
+2. `empty`当`size`为0时返回`true`，否则返回`false`；
+3. `max_size`返回一个大于或等于该类型容器所能容纳的最大元素数量的值。
+
+- ***一个例外：`forward_list`支持`max_size`和`empty`，但不支持`size`。***
+
+
+
+### 2.7 关系运算符（比较运算符）
+
+每个容器类型都支持相等运算符（`==`、`!=`）。**除无序关联容器外**，其他容器都支持关系运算符（`>`、`>=`、`<`、`<=`）。**关系运算符两侧的容器类型和保存元素类型都必须都相同。**
+
+两个容器的比较实际上是元素的逐对比较，其工作方式与`string`的关系运算符类似：
+
+- 如果两个容器大小相同且所有元素对应相等，则这两个容器相等。
+
+- 如果两个容器大小不同，但较小容器中的每个元素都等于较大容器中的对应元素，则较小容器小于较大容器。
+
+- 如果两个容器都不是对方的前缀子序列，则两个容器的比较结果取决于第一个不等元素的比较结果。
+
+```c++
+	vector<int> v1 = { 1, 3, 5, 7, 9, 12 };
+	vector<int> v2 = { 1, 3, 9 };
+	vector<int> v3 = { 1, 3, 5, 7 };
+	vector<int> v4 = { 1, 3, 5, 7, 9, 12 };
+	v1 < v2     // true; v1和v2在元素[2]处不同: v1[2] 小于等于 v2[2]
+	v1 < v3     // false; 所有元素都相等，但是v3中元素数目更少
+	v1 == v4    // true; 每个元素都相等，且v1和v4大小相同
+	v1 == v2    // false; v2元素数目比v1少
+```
+
+
+
+##### 容器的关系运算符使用元素的关系运算符完成比较
+
+容器的相等运算符实际上是使用元素的`==`运算符实现的，而其他关系运算符则是使用元素的`<`运算符。
+
+如果元素类型不支持所需运算符，则保存该元素的容器就不能使用相应的关系运算。
+
+例：
+
+```C++
+	vector<Sales_data> storeA, storeB;
+	if (storeA < storeB)	// 错误：在我们的Saless_data类中没有<运算符
+```
+
+
+
+## 3. 顺序容器操作
+
+<a href="#615819">上一节介绍了所有容器都支持的操作</a>，下面介绍**顺序容器所特有**的操作：
+
+
+
+### 3.1 向顺序容器添加元素
+
+除`array`外，所有标准库容器都提供灵活的内存管理。在运行时可以动态添加或删除元素来改变容器大小。下表列出了向顺序容器（非`array`）添加元素的操作。
+
+![](./images/向顺序容器添加元素的操作.png)
+
+当我们使用这些操作时，必须记得不同容器使用不同的策略来分配元素空间，而这些策略直接影响性能。在一个`vector`或`string`的尾部之外的任何位置，或是一个deque的首尾之外的任何位置添加元素，都需要移动元素。
+
+而且，向一个`vector`或`string`添加元素可能引起整个对象存储空间的重新分配。重新分配一个对象的存储空间需要分配新的内存，并将元素从旧的空间移动到新的空间中。
+
+
+
+##### 使用`push_back`
+
+`vector`、`deque`、`list`和`string`都支持`push_back`。
+
+例：
+
+```C++
+	// 从标准输入读取数据，将每个单词放到容器末尾
+	string word;
+	while(cin >> word)
+		container.push_back(word);
+```
+
+对`push_back`的调用在`container`尾部创建了一个新的元素，将`container`的`size`增大了1。该元素的值为`word`的一个**拷贝**。在这个例子中的`container`的类型可以是`list`、`vector`或`deque`。
+
+
+
+`string`是一个字符容器，我们也可以用`push_back`在`string`末尾添加字符：
+
+```C++
+void pluralize(size_t cnt, string &word) {
+	if (cnt > 1)
+		word.push_back('s');	// 等价于word += 's'
+}
+```
+
+
+
+> 当我们用一个对象来初始化容器时，或将一个对象插入到容器中时，实际上放入到容器中的是对象值的一个拷贝，而不是对象本身。
+>
+> 就像我们将一个对象传递给非引用参数一样，容器中的元素与提供值的对象之间没有任何关联。随后对容器中元素的任何改变都不会影响到原始对象，反之亦然。
+
+
+
+##### 使用`push_front`
+
+`list`、`forward_list`和`deque`支持`push_front`操作。这个操作将元素插入到容器头部：
+
+```C++
+	list<int> ilist;
+	// 将元素添加到ilist开头
+	for (size_t ix = 0; ix != 4; ++ix) {
+		ilist.push_front(ix);
+	}
+```
+
+这个循环将0、1、2、3添加到`ilist`头部，运行完毕后，`ilist`保存序列3、2、1、0。
+
+
+
+`deque`像`vector`一样提供了随机访问元素的能力，但它提供了**`vector`所不支持的`push_front`**。
+
+`deque`保证在容器首尾进行插入和删除元素的操作都只花费常数时间。与`vector`一样，在`deque`首尾之外的位置插入元素会很耗时。
+
+
+
+##### 在容器中的特定位置添加元素  # insert函数 <a name="788584"> </a>
+
+`push_back`和`push_front`提供了在尾部和头部插入单个元素的方法。
+
+`insert`允许我们在容器中任意位置插入0个或多个元素。
+
+`vector`、`deque`、`list`和`string`都支持`insert`成员。`forward_list`提供了特殊版本的`insert`。
+
+每个`insert`函数都接受一个迭代器作为其第一个参数。迭代器指出了在容器中什么位置放置新元素。它可以指向容器中任何位置，包括容器尾部之后的下一个位置。由于迭代器可能指向容器尾部之后不存在的元素的位置，而且在容器开始位置插入元素是很有用的功能，所以**`insert`函数将元素插入到迭代器所指定的位置之前**。例：
+
+```C++
+	slist.insert(iter, "Hello!");		// 将“Hello!”添加到iter之前的位置
+```
+
+
+
+虽然有的容器不支持`push_front`操作（如`vector`），但是我们可以通过`insert`将元素插入到容器的开始位置：
+
+```C++
+	int main() {
+    vector<string> v;
+    list<string> l;
+    
+    // 等价于调用l.push_front("hello");
+    l.insert(l.begin(), "hello");
+    
+    // vector不支持push_front，但是可以使用insert插入到begin()之前
+    // 警告：这种操作效率很低，因为需要移动所有元素
+    v.insert(v.begin(), "hello");
+```
+
+> 将元素插入到`vector`、`deque`和`string`中的任何位置都是合法的。但是这样做可能很耗时。
+
+
+
+##### 插入范围内元素   # 继续介绍insert函数
+
+`insert`还可以接受更多的参数。这和容器构造函数类似。
+
+**版本①：**这个版本的`insert`函数接受一个元素数目和一个值，它将指定数量的元素添加到指定位置之前，这些元素都按给定值初始化：
+
+```C++
+	svec.insert(svec.end(), 10, "Anna");
+```
+
+这行代码将10个元素插入到`svec`的末尾，并将所有元素都初始化为`string "Anna"`。
+
+
+
+**版本②：**这个版本接受一对迭代器或一个初始化列表，将给定范围中的元素插入到指定位置之前：
+
+```C++
+	vector<string> v = {"quasi", "simba", "frollo", "scar"};
+	// 将v的最后两个元素添加到slist的开始位置
+	slist.insert(slist.begin(), v.end() - 2, v.end());
+	slist.insert(slist.end(), {"these", "words", "will", "go", "at", "the", "end"});
+	slist.insert(slist.begin(), slist.begin(), slist.end());	// 发生运行时错误：迭代器表示要拷贝的范围，不能指向与目的位置相同的容器
+```
+
+如果我们传递给`insert`一对迭代器，它们**不能指向添加元素的目标容器**。
+
+
+
+在新标准下,接受元素个数或范围的`insert`版本（以上的两个版本）返回**指向第一个新加入元素的迭代器**。(在旧版本的标准库中,这些操作返回`void`。)
+
+如果范围为空,不插入任何元素,`insert`操作会将第一个参数返回。
+
+
+
+##### 使用`insert`的返回值
+
+通过使用`insert`的返回值（返回新添加的元素的迭代器），可以在容器中一个特定位置反复插入元素：
+
+```C++
+	list<string> lst;
+	auto iter = lst.begin();
+	while (cin >> word)
+		iter = lst.insert(iter, word);		// 等价于调用push_front
+```
+
+
+
+##### 使用`emplace`操作
+
+C++11引进的三个新成员：`emplace_front`、`emplace`和`emplace_back`，这些操作是**构造**而**不是拷贝**元素。
+
+这些操作分别对应`push_front`，`insert`，和`push_back`。允许我们将元素放置在容器头部、一个指定位置之前或容器尾部。
+
+
+
+当调用`push`或`insert`成员函数时，将元素类型的对象传递给他们，这些对象被**拷贝**到容器中。
+
+当我们调用`emplace`成员函数时，则是将参数传递给**元素类型的构造函数**。
+
+例：
+
+```C++
+	// 在c的末尾构造一个Sales_data对象
+	// 使用三个参数的Sales_data构造函数
+	c.emplace_back("978-0590353403", 25, 15.99);
+	// 错误：没有接受使用三个参数的push_back版本
+	c.push_back("978-0590353403", 25, 15.99);
+	// 正确：创建一个临时的Sales_data对象传递给push_back
+	c.push_back(Sales_data("978-0590353403", 25, 15.99));
+```
+
+> `emplace_back`和上面第二个`push_back`都创建了新的`Sales_data`对象。
+>
+> 在调用`emplace_back` 时，会在容器管理的内存空间中直接创建对象。而调用`push_back` 则会创建一个局部临时对象，并将其压入容器中。
+
+`emplace`函数的参数根据元素类型而变化，参数必须与元素类型的构造函数相匹配：
+
+```C++
+	// iter指向c中一个元素，其中保存了Sales_data元素
+	c.emplace_back();	// 使用Sales_data的默认构造函数
+	c.emplace_back(iter, "999-9999");	// 使用Sales_data(string)
+	// 使用Sales_data接受的一个ISBN、一个count和一个price的构造函数
+	c.empalce_front("987-6543", 25, 15.99);
+```
+
+`emplace`函数在容器中直接构造元素。传递给`emplace`函数的参数**必须与元素类型的构造函数相匹配**。
+
+
+
+### 3.2 访问元素
+
+下表中是在顺序容器中访问元素的操作：
+
+![](./images/顺序访问元素.png)
+
+注意：**如果容器中没有元素，访问操作的结果是未定义的。**
+
+
+
+包括`array`在内的每个顺序容器都有一个`front`成员函数，而除`forward_list`之外的所有顺序容器都有一个`back`成员函数。这两个操作分别返回首元素和尾元素的引用：
+
+```C++
+	// 在解引用一个迭代器或调用front或back之前检查是否有元素
+	if (!c.empty()) {	// 确保容器非空，以免发生未定义行为
+		// val和val2是c中第一个元素值的拷贝
+		auto cal = *c.begin(), val2 = c.front();
+		// val3和val4是c中最后一个元素值的拷贝
+		auto last = c.end();
+		auto val3 = *(--last);	// 不能递减forward_list迭代器
+		auto val4 = c.back();	// forward_list不支持
+	}
+```
+
+
+
+##### 访问成员函数返回的是引用
+
+包括`array`在内的每个顺序容器都有一个`front`成员函数，而除`forward_list`之外的所有顺序容器都有一个`back`成员函数。
+
+这两个操作分别返回首元素和尾元素的引用：
+
+```c++
+	// 在解引用一个迭代器或调用front或back之前检查是否有元素
+	if (!c.empty) {
+		c.front() = 42;			// 将42赋予c中第一个元素
+		auto &v = c.back();		// 获得指向最后一个元素的引用
+		v = 1024;				// 改变c中的元素
+		auto v2 = c.back();		// v2不是一个引用，它是c.back()的一个拷贝
+		v2 = 0;					// 未改变c中的元素
+	}
+```
+
+
+
+##### 下标操作和安全的随机访问
+
+**提供快速随机访问的容器(`string`、`vector`、`deque`和 `array`)也都提供下标运算符。**
+
+下标运算符接受一个下标参数，返回容器中该位置的元素的引用。给定下标必须“在范围内”(即，大于等于0，且小于容器的大小)。
+
+保证下标有效是程序员的责任，编译器并不检查这种错误，下标运算符并不检查下标是否在合法范围内。
+
+如果我们希望确保下标是合法的，可以使用`at`成员函数。`at`成员函数类似下标运算符，但如果下标越界，`at` 会抛出一个`out_of_range`异常：
+
+```c++
+	vector<string> svec;		// 空vector
+	cout << svec[0];			// 运行时错误：svec中没有元素！
+	cout << svec.at(0);			// 抛出一个out_of_range异常
+```
+
+```
+在MinGW编译器中运行：
+cout << svec[0]; 会出现：
+Process finished with exit code -1073741819 (0xC0000005)
+cout << svec.at(0); 会出现：
+terminate called after throwing an instance of 'std::out_of_range'
+  what():  vector::_M_range_check: __n (which is 0) >= this->size() (which is 0)
+```
+
+
+
+### 3.3 删除元素
+
+与添加元素的多种方式类似，（非`array`）容器也有多种删除元素的方式。下表列出了这些成员函数。
+
+![](./images/顺序容器删除.png)
+
+> 删除元素的成员函数并不检查其参数。在删除元素之前，程序员**必须确保它(们)是存在的**。
+
+
+
+##### `pop_front`和`pop_back`成员函数
+
+`pop_front`和`pop_back`成员函数分别**删除**首元素和尾元素。
+
+与`vector`和`string`不支持`push_front`一样，这些类型也不支持`pop_front`。类似的，`forward_list`不支持`pop_back`。
+
+与元素访问成员函数类似，不能对一个空容器执行弹出操作。
+
+这些操作返回`void`。如果需要弹出元素的值，就必须在弹出操作之前保存它：
+
+```C++
+	while(!ilist.empty()) {
+		process(ilist.front());		// 对ilist的首元素进行一些处理
+		ilist.pop_front();			// 完成处理后删除首元素
+	} 
+```
+
+
+
+##### 从容器内部删除一个元素  #`erase` <a name="729553"> </a>
+
+成员函数`erase`从容器中指定位置删除元素。
+
+我们可以删除由一个迭代器指定的单个元素，也可以删除由一对迭代器指定的范围内的所有元素。
+
+两种形式的`erase`都返回指向删除的(最后一个)元素之后位置的迭代器。即,若`j`是`i`之后的元素,那么`erase(i)`将返回指向`j`的迭代器。
+
+<a name="996293">例：</a>
+
+```C++
+	list<int> lst = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	auto it = lst.begin();
+	while (it != lst.end())
+		if (*it % 2)		// 若元素为奇数
+			it = lst.erase(it);
+		else
+			++it;
+```
+
+
+
+##### 删除多个元素
+
+接受一对迭代器的`erase`版本允许我们删除一个范围内的元素：
+
+```C++
+	// 删除两个迭代器表示的范围内的元素
+	// 返回指向最后一个被删元素之后位置的迭代器
+	elem1 = slist.erase(elem1, elem2);	// 调用后，elem1 == elem2
+```
+
+迭代器`elem1`指向我们要删除的第一个元素，`elem2`指向我们要删除的最后一个元素之后的位置。
+
+例：
+
+```C++
+    vector<int> svec = {0, 1, 2, 3, 4, 5};
+    auto elem1 = svec.begin() + 3;     				// 指向第4个元素
+    auto elem2 = svec.end() - 1;       				// 指向最后一个元素
+    cout << *elem1 << " " << *elem2 << endl;      	// 输出：3 5
+    svec.erase(elem1, elem2);           			// 删除svec中的一个范围内的元素
+    print_vector(svec);                      		// 输出：[0, 1, 2, 5]
+    cout << *elem1 << " " << *elem2 << endl;      	// 输出：5 5
+```
+
+
+
+为了删除一个容器中的所有元素，我们既可以调用`clear`，也可以用`begin`和`end`获得的迭代器作为参数调用`erase`:
+
+```C++
+	slist.clear();		// 删除容器中所有元素
+	slist.erase(slist.begin(), slist.end());	// 等价调用
+```
+
+
+
+### 3.4 特殊的`forward_list`操作
+
+为了理解`forward_list`为什么会有特殊版本的添加和删除操作，以在单向链表中删除一个中间元素进行举例：
+
+![](./images/fl特殊操作.png)
+
+在此例中，删除`elem3`会导致`elem2`发生改变（`elem2`原本指向`elem3`，但删除`elem3`后，`elem2`指向了`elem4`）。
+
+
+
+由于`forward_list`是单向链表。在一个单向链表中，没有简单的方法来获取一个元素的前驱。所以，`forward_list`并未定义`insert`、`emplace`和`erase`，而是定义了名为`insert_after`、`emplace_after`和`erase_after`的操作。
+
+例如，在上面的例子中，为了删除`elem3`，应该用指向`elem2`的迭代器调用`erase_after`。为了支持这些操作，`forward_list`也定义了`before_begin`，它返回一个**首前**迭代器。这个迭代器允许我们在链表首元素之前并不存在的元素“之后”添加或删除元素(亦即在链表首元素之前添加删除元素)。
+
+![](./images/flid.png)
+
+当在`forward_list`中添加或删除元素时，我们必须关注两个迭代器：一个指向我们要处理的元素，另一个指向其前驱。
+
+例如，可以改写<a href="#996293">从`list`中删除奇数元素的循环程序</a>，将其改为从`forward_list`中删除元素:
+
+```C++
+	forward_list<int> flst = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	auto prev = flst.before_begin();		// 表示flst的“首前元素”
+	auto curr = flst.begin();				// 表示flst中的第一个元素
+	while(curr != flst.end()) {				// 仍有元素要处理
+        if (*curr % 2)						// 若元素为奇数
+            curr = flst.erase_after(perv);	// 删除它并移动curr
+        else {
+            prev = curr;					// 移动迭代器curr，指向下一个元素，prev指向curr之前的元素
+            ++curr;
+        }
+    }
+```
+
+> 当找到奇数元素后，我们将`prev`传递给`erase_after`。此调用将`prev`之后的元素删除，即，删除`curr`指向的元素。然后我们将`curr`重置为`erase_after`的返回值，使得`curr`指向序列中下一个元素，`prev`保持不变，仍指向（新）`curr`之前的元素。如果`curr`指向的元素不是奇数，在`else`中我们将两个迭代器都向前移动。
+
+
+
+### <a name="633499">3.5 改变容器大小 #`resize`</a>
+
+我们可以用resize来增大或缩小容器。（`array`不支持`resize`）。
+
+![](./images/顺序容器大小.png)
+
+如果当前大小大于所要求的大小，容器后部的元素会被删除；如果当前大小小于新大小，会将新元素添加到容器后部:
+
+```C++
+	list<int> ilist(10, 42);		// 10个int：每个的值都是42
+	ilist.resize(15);				// 5个值为0的元素添加到ilist的末尾
+	ilist.resize(25, -1);			// 将10个值为-1的元素添加到ilist的末尾
+	ilist.resize(5);				// 从ilist末尾删除20个元素
+```
+
+
+
+### 3.6 容器操作可能使迭代器失效
+
+**向容器中添加元素和从容器中删除元素的操作可能会使指向容器元素的指针、引用或迭代器失效。**一个失效的指针、引用或迭代器将不再表示任何元素。使用失效的指针、引用或迭代器是一种严重的程序设计错误，很可能引起与使用未初始化指针一样的问题。
+
+
+
+- 向容器中添加元素后：
+
+  - 如果容器是`vector`或`string`类型，且存储空间被重新分配，则指向容器的迭代器、指针和引用都会失效。
+
+    如果存储空间未重新分配，指向插入位置之前元素的迭代器、指针和引用仍然有效，但指向插入位置之后元素的迭代器、指针和引用都会失效。
+
+  - 如果容器是`deque`类型，添加到除首尾之外的任何位置都会使迭代器、指针和引用失效。
+
+    如果添加到首尾位置，则迭代器会失效，而指针和引用不会失效。
+
+  - 如果容器是`list`或`forward_list`类型，指向容器的迭代器（包括尾后迭代器和首前迭代器）、指针和引用仍然有效。
+
+- 从容器中删除元素后，指向被删除元素的迭代器、指针和引用失效：
+
+  - 如果容器是`list`或`forward_list`类型，指向容器其他位置的迭代器、指针和引用仍然有效。
+
+  - 如果容器是`deque`类型，删除除首尾之外的任何元素都会使迭代器（包括尾后迭代器和首前迭代器）、指针和引用失效。
+
+    如果删除尾元素，则尾后迭代器失效，其他迭代器、指针和引用不受影响。
+
+    如果删除首元素，这些也不会受影响。
+
+  - 如果容器是`vector`或`string`类型，指向删除位置之前元素的迭代器、指针和引用仍然有效。但尾后迭代器总会失效。
+
+
+
+> 管理迭代器：
+>
+> 当你使用迭代器(或指向容器元素的引用或指针)时,最小化要求迭代器必须保持有效的程序片段是一个好的方法。
+>
+> 由于向迭代器添加元素和从迭代器删除元素的代码可能会使迭代器失效,因此必须保证每次改变容器的操作之后都**正确地重新定位迭代器**。这个建议对`vector`，`string`和`deque`尤为重要。
+
+
+
+
+
+##### 编写改变容器的循环程序
+
+添加/删除 `vector`、`string` 或`deque`元素的循环程序必须考虑迭代器、引用和指针可能失效的问题。程序必须保证每个循环步中都更新迭代器、引用或指针。如果循环中调用的是`insert`或`erase`，那么更新迭代器很容易。这些操作都返回迭代器，我们可以用来更新：
+
+```C++
+    // 傻瓜循环，删除偶数元素，复制每一个奇数元素
+    vector<int> vi = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    auto iter = vi.begin();            // 调用begin而不是cbegin，因为我们要改变vi
+    while (iter != vi.end()) {
+        if (*iter % 2) {
+            iter = vi.insert(iter, *iter);        // 复制当前元素
+            iter += 2;                            // 向前移动迭代器，跳过当前元素以及插入到它之前的元素
+        } else {
+            iter = vi.erase(iter);                // 删除偶数元素
+            // 不应该向前移动迭代器，iter指向我们删除的元素之后的元素
+        }
+    }
+
+	// 输出结果为：[1, 1, 3, 3, 5, 5, 7, 7, 9, 9]
+```
+
+在上面的程序中，我们调用`insert`和`erase`更新迭代器，因为两者都会使迭代器失效。
+
+在调用`erase`后，不必递增迭代器，因为`erase`返回的迭代器已经指向序列中下一个元素。调用`insert`后，需要递增迭代器两次。记住，`insert`在给定位置之前插入新元素，然后返回指向新插入元素的迭代器。因此，在调用`insert`后，`iter`指向新插入元素，位于我们正在处理的元素之前。我们将迭代器递增两次。恰好越过了新添加的元素和正在处理的元素，指向下一个未处理的元素。
+
+
+
+##### 不要保存`end`返回的迭代器
+
+当我们添加/删除`vector`或`string`的元素后，或在`deque`中首元素之外任何位置添加/删除元素后，原来`end`返回的迭代器总是会失效。
+
+因此，添加或删除元素的循环程序必须反复调用`end`，而不能在循环之前保存`end`返回的迭代器，一直当作容器末尾使用。通常C++标准库的实现中**end()**操作都很快，部分就是因为这个原因。
+
+下面是一个错误的演示，它展示了循环之前保存`end()`返回值的迭代器，并一直用作容器末尾的情况：
+
+```C++
+	// 灾难：此循环的行为是未定义的
+	auto begin = v.begin(), end = v.end();		// 保存尾迭代器的值是一个坏主意！！
+	while(begin != end) {
+		// 做一些处理
+		// 插入新值，对begin重新赋值，否则的话他就会失效
+		++begin			// 向前移动begin，因为我们想在此元素之后插入元素
+		begin = v.insert(begin, 42);		// 插入新值
+		++begin;							// 向前移动begin跳过我们刚刚加入的元素
+	}
+```
+
+此代码的行为是未定义的。在很多标准库实现上，此代码会导致无限循环。问题在于我们将`end`操作返回的迭代器保存在一个名为`end`的局部变量中。在循环体中，我们向容器中添加了一个元素，这个操作使保存在`end`中的迭代器失效了。这个迭代器不再指向`v`中任何元素，或是`v`中尾元素之后的位置。
+
+
+
+
+
+## 4.`vector`对象是如何增长的
+
+为了支持快速随机访问，`vector`将元素连续存储——每个元素紧挨着前一个元素存储，除此之外，`vector`的大小是可变的。
+
+此时，向`vector`或`string`中添加元素，如果没有空间容纳新元素，容器不可能简单地将它添加到内存中其他位置——因为元素必须连续存储。那么，容器必须分配新的内存空间来保存已有元素和新元素，将已有元素从旧位置移动到新空间中，然后添加新元素，释放旧存储空间。如果我们每添加一个新元素，`vector`就执行一次这样的内存分配和释放操作，性能会慢到不可接受。
+
+为了避免这种情况的发生，`vector`和`string`的实现通常会分配比新的空间需求更大的内存空间。容器预留这些空间作为备用，可用来保存更多的新元素。
+
+这种分配策略较为高效，其扩张操作通常比`list`和`deque`更快。
+
+
+
+##### 管理容量的成员函数
+
+`capacity`操作告诉我们容器在不扩张内存空间的情况下可以容纳多少个元素。
+
+`reserve`操作允许我们通知容器它应该准备保存多少个元素。
+
+![](./images/容器大小管理操作.png)
+
+
+
+***关于`reverse`：***
+
+> `reserve`并不改变容器中元素的数量，它仅影响`vector`预先分配多大的内存空间。
+
+**只有当需要的内存空间超过当前容量时，`reserve`调用才会改变`vector`的容量。**如果需求大小大于当前容量，`reserve`至少分配与需求一样大的内存空间（可能更大)。
+
+如果需求小于或等于当前容量，`reserve`什么也不做。特别是，**当需求小于当前容量时，容器不会退回内存空间。**因此，在调用`reserve`之后，`capacity`将会大于或等于传递给`reserve`的参数。
+
+这样，调用`reserve`永远也不会减少容器占用的内存空间。类似的，<a href="#633499">`resize`成员函数</a>只改变容器中元素的数目，而不是容器的容量。我们同样不能使用`resize`来减少容器预留的内存空间。
+
+
+
+***关于`shrink_to_fit`：***
+
+调用`shrink_to_fit`可以来要求`deque`、`vector`或`string`退回不需要的内存空间。
+
+此函数指出我们不再需要任何多余的内存空间。但是，具体的实现可以选择忽略此请求。也就是说，**调用`shrink_to_fit` 也并不保证一定退回内存空间**。
+
+
+
+
+
+##### `capacity`和`size`
+
+- 容器的`size`是指它已经保存的元素的数目；
+- 而`capacity`则是在不分配新的内存空间的前提下它最多可以保存多少元素。
+
+下面的代码展示了`size`和`capacity`之间的相互作用：
+
+```C++
+int main() {
+	vector<int> ivec;
+    /*STEP0:*/
+	// size应该为0， capacity的值依赖于具体实现
+	cout << "size: " << ivec.size() << " capacity: " << ivec.capacity() << endl;    // g++: size: 0 capacity: 0
+	                                                                                // MSVC: size: 0 capacity: 0
+    /*STEP1:*/
+	// 向ivec中添加24个元素
+	for (vector<int>::size_type ix = 0; ix != 24; ++ix) {
+		ivec.push_back(ix);
+	}
+	// size应该为24， capacity的值依赖于具体实现
+	cout << "size: " << ivec.size() << " capacity: " << ivec.capacity() << endl;    // g++: size: 24 capacity: 32
+	                                                                                // MSVC: size: 24 capacity: 28
+    /*STEP2:*/
+	ivec.reserve(50);   // 将capacity至少设定为50，可能更大
+	// size应该为24， capacity的值应该为50
+	cout << "size: " << ivec.size() << " capacity: " << ivec.capacity() << endl;    // size: 24 capacity: 50
+
+    /*STEP3:*/
+	// 添加元素用光多余容量
+	while (ivec.size() != ivec.capacity()) {
+		ivec.push_back(0);
+	}
+	// capacity应该为50
+	cout << "size: " << ivec.size() << " capacity: " << ivec.capacity() << endl;    // size: 50 capacity: 50
+
+	/*STEP4:*/
+    // 再添加一个元素，vector会重新分配内存
+	ivec.push_back(42);
+	// size应该为51， capacity的值依赖于具体实现
+	cout << "size: " << ivec.size() << " capacity: " << ivec.capacity() << endl;    // g++: size: 51 capacity: 100
+                                                                                    // MSVC: size: 51 capacity: 75
+
+    /*STEP5:*/
+	ivec.shrink_to_fit();   // C++11，要求归还内存，将capacity减少到与size相同
+	// size应该为51， capacity的值依赖于具体实现
+	cout << "size: " << ivec.size() << " capacity: " << ivec.capacity() << endl;    // g++: size: 51 capacity: 51
+                                                                                    // MSVC: size: 51 capacity: 51				
+	return 0;
+}
+```
+
+- 在上面的代码进行**STEP1**时的状态如下：
+
+![](./images/STEP1vec.png)
+
+- 上面的代码在进行**STEP2**时，无论是g++编译器还是MSVC编译器（Visual Studio），输出的内容都是`size: 24 capacity: 50`，这表明`reserve`严格按照我们需求的大小分配了新的空间。
+
+- 上面的代码在进行**STEP3**时，无论是g++编译器还是MSVC编译器（Visual Studio），输出的内容都是`size: 50 capacity: 50`，这表明此时确实用光了内存空间。由于我们只使用了预留空间，因此没有必要为`vector`分配新的空间。
+
+  实际上，只要没有操作需求超出`vector`的容量，`vector`就不能重新分配内存空间。
+
+- 上面的代码在进行**STEP5**（调用`shrink_to_fit()`）时，这只是一个请求，标准库并不保证退还内存。
+
+
+
+> 每个`vector`实现都可以选择自己的内存分配策略。但是必须遵守的一条原则是：只有**当迫不得已时才可以分配新的内存空间**。
+
+
+
+虽然不同的实现可以采用不同的分配策略，但所有实现都应遵循一个原则:确保用`push_back`向`vector`添加元素的操作有高效率。
+
+从技术角度说，就是通过在一个初始为空的`vector`上调用`n`次 `push_back`来创建一个`n`个元素的`vector`，所花费的时间不能超过`n`的常数倍。
+
+
+
+
+
+## 5. 额外的`string`操作
+
+### 5.1 构造`string`的方法
+
+在前边学习了<a href="#096683">`string`的一部分构造函数</a>，以及<a href="#352891">其他顺序容器相同的构造函数</a>外，`string`类型还支持另外三个构造函数，如下表所示：
+
+![](./images/string其他构造.png)
+
+这些构造函数接受一个`string` 或一个**const char***参数，还接受（可选的）指定拷贝多少个字符的参数。
+
+当我们传递给它们的是一个`string`时，还可以给定一个下标来指出从哪里开始拷贝:
+
+```c++
+	const char *cp = "Hello world!!!";			// 以空字符结束的数组
+	/*Tips：这里需要写const，原因是C++11标准开始，将字符串字面量视为常量字符数组，而不再允许将其隐式转换为非常量的字符指针（char*）。*/
+    char noNull[] = {'H', 'i'};     // 不是以空字符结束
+    string s1(cp);                  // 拷贝cp中的字符直到遇到空字符； s1 == "Hello world!!!"
+    string s2(noNull, 2);           // 从noNull拷贝两个字符，s2 == "Hi"
+    string s3(noNull);              // 错误：未定义行为：noNull不是以空字符结束
+    string s4(cp + 6, 5);           // 从cp[6]开始拷贝5个字符，s4 == "world"
+    string s5(s1, 6, 5);        	// 从s1[6]开始拷贝5个字符，s5 == "world"
+    string s6(s1, 6);               // 从s1[6]开始拷贝到s1末尾，s6 == "world!!!"
+    string s7(s1, 6, 20);       	// 从s1[6]开始拷贝到s1末尾，s7 == "world!!!"
+    string s8(s1, 16);             	// 错误：s1中没有s1[16]，抛出out_of_range异常
+```
+
+通常当我们从一个`const char*`创建`string`时，指针指向的数组必须以空字符结尾，拷贝操作遇到空字符时停止。
+
+如果我们还传递给构造函数一个计数值，数组就不必以空字符结尾。
+
+如果我们未传递计数值且数组也未以空字符结尾，或者给定计数值大于数组大小，则构造函数的行为是未定义的。
+
+当从一个`string`拷贝字符时，我们可以提供一个可选的开始位置和一个计数值。开始位置必须小于或等于给定的`string`的大小。如果位置大于`size`，则构造函数抛出一个`out_of_range`异常。如果我们传递了一个计数值，则从给定位置开始拷贝这么多个字符。不管我们要求拷贝多少个字符,标准库最多拷贝到`string`结尾，不会更多。
+
+
+
+##### `substr`操作
+
+`substr`操作返回一个`string`，它是原始`string`的一部分或全部的拷贝。
+
+![](./images/子字符串操作.png)
+
+可以传递给`substr`一个可选的开始位置和计数值：
+
+```C++
+	string s("hello world");
+	string s2 = s.substr(0, 5);		// s2 = hello
+	string s3 = s.substr(6);		// s3 = world
+	string s4 = s.substr(6, 11);	// s2 = world
+	string s5 = s.substr(12);		// 抛出一个out_of_range异常
+```
+
+如果开始位置超过了`string`的大小,则`substr`函数抛出一个`out_of_range`异常。如果开始位置加上计数值大于`string` 的大小，则 `substr`会调整计数值，只**拷贝到`string`的末尾**。
+
+
+
+### 5.2 改变`string`的其他方法
+
+`string`类型支持顺序容器的赋值运算符以及<a href="#726796">`assign`</a>、<a href="#788584">`insert`</a>和<a href="#729553">`erase`</a>操作。除此之外，它还定义了额外的`insert`和`erase`版本。
+
+![](./images/修改string.png)
+
+
+
+- 除了接受迭代器的`insert`和`erase`版本外，`string`还提供了接受下标的版本。下标指出了开始删除的位置，或是`insert`到给定值之前的位置：
+
+  ```C++
+  	s.insert(s.size(), 5, '!');		// 在s末尾插入5个感叹号
+  	s.erase(s.size - 5, 5);			// 从s删除最后5个字符
+  ```
+
+- 标准库`string`还提供接受**C风格字符串数组**的`insert`和`assign`版本。例如，我们可以将以空字符结尾的字符数组`insert`到或`assign`给一个`string`：
+
+  ```c++
+  	const char *cp = "Stately, plump Buck";
+  	s.assign(cp, 7);				// s == "Stately"
+  	s.insert(s.size(), sp + 7);		// s == "Stately, plump Buck"
+  ```
+
+- 也可以指定将来自其他`string`或子字符串的字符插入到当前`string`中或赋予当前`string`：
+
+  ```c++
+  	string s = "some string", s2 = "some other string";
+  	s.insert(0, s2);		// 在s中位置0之前插入s2的拷贝
+  	// 在s[0]之前插入s2中s2[0]开始的s2.size()个字符
+  	s.insert(0, s2, 0, s2.size());
+  ```
+
+
+
+##### `append`和`replace`函数
+
+`string`类定义了两个额外的成员函数：`append`和`replace`，上表中描述了它们的功能。
+
+- `append`操作是在`string`末尾进行插入操作的一种简写形式：
+
+  ```C++
+  	string s("C++ Primer"), s2 = s;		// 将s和s2初始化为"C++ Primer"
+  	s.insert(s.size(), " 4th ED.");		// s == "C++ Primer 4th ED."
+  	s2.append(" 4th ED.");				// 等价方法：将" 4th ED."追加到s2；s == s2
+  ```
+
+- `replace`操作时调用`erase`和`insert`的一种简写形式：
+
+  ```C++
+  	// 将"4th"替换为"5th"的等价方法
+  	s.erase(11, 3);						// s == "C++ Primer Ed."
+  	s.insert(11, "5th");				// s == "C++ Primer 5th Ed."
+  	// 从位置11开始，删除3个字符并插入"5th"
+  	s2.replace(11, 3, "5th");			// 和上面的方法是等价的，此时s == s2
+  ```
+
+  此例中调用`replace`时，插入的文本恰好与删除的文本一样长。这不是必须的，可以插入一个更长或更短的`string`：
+
+  ```C++
+  	s2.replace(11, 3, "Fifth");			// s == "C++ Primer Fifth Ed."
+  ```
+
+  在此调用中，删除了3个字符，但在其位置插入了5个新字符。
+
+
+
+##### 改变`string`的多种重载函数
+
+上表中列出的`append`、`assign`、`insert`和`replace`函数有多个重载版本，但是这些函数有共同的接口：
+
+- `assign`和`append`函数无须指定要替换`string`中哪个部分；
+- `assign`总是替换`string`中的所有内容，`append`总是将新字符追加到`string`末尾。
+
+- `replace`函数提供了两种指定删除元素范围的方式：
+
+  - 可以通过一个位置和一个长度来指定范围；
+
+  - 也可以通过一个迭代器范围来指定。
+
+- `insert`函数允许我们用两种方式指定插入点：用一个下标或一个迭代器。在两种情况下，新元素都会插入到给定下标（或迭代器）之前的位置。
+
+可以用好几种方式来指定要添加到`string`中的字符。新字符可以来自于另一个`string`，来自于一个字符指针（指向的字符数组），来自于一个花括号包围的字符列表，或者是一个字符和一个计数值。当字符来自于一个`string`或一个字符指针时，我们可以传递一个额外的参数来控制是拷贝部分还是全部字符。
+
+
+
+并不是每个函数都支持所有形式的参数。例如，`insert`就不支持下标和初始化列表参数。类似的，如果我们希望用迭代器指定插入点，就不能用字符指针指定新字符的来源。
+
+
+
+### 5.3  `string`搜索操作
+
+`string`类提供了6个不同的搜索函数，每个函数都有4个重载版本。如下表所示：
+
+![](./images/string搜索操作.png)
+
+`string`的每个搜索操作都返回一个`string::size_type`值，表示匹配位置的下标。如果搜索失败，则返回一个名为`string::npos`的`static`成员。标准库将`npos`定义为`const string::size_type`类型，并初始化为-1（`nops`是`unsigned`类型，这是任何`string`最大的可能大小）。
+
+
+
+> 不建议用`int`或其他带符号类型来保存`string`搜索函数的返回值。
+
+
+
+- `find`函数完成最简单的搜索。它查找参数指定的字符串，若找到，则返回第一个匹配位置的下标，否则返回`npos`：
+
+  ```C++
+  	string name("AnnaBelle");
+  	auto pos1 = name.find("Anna");		// pos1 == 0;
+  ```
+
+  搜索（以及其他`string`操作）是大小写敏感的。当在`string`中查找子字符串时，要注意大小写：
+
+  ```C++
+  	string lowercase("annabelle");
+  	auto pos1 = lowercase.find("Anna");		// pos1 == npos;	
+  ```
+
+- `find_first_of`函数可以搜索与给定字符串中任何一个字符匹配的位置。
+
+  例：这是定位字符串`name`中第一个数字的位置的代码：
+
+  ```C++
+  	string numbers("0123456789"), name("r2d2");
+  	// 返回1，这是name中第一个数字的下标
+  	auto pos = name.find_first_of(numbers);
+  ```
+
+- `find_first_not_of`函数可以搜索第一个不在参数中的字符的位置。
+
+  例：搜索`string`中第一个非数字字符：
+
+  ```C++
+  	string dept("03714p3");
+  	// 返回5，这是字符'p'的下标
+  	auto pos = dept.find_first_not_of(numbers);
+  ```
+
+
+
+##### 指定在哪里开始搜索
+
+可以传递给find操作一个可选的开始位置。
+
+这个可选的参数指出从哪个位置开始进行搜索。默认情况下，此位置被置为0。一种常见的程序设计模式是用这个可选参数在字符串中循环地搜索子字符串出现的所有位置:
+
+```C++
+	string::size_type pos = 0;
+	// 每步循环查找name中下一个数
+	while((pos = name.find_first_of(numbers, pos)) != string::npos) {
+		cout << "found number at index: " << pos << " element is " << name[pos] << endl;
+		++pos;		// 移动到下一个字符
+	}
+```
+
+
+
+##### 逆向搜索
+
+到现在为止，我们已经用过的`find`操作都是由左至右搜索。标准库还提供了类似的,但由右至左搜索的操作。
+
+`rfind`成员函数搜索最后一个匹配，即子字符串最靠右的出现位置:
+
+```C++
+	string river("Mississippi");
+	auto first_pos = river.find("is");		// 返回1
+	auto last_pos = river.rfind("is");		// 返回4
+```
+
+与之类似，`find_last`的功能与`find_first`函数相似，只是它们返回最后一个而不是第一个匹配：
+
+- `find_last_of`搜索与给定`string`中任何一个字符匹配的最后一个字符。
+- `find_last_not_of`搜索最后一个不出现在给定`string` 中的字符。
+
+
+
+### 5.4 `compare`函数
+
+除了<a href="#591980">关系运算符</a>外，标准库`string`类型还提供了一组`compare`函数，这些函数与<a href="#935779">C标准库的`strcmp`函数</a>很相似。类似`strcmp`，根据s是等于、大于还是小于参数指定的字符串，`s.compare`返回0、正数或负数。
+
+如下表所示，`compare`有6个版本。根据我们是要比较两个`string`还是一个`string`与一个字符数组，参数各有不同。在这两种情况下，都可以比较整个或一部分字符串。
+
+![](./images/scompare.png)
+
+
+
+### 5.5 数值转换
+
+字符串中常常包含表示数值的字符。C++11引入了多个函数，可以实现数值数据与标准库`string`之间的转换：
+
+![](./images/str数值.png)
+
+- 调用`to_string`将42转换为其对应的`string`表示，然后调用`stod`将此`string`转换为浮点值：
+
+  ```C++
+  	int i = 42;
+  	string s = to_string(i);		// 将整数i转换为字符表示形式
+  	double d = stod(s);				// 将字符串s转换为浮点数
+  ```
+
+- 要转换为数值的`string`中第一个非空白字符必须是数值中可能出现的字符，**`stod`函数处理此参数，直到遇到不可能是数值的一部分的字符**：
+
+  ```C++
+  	string s2 = "pi = 3.14";
+  	d = stod(s2.substr(s2.find_first_of("+-.0123456789")));
+  ```
+
+  ```C++
+      string s3 = "pi = 3.14.aaa";
+      double d0 = stod(s3.substr(s3.find_first_of("+-.0123456789")));
+      cout << d0 << endl;          // 输出结果为：3.14
+  ```
+
+`string`参数中第一个非空白符必须是符号(+或-)或数字。它可以以0x或0X开头来表示十六进制数。对那些将字符串转换为浮点值的函数，`string`参数也可以以小数点(.)开头，并可以包含e或E来表示指数部分。对于那些将字符串转换为整型值的函数，根据基数不同，`string`参数可以包含字母字符，对应大于数字9的数。
+
+
+
+> 如果`string`不能转换为一个数值，这些函数抛出一个`invalid_argument`异常。如果转换得到的数值无法用任何类型来表示，则抛出一个`out_of_range`异常。
+
+
+
+## 6. 容器适配器
+
+除了顺序容器外，标准库还定义了三个顺序容器适配器：`stack`、`queue` 和`priority_queue`。
+
+适配器是标准库中的一个通用概念。容器、迭代器和函数都有适配器。本质上，一个适配器是一种机制，能使某种事物的行为看起来像另外一种事物一样。
+
+一个容器适配器接受一种已有的容器类型，使其行为看起来像一种不同的类型。
+
+例如，`stack`适配器接受一个顺序容器（除`array`或`forward_list`外)，并使其操作起来像一个`stack`一样。下表列出了所有容器适配器都支持的操作和类型。<a name="986709"> </a>
+
+![](./images/适配器.png)
+
+##### 定义一个适配器
+
+每个适配器都定义两个构造函数：
+
+- 默认构造函数创建一个空对象
+
+- 接受一个容器的构造函数拷贝该容器来初始化适配器
+
+  例如，假定`deq`是一个`deque<int>`，我们可以用`deq`来初始化一个新的`stack`，如下所示：
+
+  ```C++
+  	stack<int> stk(deq);		// 从deq拷贝元素到stk
+  ```
+
+
+默认情况下，`stack`和`queue`是基于`deque`实现的，`priority_queue`是在`vector`之上实现的。
+
+我们可以在创建一个适配器时将一个命名的顺序容器作为第二个类型参数，来重载默认容器类型。
+
+```c++
+	// 在vector上实现的空栈
+	stack<string, vector<String>> str_stk;
+	// str_stk2在vector上实现，初始化时保存svec的拷贝
+	stack<string, vector<string>> str_stk2(svec);
+```
+
+
+
+对于一个给定的适配器，可以使用哪些容器是有限制的。
+
+所有适配器都要求容器具有添加和删除元素的能力。因此，适配器不能构造在`array`之上。
+
+类似的，我们也不能用`forward_list`来构造适配器，因为所有适配器都要求容器具有添加、删除以及访问尾元素的能力。
+
+- `stack`只要求`push_back`、`pop_back`和`back`操作，因此可以使用除`array`和`forward_list` 之外的任何容器类型来构造`stack`。
+- `queue` 适配器要求`back`、`push_back`、`front`和 `push_front`，因此它可以构造于`list`或`deque` 之上，**但不能基于`vector`构造。**
+- `priority_queue`除了`front`、`push_back`和 `pop_back`操作之外还要求随机访问能力，因此它可以构造于`vector`或 `deque` 之上，**但不能基于`list`构造。**
+
+
+
+##### 栈适配器
+
+`stack`类型定义在`stack`头文件中。下表列出了`stack`支持的操作。
+
+<a href="#986709">表9.17</a>
+
+![](./images/stack.png)
+
+```C++
+    stack<int> intStack;        // 空栈
+    // 填充栈
+    for (size_t ix = 0; ix != 10; ++ix) {
+        intStack.push(ix);      // intStack 包含 0...9 (10个元素)
+    }
+    while (!intStack.empty()) {     // 只要栈不为空就处理栈顶元素
+        int value = intStack.top();
+        cout << value << endl;
+        intStack.pop();             // 弹出栈顶元素，继续循环
+    }
+```
+
+每个容器适配器都基于底层容器类型的操作定义了自己的特殊操作。**我们只可以使用适配器操作，而不能使用底层容器类型的操作。**例如，
+
+```C++
+	intStack.push(ix);      // intStack 包含 0...9 (10个元素)
+```
+
+此语句试图在`intstack`的底层`deque`对象上调用`push_back`。
+
+虽然`stack`是基于`deque`实现的，但我们不能直接使用`deque`操作。不能在一个`stack`上调用`push_back`，而必须使用`stack`自己的操作———`push`。
+
+
+
+##### 队列适配器	!!!待更新
+
+`queue`和`priority_queue`适配器定义在 `queue`头文件中。下表列出了它们所支持的操作。
+
+![](./images/que.png)
+
+标准库`queue`使用一种先进先出(first-in，first-out，FIFO)的存储和访问策略。进入队列的对象被放置到队尾，而离开队列的对象则从队首删除。
+
+饭店按客人到达的顺序来为他们安排座位，就是一个先进先出队列的例子。
+
+
+
+`priority_queue`允许我们为队列中的元素建立优先级。新加入的元素会排在所有优先级比它低的已有元素之前。饭店按照客人预定时间而不是到来时间的早晚来为他们安排座位，就是一个优先队列的例子。
+
+默认情况下，标准库在元素类型上使用<运算符来确定相对优先级。我们将在后面学习如何重载这个默认设置。
