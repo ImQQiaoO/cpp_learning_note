@@ -4746,7 +4746,7 @@ const string &manip () {
 
 
 
-##### 引用返回左值
+##### 引用返回左值 <a name="302151"> </a>
 
 函数的返回类型决定函数调用是否是左值。**调用一个返回引用的函数得到左值，其他返回类型得到右值**。可以像使用其他左值那样来使用返回引用的函数的调用，特别是，我们能为返回类型是非常量引用的函数的结果赋值:
 
@@ -5254,7 +5254,7 @@ void fooBar(int ival)
 
 ## 5.特殊用途语言特性
 
-### 5.1 默认实参
+### 5.1 默认实参	<a name="758210"> </a>
 
 某些函数有这样一种形参，在函数的很多次调用中它们都被赋予一个相同的值，此时，我们把这个反复出现的值称为函数的默认实参。
 
@@ -10144,7 +10144,7 @@ int main() {
 
 
 
-## 6. 容器适配器
+## 6. 容器适配器	<a name="776948"> </a>
 
 除了顺序容器外，标准库还定义了三个顺序容器适配器：`stack`、`queue` 和`priority_queue`。
 
@@ -10705,7 +10705,7 @@ int main() {
 
 
 
-##### 介绍`back_inserter`	#添加元素的操作
+##### 介绍`back_inserter`	#添加元素的操作  <a name="410386"> </a>
 
 一种保证算法有足够元素空间来容纳输出数据的方法是使用插入迭代器(insert iterator)。
 
@@ -10904,7 +10904,7 @@ void elimDups(vector<string> &words) {
 
 **谓词是一个可调用的表达式，其返回结果是一个能用作*条件*的值。**标准库算法所使用的谓词分为两类：一**元谓词**（意味着它们只接受单一参数）和**二元谓词**（意味着它们有两个参数)。接受谓词参数的算法对输入序列中的元素调用谓词。因此，元素类型必须能转换为谓词的参数类型。
 
-接受一个二元谓词参数的`sort`版本用这个谓词代替`<`来比较元素。我们提供给`sort`的谓词必须满足***将在11.2.2节（第378页）中所介绍的条件***。当前，我们只需知道，此操作必须在输入序列中所有可能的元素值上定义一个一致的序。下面定义的 `isShorter`就是一个满足这些要求的函数，因此可以将 `isShorter`传递给`sort`。这样做会将元素按大小重新排序：
+接受一个二元谓词参数的`sort`版本用这个谓词代替`<`来比较元素。我们提供给`sort`的谓词必须满足***将在11.2.2节（第378页）中所介绍的条件***。当前，我们只需知道，此操作必须在输入序列中所有可能的元素值上定义一个一致的序。下面定义的 `isShorter`就是一个满足这些要求的函数，因此可以将 `isShorter`传递给`sort`。这样做会将元素按大小重新排序：<a name="isShorter"> </a>
 
 ```C++
 bool isShorter(const string &s1, const string &s2) {
@@ -11002,7 +11002,7 @@ void biggies(vector<string> &words, vector<string>::size_type sz) {
 
 我们可以向一个算法传递任何类别的可调用对象。对于一个对象或一个表达式，如果可以对其使用调用运算符`()`，则称它为可调用的。即，如果`e`是一个可调用的表达式，则我们可以编写代码`e(args)`，其中`args`是一个逗号分隔的一个或多个参数的列表。
 
-到目前为止，我们使用过的仅有的两种可调用对象是函数和函数指针。还有其他两种可调用对象:重载了函数调用运算符的类，我们将在 14.8节(第506页）介绍，以及lambda表达式。
+到目前为止，我们使用过的仅有的两种可调用对象是函数和函数指针。还有其他两种可调用对象：重载了函数调用运算符的类，我们将在 14.8节(第506页）介绍，以及lambda表达式。
 
 一个lambda表达式表示一个可调用的代码单元。我们可以将其理解为一个**未命名的内联函数**。与任何函数类似，一个lambda具有一个返回类型、一个参数列表和一个函数体。但与函数不同，lambda可能定义在函数内部。一个lambda表达式具有如下形式:
 
@@ -11023,9 +11023,9 @@ void biggies(vector<string> &words, vector<string>::size_type sz) {
     auto f1 = [](int a, int b) { return a + b; };		// 省略了返回值类型
 ```
 
-此例中，我们定义了一个可调用对象f，它不接受参数，返回42。
+此例中，我们定义了一个可调用对象`f`，它不接受参数，返回42。
 
-lambda的调用方式与普通函数的调用方式相同，都是使用调用运算符：
+**lambda的调用方式与普通函数的调用方式相同，都是使用调用运算符()：**
 
 ```C++
 	cout << f() << endl;	// 打印42
@@ -11038,3 +11038,959 @@ lambda的调用方式与普通函数的调用方式相同，都是使用调用�
 
 
 ##### 向lambda传递参数
+
+和普通函数类似，调用lambda时给定的实参用来初始化lambda的形参。但是，lambda不能有<a href="#758210">默认参数</a>。
+
+因此，一个lambda调用的实参数目永远与形参数目相等。
+
+例，这是一个与<a href="#isShorter">`isShorter`</a>函数完成相同功能的lambda：
+
+```C++
+	[] (const string &a, const string &b) { return a.size() < b.size(); }
+```
+
+**空捕获序列表明此lambda不使用它所在函数中的任何局部变量。**
+
+lambda的函数体也与`isShorter`类似，比较两个参数的`size()`，并根据两者的相对大小返回一个bool值。
+
+
+
+使用lambda来调用`stable_sort`：
+
+```C++
+	// 按照长度排序，长度相同
+	stable_sort(words.begin(), words.end(), [] (const string &a, const string &b) { return a.size() < b.size(); });
+```
+
+当`stable_sort`需要比较两个元素时，他就会调用给定的这个lambda表达式。
+
+
+
+##### 使用捕获列表
+
+我们已经编写了一个可以传递给`find_if`的可调用表达式了。我们希望这个表达式能将输入序列中每个`string`的长度与`biggies`函数中的`sz`参数的值进行比较。
+
+虽然一个lambda可以出现在一个函数中，使用其局部变量，但它只能使用那些明确指明的变量。一个lambda通过将局部变量包含在其捕获列表中来指出将会使用这些变量。捕获列表指引lambda在其内部包含访问局部变量所需的信息。
+
+例：在此例中，lambda会捕获`sz`，并只有单一的`string`参数。其函数体会将`string`的大小与捕获的`sz`的值进行比较。
+
+```C++
+	[sz] (const string &a) {
+        return a.size() >= sz;
+    };
+```
+
+lambda以一对`[]`开始，我们可以在其中提供一个以逗号分隔的名字列表，这些名字都是它所在函数中定义的。
+
+由于此lambda捕获`sz`，因此 lambda的函数体可以使用`sz`。lambda不捕获`words`，因此不能访问此变量。如果我们给lambda提供一个空捕获列表，则代码会编译错误:
+
+```C++
+	// 错误：sz未捕获
+	[] (const string &a) {
+		return a.size() >= sz;
+	};
+```
+
+> 一个lambda只有在其捕获列表中捕获一个它所在函数中的局部变量,才能在函数体中使用该变量。
+
+
+
+##### 调用`find_if`
+
+使用lambda，我们就可以查找第一个长度大于等于sz的元素：
+
+```C++
+	// 获取一个迭代器，指向第一个满足 size() >= sz 的元素
+    auto wc = find_if(woreds.begin(), words.end(), [sz](const string &a) { return a.size() >= sz; });
+```
+
+调用`find_if`返回一个迭代器，指向第一个长度不小于给定参数`sz`的元素。如果这样的元素不存在，则返回`words.end()`的一个拷贝。
+
+
+
+##### `for_each`算法
+
+`for_each`算法接受一个可调用对象，并对**输入序列中每个元素**调用此对象：
+
+```c++
+	// 打印长度大于等于给定值的单词，每个单词后面接一个空格
+	for_each(wc, words.end(), [](const string &s) { cout << s << " "; });
+	cout << endl;
+```
+
+> 捕获列表只用于局部非`static`变量，**lambda可以直接使用局部`static`变量和在它所在函数之外声明的名字。**
+
+
+
+##### 完整的`biggies`  <a name="884933"> </a>
+
+```C++
+void elimDups(vector<string> &words) {
+    sort(words.begin(), words.end());
+    auto end_unique = unique(words.begin(), words.end());
+    words.erase(end_unique, words.end());
+}
+
+string make_plural(size_t ctr, const string &word, const string &ending) {
+    return (ctr > 1) ? word + ending : word;
+}
+
+void biggies(vector<string> &words, vector<string>::size_type sz) {
+    elimDups(words);        // 将 words 按字典序排序，删除重复单词
+    // 按长度排序，长度相同的单词维持字典序
+    stable_sort(words.begin(), words.end(), [](const string &a, const string &b) { return a.size() < b.size(); });
+    // 获取一个迭代器，指向第一个满足 size() >= sz 的元素
+    auto wc = find_if(words.begin(), words.end(), [sz](const string &a) { return a.size() >= sz; });
+    // 计算满足 size >= sz 的元素的数目
+    auto count = words.end() - wc;
+    cout << count << " " << make_plural(count, "word", "s") << " of length " << sz << " or longer" << endl;
+    // 打印长度大于等于给定值的单词，每个单词后面接一个空格
+    for_each(wc, words.end(), [](const string &s) { cout << s << " "; });
+    cout << endl;
+}
+
+int main() {
+    vector<string> words = {"the", "quick", "red", "fox", "jumps", "over", "the", "slow", "red", "turtle"};
+    biggies(words, 4);
+    return 0;
+}
+
+/**
+ * 输出内容为：
+ * 5 words of length 4 or longer
+ * over slow jumps quick turtle 
+ */
+```
+
+
+
+### 3.3 lambda捕获和返回 #待完善，p507 14.8.1
+
+当定义一个lambda时，编译器生成一个与lambda对应的新的类类型。我们将在14.8.1节（第507页)介绍这种类是如何生成的。目前，可以这样理解，当向一个函数传递一个lambda时，同时定义了一个新类型和该类型的一个对象：传递的参数就是此编译器生成的类类型的未命名对象。类似的，当使用`auto`定义一个用lambda初始化的变量时，定义了一个从lambda生成的类型的对象。
+
+
+
+##### 值捕获
+
+类似参数传递，变量的捕获方式也可以是值或引用。下表是几种不同的构造捕获列表的方式：
+
+![](./images/lambda捕获列表.png)
+
+值捕获的方式与传值参数类似，采用值捕获的方式的前提是变量可以拷贝。**与参数不同，被捕获的变量的值是在lambda创建时拷贝，而不是调用时拷贝**：
+
+```C++
+void fcn1() {
+	size_t v1 = 42;		// 局部变量
+	// 将v1拷贝到名为f的可调用对象
+	auto f = [v1] { return v1; };
+	v1 = 0;
+	auto j = f();		// j为42；f保存了我们创建它时v1的拷贝
+}
+```
+
+由于被捕获变量的值是在lambda**创建时拷贝**，因此随后对其修改不会影响到lambda内对应的值。
+
+
+
+##### 引用捕获
+
+我们定义lambda时可以采用引用的方式捕获变量。
+
+例：
+
+```C++
+void fcn2() {
+	size_t v1 = 42;		// 局部变量
+	// 对象f2包含v1的引用
+	auto f2 = [&v1] { return v1; };
+	v1 = 0;
+	auto j = f2();		// j为0；f2保存v1的引用，而非拷贝
+}
+```
+
+一个以引用方式捕获的变量与其他任何类型的引用的行为类似。
+
+当我们在lambda函数体内使用此变量时，实际上使用的是引用所绑定的对象。在本例中，当lambda返回`v1`时，它返回的是`v1`指向的对象的值。
+
+引用捕获和<a href="#302151">返回引用</a>有相同的问题和限制。**采用引用方式捕获一个变量时必须确保被引用的对象在lambda执行的时候是存在的。**
+
+lambda捕获的都是局部变量，这些变量在函数结束后就不复存在了。如果lambda可能在函数结束后执行，捕获的引用指向的局部变量已经消失。
+
+
+
+引用捕获有时是必要的。例如：我们可能希望`biggies`函数接受一个`ostream`的引用，用来输出数据，并接受一个字符作为分隔符：
+
+```C++
+void biggies(vector<string> &words, vector<string>::size_type sz, ostream &os = cout, char c = ' ') {
+	// 与之前一样重排words的代码
+	// 打印count的语句改为打印到os
+	for_each(words.begin(), words.end(), [&os, c](const string &s) { os << s << c; });
+}
+```
+
+**我们不能拷贝`ostream`对象**，因此捕获`os`的唯一方法就是捕获其引用（或者指向`os`的指针）。
+
+当我们向一个函数传递一个lambda时，lambda会立即执行。在上面的情况下，以引用方式捕获`os`没有问题，因为当`for_each`执行时，`biggies`中的变量是存在的。
+
+
+
+函数可以返回lambda。函数可以直接返回一个可调用对象，或者返回一个类对象，该类含有可调用对象的数据成员。如果函数返回一个lambda，则与函数不能返回一个局部变量的引用类似，此lambda也不能包含引用捕获。
+
+> 当以引用方式捕获一个变量时，必须保证在lambda执行时变量是存在的。
+
+
+
+> **建议：尽量保持lambda的变量捕获简单化**
+
+
+
+##### 隐式捕获
+
+除了显式列出我们希望使用的来自所在函数的变量之外，还可以让编译器根据lambda体中的代码来推断我们要使用哪些变量。
+
+为了指示编译器推断捕获列表，应在捕获列表中写一个`&`或`=`。`&`告诉编译器采用捕获引用方式，`=`则表示采用值捕获方式。
+
+例如，我们可以重写传递给`find_if`的lambda：
+
+```C++
+	// sz为隐式捕获，值捕获方式
+	wc = find_if(words.begin(), words.end(), [=](const string &s) { return s.size() >= sz; });
+```
+
+
+
+如果我们希望对一部分变量采用值捕获，对其他变量采用引用捕获，可以混合使用隐式捕获和显式捕获：
+
+```c++
+void biggies(vector<string> &words, vector<string>::size_type sz, ostream &os = cout, char c = ' ') {
+	// 其他处理与前例一样
+	// os隐式捕获，引用捕获方式；c显式捕获，值捕获方式
+	for_each(words.begin(), words.end(), [&, c](const string &s) { os << s << c; });
+	// os显式捕获，引用捕获方式；c隐式捕获，值捕获方式
+	for_each(words.begin(), words.end(), [=, &os](const string &s) { os << s << c; });
+}
+```
+
+**当我们混合使用隐式捕获和显式捕获时，捕获列表中的第一个元素必须是一个&或=。此符号指定了默认捕获方式为引用或值。**
+
+当混合使用隐式捕获和显式捕获时，显式捕获的变量必须使用与隐式捕获不同的方式。即，如果隐式捕获是引用方式(使用了&)，则显式捕获命名变量必须采用值方式，因此不能在其名字前使用&。类似的，如果隐式捕获采用的是值方式(使用了=)，则显式捕获命名变量必须采用引用方式，即，在名字前使用&。**（即显式捕获的方式必须与隐式捕获的方式相互错开！）**
+
+
+
+##### 可变lambda
+
+默认情况下，对于一个值被拷贝的变量，lambda不会改变其值。如果我们希望能改变一个被捕获的变量的值，就必须在参数列表首加上关键字mutable。因此，可变lambda能省略参数列表：
+
+```C++
+void fcn3() {
+	size_t v1 = 42;		// 局部变量
+	// f可以改变它所捕获的变量的值
+	auto f2 = [v1] () mutable { return ++v1; };
+	v1 = 0;
+	auto j = f();		// j为43
+}
+```
+
+
+
+一个引用捕获的变量是否(如往常一样)可以修改依赖于此引用指向的是一个`const`类型还是一个非`const`类型:
+
+```C++
+void fcn4() {
+	size_t v1 = 42;		// 局部变量
+	// v1是一个非const变量的引用
+	// 可以通过f2中的引用来改变它
+	auto f2 = [&v1] () mutable { return ++v1; };
+	v1 = 0;
+	auto j = f();		// j为1
+}
+```
+
+
+
+##### 指定lambda返回类型 ??
+
+到目前为止，我们所编写的lambda都只包含单一的`return`语句。因此，我们还未遇到必须指定返回类型的情况。
+
+默认情况下，**如果一个lambda体包含`return`之外的任何语句，则编译器假定此lambda返回`void`。与其他返回`void`的函数类似，被推断返回`void`的lambda不能返回值。**
+
+
+
+例：我们用标准库`transform`算法和一个lambda来将一个序列中的每个负数替换为绝对值：
+
+```c++
+	transform(vi.begin(), vi.end(), vi.begin(), [](int i) { return i < 0 ? -i : i; });
+```
+
+函数`transform`接受三个迭代器和一个可调用对象。前两个迭代器表示输入序列，第三个迭代器表示目的位置。
+
+算法对输入序列中每个元素调用可调用对象，并将结果写到目的位置。如本例所示，目的位置迭代器与表示输入序列开始位置的迭代器可以是相同的。当输入迭代器和目的迭代器相同时，`transform`将输入序列中每个元素替换为可调用对象操作该元素得到的结果。
+
+在本例中，我们传递给`transform`一个lambda，它返回其参数的绝对值。lambda体是单一的`return`语句，返回一个条件表达式的结果。我们无须指定返回类型，因为可以根据条件运算符的类型推断出来。
+
+但是，如果我们将程序改写为看起来是等价的if语句，就会产生编译错误:
+
+```C++
+	// 书上说下面的代码不能推断lambda的返回类型
+	transform(vi.begin(), vi.end(), vi.begin(), [](int i) { if(i < 0) return -i; else return i; });
+```
+
+书上说此时必须使用尾置返回类型：
+
+```C++
+	transform(vi.begin(), vi.end(), vi.begin(), [](int i) -> int { if(i < 0) return -i; else return i; });
+```
+
+在此例中，传递给`transform`的第四个参数是一个lambda，它的捕获列表是空的，接受单一`int`参数，返回一个`int`值。它的函数体是一个返回其参数的绝对值的if语句。
+
+
+
+***但是，在我的环境中，Window， MinGW和MSVC，C++17/C++11，上述两种方式都能正常通过编译，而且可以得到正确结果：***
+
+```C++
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+int main() {
+    vector<int> v = {-1, 2, -3, 4, -5};
+    transform(v.begin(), v.end(), v.begin(), [](int i) { return i < 0 ? -i : i; });
+    transform(v.begin(), v.end(), v.begin(), [](int i) { if (i < 0) return -i; else return i; });
+    for (auto i: v) {
+        cout << i << " ";
+    }
+    return 0;
+}
+```
+
+
+
+
+
+### 3.4 参数绑定
+
+- 使用次数较少、较简单（需要较少语句）的操作，最好使用lambda表达式。
+- 使用次数较多、较复杂（需要很多语句）的操作，最好定义一个函数。
+
+
+
+**如果lambda的捕获列表为空，通常可以用函数来代替它。**但是，对于捕获局部变量的lambda，就不容易用函数替换了。
+
+例：在上面<a href="#884933">`find_if`</a>函数中调用的lambda用来比较一个`string`和一个给定大小。编写相同功能的函数很简单：
+
+```c++
+bool check_size(const string &s, string::size_type sz) {
+	return s.size() >= sz;
+}
+```
+
+虽然这个函数写出来了，但是`check_size`并不能作为`find_if`的一个参数。`find_if`接受一个*一元谓词*，因此传递给`find_if`的可调用对象**必须接受单一参数**，<a href="#884933">`biggies`</a>传递给`find_if`的lambda使用捕获列表来保存`sz`。
+
+为了使用`check_size`来代替此lambda，必须解决如何向`sz`形参传递一个参数的问题。
+
+
+
+##### 标准库`bind`函数
+
+解决向`check_size`传递一个长度参数的问题，方法是使用一个新的名为`bind`的标准库函数，它定义在头文件`functional`中。
+
+可以把`bind`函数看作一个通用的函数<a href="#776948">适配器</a>，它接受一个可调用对象，生成一个新的可调用对象来“适应”原对象的参数列表。
+
+
+
+调用`bind`的一般形式为：
+
+```C++
+	auto newCallable = bind(callable, arg_list);
+```
+
+其中，`newCallable`本身是一个可调用对象，`arg_list`是一个逗号分隔的参数列表，对应给定的`callable`的参数。即，当我们调用`newCallable`时，`newCallable`会调用`callable`，并传递给它`arg_list`中的参数。
+
+`arg_list`中的参数可能包含形如`_n`的名字，其中`n`是一个整数。这些参数是“占位符”，表示`newCallable`的参数，它们占据了传递给`newCallable`的参数的“位置”。数值`n`表示生成的可调用对象中参数的位置：`_1`为`newCallable`的第一个参数，`_2`为第二个参数，依此类推。
+
+
+
+
+
+##### 绑定`check_size`的`sz`参数
+
+例：使用`bind`生成一个调用`check_size`的对象，它用一个定值作为其大小参数来调用`check_size`：
+
+```C++
+	// check6是一个可调用对象，接受一个string类型的参数
+	// 并用此参数和值6来调用check_size：
+	auto check6 = bind(check_size, _1, 6);
+```
+
+上面的`bind`调用只有一个占位符，表示`check6`只接受单一参数。占位符出现在`arg_list`的第一个位置，表示`check6`的此参数对应`check_size`的第一个参数。此参数是一个`const string&`。因此，调用`check6`必须传递给它一个`string`类型的参数，`check6`会将此参数传递给`check_size`。
+
+```C++
+	string s = "hello";
+	bool b1 = check6(s);		// check6(s)会调用check_size(s, 6)
+```
+
+使用`bind`，我们可以将原来基于lambda的`find_if`调用：
+
+```C++
+	auto wc = find_if(words.begin(), words.end(), [sz](const string &a));
+```
+
+替换为：
+
+```C++
+	auto wc = find_if(words.begin(), words.end(), bind(check_size, _1, sz));
+```
+
+此`bind`调用生成一个可调用对象，将`check_size`的第二个参数绑定到`sz`的值。当`find_if`对`words`中的`string`调用这个对象时，这些对象会调用`check_size`，将给定的`string`和 `sz`传递给它。因此，`find_if`可以有效地对输入序列中每个`string`调用`check_size`，实现`string`的大小与`sz`的比较。
+
+
+
+
+
+##### 使用`placeholders`名字
+
+名字`_n`都定义在一个名为`placeholders`的命名空间中，而这个命名空间本身定义在`std`命名空间中。
+
+在上面的例子中，对`bind`的调用代码假定之前已经恰当地使用了`using`声明。
+
+例如，`_1`对应的`using`声明为：
+
+```C++
+using std::placeholders::_1;
+```
+
+每个占位符名字，我们都必须提供一个单独的`using`声明。
+
+编写这样的声明很烦人，也很容易出错。可以使用另外一种不同形式的`using`语句，而不是分别声明每个占位符，如下所示:
+
+```C++
+using namespace namespace_name;
+```
+
+这种形式说明希望所有来自`namespace_name`的名字都可以在我们的程序中直接使用。例如：
+
+```C++
+using namespace std::placeholders;
+```
+
+使得由`placeholders`定义的所有名字都可用。与`bind`函数一样，`placeholders`命名空间也定义在`functional`头文件中。
+
+
+
+
+
+##### `bind`的参数
+
+可以用`bind`修正参数的值。可以用`bind`绑定给定可调用对象中的参数或重新安排其顺序。
+
+例：`f`是一个可调用对象，他有5个参数，则下面对`bind`的调用：
+
+```C++
+	// g是一个由两个参数的可调用对象
+	auto g = bind(f, a, b, _2, c, _1);
+```
+
+生成一个新的可调用对象，它有两个参数，分别用占位符`_2`和`_1`表示。
+
+这个新的可调用对象将它自己的参数作为第三个和第五个参数传递给`f`。`f`的第一个、第二个和第四个参数分别被绑定到给定的值`a`、`b`和`c`上。
+
+传递给`g`的参数按位置绑定到占位符。即，第一个参数绑定到`_1`，第二个参数绑定到`_2`。因此，当我们调用`g`时，其第一个参数将被传递给`f`作为最后一个参数，第二个参数将被传递给f作为第三个参数。实际上，这个`bind`调用会将
+
+```C++
+	g(_1, _2)
+```
+
+映射为
+
+```C++
+	f(a, b, _2, c, _1)
+```
+
+即，对`g`的调用会调用`f`，用`g`的参数代替占位符，再加上绑定的参数`a`, `b`, `c`。例如，调用`g(X, Y)`会调用`f(a, b, Y, c, X)`
+
+
+
+
+
+##### 用`bind`重排参数顺序
+
+例：我们可以利用`bind`颠倒`isShorter`的含义：
+
+```C++
+	// 按单词长度由短至长排序
+	sort(words.begin(), words.end(), isShorter);
+	// 按单词长度由长至短排序
+	sort(words.begin(), words.end(), bind(isShorter, _2, _1));
+```
+
+在第一个调用中，当`sort`需要比较两个元素`A`和`B`时，它会调用`isShorter(A,B)`。在第二个对`sort`的调用中，传递给`isShorter`的参数被交换过来了。因此，当`sort`比较两个元素时，就好像调用`isShorter(B,A)`一样。
+
+
+
+
+
+##### 绑定引用参数
+
+默认情况下，`bind`的那些不是占位符的参数被拷贝到`bind`返回的可调用对象中。
+
+但是，与lambda类似，有时对有些绑定的参数我们希望以引用方式传递，或是要绑定参数的类型无法拷贝。
+
+例：替换一个引用方式捕获`ostream`的lambda：
+
+```C++
+	// os是一个局部变量，引用一个输出流
+	// c是一个局部变量，类型为char
+	for_each(words.begin(), words.end(), [&os, c](const string &s) { os << s << c; });
+```
+
+这是实现相同功能的函数：
+
+```C++
+	ostream &print(ostream &os, const string &s, char c) {
+		return os << s << c; 
+	}
+```
+
+但是，不能直接用`bind`来代替对`os`的捕获：
+
+```C++
+	// 错误：不能拷贝os
+	for_each(words.begin(), words.end(), bind(print, os, _1, ' '));
+```
+
+原因在于`bind`拷贝其参数，而我们不能拷贝一个`ostream`。**如果我们希望传递给`bind`一个对象而又不拷贝它，就必须使用标准库`ref`函数**：
+
+```C++
+	for_each(words.begin(), words.end(), bind(print, ref(os), _1, ' '));
+```
+
+函数`ref`返回一个对象，包含给定的引用，此对象是可以拷贝的。标准库中还有一个`cref`函数，生成一个保存`const`引用的类。与`bind`一样，函数`ref`和`cref`也定义在头文件`functional`中。
+
+
+
+
+
+
+
+## 4. 再探迭代器	#待完善 p480 13.6.2
+
+除了为每个容器定义的迭代器之外，标准库在头文件`iterator`中还定义了另外几种迭代器，包括：
+
+- 插入迭代器：这些迭代器被绑定到一个容器上，可用来向容器中插入元素。
+- 流迭代器：这些迭代器被绑定到输入或输出流上，可用来遍历所关联的IO流。
+- 反向迭代器：这些迭代器向后而不是向前移动。除了`forward_list`之外的标准库容器都有反向迭代器。
+- 移动迭代器：这些专用的迭代器不是拷贝其中的元素，而是移动它们。      #待完善 p480 13.6.2
+
+
+
+### 4.1 插入迭代器
+
+插入迭代器（插入器）是一种迭代器<a href="#776948">适配器</a>，它接受一个容器，生成一个迭代器，能实现向给定容器添加元素。
+
+当我们通过一个插入迭代器进行赋值时，该迭代器调用容器操作来向给定容器的指定位置插入一个元素。
+
+下表列出了这种迭代器支持的操作：
+
+![](./images/插入迭代器操作.png)
+
+插入器有三种类型，差异在于插入元素的位置：
+
+- <a href="#410386">`back_inserter`</a>，创建一个使用`push_back`的迭代器。（只有容器支持`push_back`时，才能使用`back_inserter`）
+- `front_inserter`，创建一个使用`push_front`的迭代器。（只有容器支持`push_front`时，才能使用`front_inserter`）
+- `inserter`创建一个使用`insert`的迭代器。此函数接受第二个参数，这个参数必须是一个指向给定容器的迭代器。元素将被插入到给定迭代器所表示的元素之前。
+
+
+
+理解插入器的工作原理：
+
+- 调用`inserter(c, iter)`时，我们得到一个迭代器，接下来在使用它时，**会将元素插入到`iter`原来所指向的元素之前的位置**。
+
+  
+
+  **`std::inserter`需要两个参数：一个目标容器，和一个目标容器的插入位置迭代器。**
+
+  
+
+  例：如果`it`是`inserter`生成的迭代器，则下面的赋值语句
+
+  ```C++
+  	*it = val;
+  ```
+
+  其效果与下面代码一样：
+
+  ```C++
+  	it = c.insert(it, val);		// 此时it指向新加入的元素
+  	++it;						// 递增it使它指向原来的元素
+  ```
+
+  例：
+
+  ```C++
+      vector<int> v = {0, 2, 4, 6, 8};
+      auto ins = inserter(v, v.begin() + 1);
+      *ins = 1;
+      print(v);	// 0 1 2 4 6 8
+  ```
+
+- `front_inserter`生成迭代器的行为与`inserter`生成迭代器的行为完全不一样。 
+
+  当我们使用`front_insert`时，元素总是插入到第一个元素之前。
+
+  ```C++
+  	list<int> lst = {1, 2, 3, 4};
+  	list<int> lst2, lst3;		// 空list
+  	// 拷贝完成之后，lst2包含4 3 2 1
+  	copy(lst.cbegin(), lst.cend(), front_insert(lst2));
+  	// 拷贝完成之后，lst3包含1 2 3 4
+  	copy(lst.cbegin(), lst.cend(), insert(lst3, lst3.begin()));
+  ```
+
+
+
+关于`std::copy`函数：
+
+```C++
+OutputIt copy(InputIt first, InputIt last, OutputIt d_first);
+```
+
+- `InputIt first` 和 `InputIt last` 是输入范围的迭代器，表示要复制的元素范围的起始和结束位置。
+- `OutputIt d_first` 是输出范围的迭代器，表示复制的元素将要放置的位置。
+
+换句话说，`std::copy()` 函数将从输入范围 `[first, last)` 复制元素，并将它们插入到输出范围起始于 `d_first` 的位置开始。
+
+`std::copy()` 函数本身不会自动扩容目标容器，它只会在目标容器的已有空间内复制元素。如果目标容器的大小不足以容纳复制的元素，就会导致访问越界或其他问题。
+
+```C++
+#include <iostream>
+#include <vector>
+#include <list>
+#include <algorithm>
+
+using namespace std;
+
+int main() {
+    vector<int> nums = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    vector<int> nums0, nums1, nums3;
+    list<int> nums2;
+    copy(nums.begin(), nums.end(), inserter(nums0, nums0.begin()));
+    copy(nums.begin(), nums.end(), back_inserter(nums1));
+    copy(nums.begin(), nums.end(), front_inserter(nums2));
+
+    nums3.resize(nums.size());		// 需要手动进行扩容！
+    copy(nums.begin(), nums.end(), nums3.begin());
+
+    for (const auto num : nums0) {
+        cout << num << " ";
+    }
+    cout << endl;
+
+    for (const auto num : nums1) {
+        cout << num << " ";
+    }
+    cout << endl;
+
+    for (const auto num : nums2) {
+        cout << num << " ";
+    }
+    cout << endl;
+
+    for (const auto num : nums3) {
+        cout << num << " ";
+    }
+    cout << endl;
+    
+    return 0;
+}
+```
+
+
+
+### 4.2 `iostream`迭代器
+
+尽管`iostream`不是容器，但是标准库定义了可以用于这些IO类型对象的迭代器。`istream_itreator`读取输入流，`ostream_iterator`向一个输出流写数据。
+
+这些迭代器将它们对应的流**当作一个特定类型的元素序列来处理**。通过使用流迭代器，我们可以用泛型算法从流对象读取数据以及向其写入数据。
+
+
+
+##### `istream_iterator`操作
+
+![](./images/ii操作.png)
+
+创建一个流迭代器时，必须**指定迭代器将要读写的对象类型**。
+
+`istream_iterator`使用`>>`来读取流。所以，`istream_iterator`将要读取的内容必须定义了输入运算符。
+
+当创建一个`istream_iterator`时，我们可以将它绑定到一个流。我们也可以默认初始化迭代器，这样就创建了一个可以当作尾后值使用的迭代器。
+
+```C++
+	istream_iterator<int> int_it(cin);		// 从cin读取int
+	istream_itreator<int> int_eof;			// 尾后迭代器
+	istream in("afile");
+	istream_itreator<string> str_it(in);	// 从"afile"读取字符串
+```
+
+
+
+下面是一个用`istream_iterator`从标准输入读取数据，存入一个`vector`的例子：
+
+```C++
+	istream_iterator<int> in_iter(cin);		// 从cin读取int
+	istream_iterator<int> eof;				// istream尾后迭代器
+	while(in_iter != eof)					// 当有数据可供读取时
+		// 后置递增运算读取流，返回迭代器的旧值
+		// 解引用迭代器，获得从流读取的前一个值
+		vec.push_back(*in_iter++);
+```
+
+此循环从`cin`读取`int`值，保存在`vec`中。在每步循环中，检查`in_iter`是否等于空的`istream_iterator`，这是将其当作尾后迭代器来使用。
+
+对于一个绑定到流的迭代器来说，一旦其关联的流遇到文件尾或遇到IO错误，迭代器的值就与尾后迭代器相等。
+
+> 此程序最困难的部分是传递给`push_back`的参数，其中用到了解引用运算符和后置递增运算符。后置递增运算会从流中读取下一个值，向前推进，但返回的是迭代器的旧值。迭代器的旧值包含了从流中读取的前一个值，对迭代器进行解引用就能获得此值。
+
+
+
+我们可以将程序重写成以下形式，这体现了`istream_iterator`更有用的地方：
+
+```C++
+	istream_iterator<int> in_iter(cin), eof;	// 从cin读取int
+	vector<int> vec(in_iter, eof);				// 从迭代器范围构造vec
+```
+
+用一对表示元素范围的迭代器来构造`vec`。这两个迭代器是`istream_iterator`，这意味着元素范围是通过从关联的流中读取数据获得的。这个构造函数从`cin`中读取数据，直至遇到文件尾或者遇到一个不是`int`的数据为止。从流中读取的数据被用来构造`vec`
+
+
+
+
+
+##### 使用算法操作流迭代器	#待完善 p365 10.5.1
+
+算法使用迭代器操作来处理数据，而流迭代器又至少支持某些迭代器操作，所以我们至少可以用某些算法来操作流迭代器。
+
+在10.5.1 p365会看到如何分辨那些算法可以用于流迭代器。
+
+例：我们可以用一对`istream_iterator`来调用`accumulate`：
+
+```C++
+	istream_iterator<int> in(cin), eof;
+	cout << accumulate(in, eof, 0) << endl;
+```
+
+此调用会计算从标准输入读取的值的和：
+
+如输入为：1 2 3 4 5，则输出为15
+
+
+
+##### `istream_iterator`允许使用懒惰求值
+
+当我们将一个`istream_iterator`绑定到一个流时，标准库并不保证迭代器立即从流读取数据。
+
+具体实现可以推迟从流中读取数据，直到我们使用迭代器时才真正读取。标准库中的实现所保证的是，在我们第一次解引用迭代器之前，从流中读取数据的操作已经完成了。对于大多数程序来说，立即读取还是推迟读取没什么差别。
+
+但是，如果我们创建了一个`istream_iterator`，没有使用就销毁了，或者我们正在从两个不同的对象同步读取同一个流，那么何时读取可能就很重要了。
+
+
+
+
+
+##### `ostream_iterator`操作
+
+我们可以对任何具有输出运算符(`<<`运算符)的类型定义`ostream_iterator`。当创建一个`ostream_iterator`时，我们可以提供(可选的)第二参数，它是一个字符串，在输出每个元素后都会打印此字符串。此字符串必须是一个C风格字符串(即，一个字符串字面常量或者一个指向以空字符结尾的字符数组的指针)。必须将`ostream_iterator`绑定到一个指定的流，不允许空的或表示尾后位置的`ostream_iterator`。
+
+![](./images/oi操作.png)
+
+可以用`ostream_iterator`来输出值的序列：
+
+```C++
+int main() {
+    vector<int> vec = {1, 2, 3, 4, 5};
+    ostream_iterator<int> out_iter(cout, " ");
+    for (auto e: vec) {
+        *out_iter++ = e;    // 赋值语句实际上将元素写到cout
+    }
+    cout << endl;
+    return 0;
+}
+// 输出内容为：1 2 3 4 5 
+```
+
+
+
+但是，当我们向`out_iter`赋值时，可以忽略解引用和递增运算。循环可以重写为下面的样子：
+
+```C++
+int main() {
+    vector<int> vec = {1, 2, 3, 4, 5};
+    ostream_iterator<int> out_iter(cout, " ");
+    for (auto e: vec) {
+        out_iter = e;    // 赋值语句将元素写到cout
+    }
+    cout << endl;
+    return 0;
+}
+// 输出内容为：1 2 3 4 5 
+```
+
+**运算符`*`和`++`实际上对`ostream_iterator`对象不做任何事情，因此忽略它们对我们的程序没有任何影响。**
+
+但是，推荐第一种形式。在这种写法中，流迭代器的使用与其他迭代器的使用保持一致。如果想将此循环改为操作其他迭代器类型，修改起来非常容易，这样看起来也更为清晰。
+
+
+
+可以调用`copy`来打印`vec`中的元素，这比编写循环更简单：
+
+```C++
+	vector<int> vec = {1, 2, 3, 4, 5};
+    ostream_iterator<int> out_iter(cout, " ");
+    copy(vec.begin(), vec.end(), out_iter);    // 等价于上面的for循环
+```
+
+
+
+
+
+##### 使用流迭代器处理类类型
+
+- 可以为任何定义了输入运算符(`>>`)的类型创建`istream_iterator`对象；
+- 可以为任何定义了输出运算符(`<<`)的类型创建`ostream_iterator`对象。
+
+以下是使用IO迭代器重写的书店程序：
+
+```C++
+	istream_iterator<Sales_item> item_iter(cin), eof;
+	ostream_iterator<Sales_item> out_iter(cout, "\n");
+	// 将第一笔交易存在sum中，并读取下一条记录
+	Sales_item sum = *item_iter++;
+	while(item_iter != eof) {
+		// 如果当前交易记录（存在item_iter中）有着相同的ISBN号
+		if(item_iter->isbn() == sum.isbn()) {
+			sum += *item_iter++;	// 将其加到sum上并读取下一条记录
+		} else {
+			out_iter = sum;			// 输出sum当前值
+			sum = *item_iter++;		// 读取下一条记录
+		}
+	}
+	out_iter = sum;					// 记得打印最后一组记录的和
+```
+
+此程序使用`item_iter`从`cin`读取 sales_item交易记录，并将和写入`cout`，每个结果后面都跟一个换行符。定义了自己的迭代器后，我们就可以用`item_iter`读取第一条交易记录，用它的值来初始化`sum`:
+
+```C++
+	// 将第一笔交易存在sum中，并读取下一条记录
+	Sales_item sum = *item_iter++;
+```
+
+此处，我们对`item_iter`执行后置递增操作，对结果进行解引用操作。这个表达式读取下一条交易记录，并用之前保存在`item_iter`中的值来初始化`sum`。
+
+`while`循环会反复执行，直至在`cin`上遇到文件尾为止。在`while`循环体中，我们检查`sum`与刚刚读入的记录是否对应同一本书。如果两者的ISBN不同，我们将`sum`赋予`out_iter`，这将会打印`sum`的当前值，并接着打印一个换行符。在打印了前一本书的交易金额之和后，我们将最近读入的交易记录的副本赋予`sum`，并递增迭代器，这将读取下一条交易记录。循环会这样持续下去，直至遇到错误或文件尾。在退出之前，记住要打印输入中最后一本书的交易金额之和。
+
+
+
+
+
+### 4.3 反向迭代器
+
+反向迭代器就是在容器中从尾元素向首元素反向移动的迭代器。
+
+**对于反向迭代器，递增（以及递减）操作的含义会颠倒过来。**递增一个反向迭代器（`++it`）会移动到前一个元素；递减一个迭代器（`--it`）会移动到下一个元素。
+
+除了`forward_list`之外，其他容器都支持反向迭代器。我们可以通过调用`rbegin`、`rend`、`crbegin`和`crend`成员函数来获得反向迭代器。
+
+这些成员函数返回指向容器尾元素和首元素之前一个位置的迭代器。与普通迭代器一样，反向迭代器也有`const`和非`const`版本。
+
+
+
+下图展示了一个名为`vec`的`vector`对象其`cbegin`/`cend`和`crbegin`/`crend`的区别：
+
+![](./images/vec区别.png)
+
+例：按逆序打印`vec`中的元素：
+
+```C++
+	vector<int> vec = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    // 从尾元素到首元素的反向迭代器
+    for (auto r_iter = vec.crbegin();   // 将r_iter绑定到尾元素
+         	r_iter != vec.crend();        // crend指向首元素的前一个位置
+         	++r_iter) {                    // 递减r_iter访问序列中的元素
+        cout << *r_iter << " ";     // 输出元素的值
+    }   // 输出内容为：9 8 7 6 5 4 3 2 1 0
+```
+
+虽然颠倒递增和递减运算符的含义可能看起来令人混淆，但这样做使我们可以用算法透明地向前或向后处理容器。例如，可以通过向`sort`传递一对反向迭代器来将`vector`整理为递减序:
+
+```C++
+	sort(vec.begin(), vec.end());   // 排序
+    sort(vec.rbegin(), vec.rend()); // 反向排序, 从大到小
+```
+
+
+
+
+
+##### 反向迭代器需要递减运算符
+
+我们只能从既支持`++`也支持`--`的迭代器来定义反向迭代器。（反向迭代器的目的是在序列中反向移动）。
+
+除了`forward_list`以外，标准容器上的其他迭代器都既支持`++`也支持`--`。
+
+**流迭代器不支持递减运算符，因此它们不能用于定义反向迭代器。**
+
+不可能从一个`forward_list`或一个流迭代器创建反向迭代器。
+
+
+
+
+
+##### 反向迭代器和其他迭代器间的关系
+
+假如有一个名为`line`的`string`，保存着一个逗号分隔的单词列表，我们希望打印`line`中的第一个单词。
+
+使用`find`实现这一目的：
+
+```C++
+	// 在一个逗号分隔的列表中查找第一个元素
+	auto comma = find(line.cbegin(), line.cend(), ',');
+	cout << string(line.cbegin(), comma) << endl;
+```
+
+如果`line`中有逗号，那么`comma`将指向这个逗号；否则，它将等于`line.cend()`。当我们打印从`line.cbegin()`到`comma`之间的内容时，将打印到逗号为止的字符，或者打印整个`string`（如果其中不含逗号的话）。
+
+如果希望打印最后一个单词，可以改用反向迭代器：
+
+```C++
+	// 在一个逗号分隔的列表中查找最后一个元素
+	auto rcomma = find(line.crbegin(), line.crend(), ',');
+	cout << string(line.crbegin(), rcomma) << endl;		// 输出的是顺序颠倒的最后一个单词！
+```
+
+由于我们将`crbegin()`和`crend()`传递给`find`，`find`将从`line`的最后一个字符开始向前搜索。当`find`完成后，如果`line`中有逗号，则`rcomma`指向最后一个逗号——即，它指向反向搜索中找到的第一个逗号。如果 `line`中没有逗号，则`rcomma`指向`line.crend()`。
+
+
+
+上面的语句会逆序输出查找到的单词的字符。原因是当前我们使用的是反向迭代器，这会反向处理`string`。如果此时需要一个正常顺序的单词，则需要将`rcomma`转换回一个普通迭代器，能在`line`中正向移动。
+
+我们通过调用`reverse_iterator`的`base`成员函数来完成这一转换，此成员函数会返回其对应的普通迭代器：
+
+```C++
+	// 正确：得到一个正向迭代器，从逗号开始读取字符直到line末尾
+	cout << string(rcomma.base(), line.cend()) << endl;
+```
+
+这条输出语句会以正常的顺序打印出最后一个单词。
+
+
+
+下图为反向迭代器与普通迭代器之间的关系：
+
+![](./images/反与普迭代.png)
+
+上图中可以清晰的看到：`rcomma`和`rcomma.base()`指向不同的元素，`line.crbegin()`和`line.end()`也是这样。这保证了元素范围无论是正向处理还是反向处理都是相同的。
+
+实际上，普通迭代器和反向迭代器的关系反映了**左闭合区间**的特性。关键点在于`[line.crbegin (), rcomma)`和`[rcomma.base (),line.cend())`指向 `line`中相同的元素范围。为了实现这一点，`rcomma`和`rcomma.base()`必须生成相邻位置而不是相同位置，`crbegin()`和 `cend()`也是如此。
+
+> 反向迭代器的目的是表示元素范围，而这些范围是不对称的，这导致一个重要的结果:当我们从一个普通迭代器初始化一个反向迭代器，或是给一个反向迭代器赋值时,结果迭代器与原迭代器指向的并不是相同的元素。
