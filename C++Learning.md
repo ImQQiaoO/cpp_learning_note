@@ -12282,6 +12282,8 @@ int main() {
 
 类型`map`和 `multimap`定义在头文件`map`中； `set`和`multiset`定义在头文件`set`中；无序容器则定义在头文件`unordered_map`和 `unordered_set`中。
 
+
+
 ## 1. 使用关联容器
 
 `map`类型通常被称为关联数组。
@@ -12292,7 +12294,202 @@ int main() {
 
 
 
-##### 使用`map`
+##### 使用`map	`		#待完善 11.2.3节（第379页）
 
 例：使用关联数组统计单词出现次数：
+
+```C++
+    string str;
+    std::getline(std::cin, str);
+    stringstream ss(str);
+    // 统计每个单词在输入中出现的次数
+    map<string, size_t> word_count;		// string到size_t的空map
+    string word;
+    while(ss >> word) {
+        ++word_count[word];				// 提取word的计数器并将其加1
+    }
+    for(const auto &w : word_count)	{	// 对map中的每个元素
+        // 打印结果
+        cout << w.first << " occurs " << w.second << ((w.second > 1) ? " times." : " time.") << endl;
+    }
+```
+
+类似于*顺序容器*，关联容器也是模板。
+
+为了定义一个`map`，我们必须指定关键字和值的类型。
+
+在上面的代码中，`map`保存的每个元素，关键字是`string`类型，值是`size_t`类型。当对`word_count`进行下标操作时，我们使用一个`string`作为下标，获得与此`string`相关联的`size_t`类型的计数器。
+
+当从`map`中提取一个元素时，会得到一个`pair`类型的对象，我们将在11.2.3节（第379页）介绍它。简单来说，`pair`是一个模板类型，保存两个名为`first`和`second` 的(公有)数据成员。**`map`所使用的`pair`用`first`成员保存关键字，用`second`成员保存对应的值。**因此，输出语句的效果是打印每个单词及其关联的计数器。
+
+
+
+##### 使用`set`
+
+扩展上面的程序：忽略常见的单词。我们可以用`set`保存想要忽略的单词，只对不在集合中的单词统计出现次数：
+
+```C++
+    string str;
+    std::getline(std::cin, str);
+    stringstream ss(str);
+    // 统计每个单词在输入中出现的次数
+    map<string, int> word_count;		// string到size_t的空map
+    set<string> exclude = {"The", "But", "And", "Or", "An", "A",
+                           "the", "but", "and", "or", "an", "a"};
+    string word;
+    while(ss >> word) {
+        // 只统计不在exclude中的单词
+        if (exclude.find(word) == exclude.end())
+            ++word_count[word];				// 提取word的计数器并将其加1
+    }
+    for(const auto &w : word_count)	{	// 对map中的每个元素
+        // 打印结果
+        cout << w.first << " occurs " << w.second << ((w.second > 1) ? " times." : " time.") << endl;
+    }
+```
+
+与其他容器类似，`set`也是模板。为了定义一个`set`，必须指定其元素类型，本例中是`string`。与顺序容器类似，可以对一个关联容器的元素进行列表初始化。集合`exclude` 中保存了12个我们想忽略的单词。
+
+此程序与前一个程序的重要不同是，在统计每个单词出现次数之前，我们检查单词是否在忽略集合中，这是在`if`语句中完成的：
+
+```C++
+	// 只统计不在exclude中的单词
+	if (exclude.find(word) == exclude.end())
+```
+
+`find`调用返回一个迭代器。如果给定关键字在`set`中，迭代器指向该关键字。否则，`find`返回尾后迭代器。在此程序中，仅当`word`不在`exclude`中时我们才更新`word`的计数器。
+
+
+
+## 2. 关联容器概述 #待完善 表11.7，第388页         参见表11.3，第381页         11.4节（第394页）
+
+关联容器（包括有序的和无序的）都支持下图中的普通<a href="#615819">容器操作</a>：
+
+![](C:/Users/ASUS/AppData/Roaming/Typora/draftsRecover/images/容器操作.png)
+
+关联容器**不支持**顺序容器的位置相关的操作，例如`push_front`或`push_back`。这是因为关联容器是根据关键字存储的，这些操作对关联容器没有意义。
+
+而且，关联容器也**不支持**构造函数或插入操作这些接受一个元素值和一个数量值的操作。
+
+
+
+除了与顺序容器相同的操作之外，关联容器还支持一些顺序容器不支持的操作（参见表11.7，第388页）和类型别名（参见表11.3，第381页)。此外，无序容器还提供一些用来调整哈希性能的操作，我们将在11.4节（第394页）中介绍。
+
+关联容器的迭代器都是<a href="#280133">双向的</a>。
+
+
+
+### 2.1 定义关联容器
+
+- 定义一个`map`时，必须既指明关键字类型又指明值类型；
+- 定义一个`set`时，只需指明关键字类型——因为`set`中没有值。
+
+每个关联容器都定义了一个默认构造函数，它创建一个指定类型的空容器。
+
+**我们也可以将关联容器初始化为另一个同类型容器的拷贝，或是从一个值范围来初始化关联容器，只要这些值可以转化为容器所需类型就可以。**在新标准下，我们也可以对关联容器进行**值初始化**：
+
+```C++
+	map<string, size_t> word_count;			// 空容器
+	// 列表初始化
+	set<string> exclude = {"The", "But", "And", "Or", "An", "A",
+                           "the", "but", "and", "or", "an", "a"};
+	// 三个元素：authors将姓映射为名
+	map<string, string> authors = { {"Joyce", "James"},
+									{"Austen", "Jane"},
+									{"Dickens", "Charles"} };
+```
+
+与以往一样，初始化器必须能转换为容器中元素的类型。对于`set`，元素类型就是关键字类型。
+
+当初始化一个`map` 时，必须提供关键字类型和值类型。我们将每个关键字-值对包围在花括号中:
+
+`{key, value}`
+
+`key`和`value`一起构成了`map`中的一个元素。在每组括号中，关键字是第一个元素，值是第二个。因此，`author`将姓映射到名，初始化后它包含三个元素。
+
+
+
+##### 初始化`multimap`或`multiset`
+
+一个`map`或`set`中的关键字必须是唯一的，即，对于一个给定的关键字，只能有一个元素的关键字等于它。
+
+**容器`multimap` 和`multiset`没有此限制，它们都允许多个元素具有相同的关键字。**例如，在我们用来统计单词数量的`map`中，每个单词只能有一个元素。另一方面，在一个词典中，一个特定单词则可具有多个与之关联的词义。
+
+下面的例子展示了具有唯一关键字与允许重复关键字的容器之间的区别：
+
+首先，我们将创建一个名为`ivec`的保存`int`的`vector`，它包含20个元素：0到9每个整数有两个拷贝。我们将使用此`vector`初始化一个`set`和一个`multiset`：
+
+```C++
+    vector<int> ivec;
+    for (vector<int>::size_type i = 0; i != 10; ++i) {
+        ivec.push_back(static_cast<int>(i));
+        ivec.push_back(static_cast<int>(i));    // 每个数重复保存一次
+    }
+    // iset包含ivec的不重复的元素；miset包含所有20个元素
+    set<int> iset(ivec.begin(), ivec.end());
+    multiset<int> multiset(ivec.begin(), ivec.end());
+    cout << ivec.size() << endl;
+    cout << iset.size() << endl;
+    cout << multiset.size() << endl;
+```
+
+即使我们用整个`ivec`容器来初始化`iset`，它也只含有10个元素：对应`ivec`中每个不同的元素。另一方面，`miset`有20个元素，与`ivec`中的元素数量一样多。
+
+
+
+##### 一道例题：
+
+```C++
+#include <iostream>
+#include <map>
+#include <vector>
+
+using namespace std;
+
+void add_family(map<string, vector<string>>& town, const string& family_name) {
+//    if (!town.contains(family_name)) {	// New Feature in C++20!!
+    if (town.find(family_name) == town.end()) {
+        town[family_name] = vector<string>();
+    }
+}
+
+void add_child(map<string, vector<string>>& town, const string& family_name,
+               const string& child_name) {
+    town[family_name].push_back(child_name);
+}
+
+int main() {
+
+    /*
+     *  现有一个小镇，其中有很多个家庭。
+     *  定义一个map，关键字是家庭的姓，值是一个vector，保存家中
+     *  孩子们的名。编写代码，实现添加新的家庭以及像已有家庭中添加
+     *  新的孩子。
+     */
+    map<string, vector<string>> town;
+    add_family(town, "张");
+    add_child(town, "张", "三");
+    add_child(town, "张", "强");
+    add_child(town, "李", "刚");
+    //add_family(town, "李");
+
+
+    for (const auto& f : town) {
+        cout << f.first << "家的孩子: ";
+        for (const auto& c : f.second) {
+            cout << c << " ";
+        }
+        cout << endl;
+    }
+    return 0;
+}
+
+```
+
+> 在`add_child`函数中，如果传递进来的`family_name`在 `town`中并没有被保存过，C++会在`town`中新建一个以`family_name`为`key`的`pair`吗？
+>
+> 是的，C++会在 `map` 容器中新建一个以 `family_name` 为键的键值对（pair），如果该 `family_name` 在 `town` 中尚未存在。使用 `town[family_name]` 的方式将会在 `map` 中查找键为 `family_name` 的条目，如果不存在，它会创建一个新的条目并将其键设置为 `family_name`，然后将 `child_name` 添加到对应的向量中。
+>
+> 这是因为 `std::map` 的行为是，如果你通过一个不存在的键去访问它，它会自动创建一个新的键值对，并将键映射到一个默认构造的值（在这个例子中，就是空的 `vector`）。因此，当你调用 `town[family_name]` 时，如果 `family_name` 不存在，会自动创建一个新的条目。
+>
 
