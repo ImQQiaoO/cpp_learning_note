@@ -802,6 +802,40 @@ int main() {
 
 
 
+##### 利用vector和stringstream模拟Java中String的split方法
+
+```C++
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+
+using namespace std;
+
+vector<string> string_split(string& str, char delimiter) {
+    std::vector<std::string> result;
+    std::stringstream ss(str);
+    std::string item;
+
+    while (std::getline(ss, item, delimiter)) {
+        result.push_back(item);
+    }
+
+    return result;
+}
+
+int main() {
+    string str = "A-AA-AAA";
+    auto res = string_split(str, '-');
+    for (const auto& re : res) {	//输出内容为：A AA AAA
+        cout << re << endl;
+    }
+    return 0;
+}
+```
+
+
+
 ##### 不能用下标形式添加元素
 
 正确：
@@ -5736,7 +5770,7 @@ void print(const int ia[], size_t size)
 
 
 
-## 7. 函数指针
+## 7. 函数指针	<a name="828175"> </a>
 
 函数指针指向的是函数而非对象。
 
@@ -5853,7 +5887,7 @@ void (*pf1)(unsigned int) = ff; // pf1指向ff(unsigned)
 
 
 
-##### 函数指针形参
+##### 函数指针形参 <a name="567694"> </a>
 
 可以把函数的形参定义成指向函数的指针。调用时允许直接把函数名当作实参使用，它会自动转换成指针。
 
@@ -5935,7 +5969,7 @@ void useBigger(const string &s1, const string &s2, FuncP2);
 
 
 
-##### 将auto和decltype用于函数指针类型
+##### 将auto和decltype用于函数指针类型	<a name="379821"> </a>
 
 例如假定有两个函数，它们的返回类型都是 `string::size_type`，并且各有两个`const string&`类型的形参，此时我们可以编写第三个函数，它接受一个`string`类型的参数，返回一个指针，该指针指向前两个函数中的一个:
 
@@ -10894,7 +10928,7 @@ void elimDups(vector<string> &words) {
 
 
 
-### 3.1 向算法传递函数
+### 3.1 向算法传递函数	<a name="568608"> </a>
 
 例，假设希望在调用<a href="#552808">`elimDups`</a>后打印`vector`的内容，在此之外，还希望单词按其长度排序，大小相同的再按字典序排列。为了按长度重排`vector`，我们将使用`sort`的第二个版本，此版本是重载过的，它接受第三个参数，此参数是一个**谓词**。
 
@@ -12296,7 +12330,7 @@ int main() {
 
 ##### 使用`map	`		#待完善 11.2.3节（第379页）
 
-例：使用关联数组统计单词出现次数：
+例：使用关联数组统计单词出现次数：<a name="912651"> </a>
 
 ```C++
     string str;
@@ -12324,7 +12358,7 @@ int main() {
 
 
 
-##### 使用`set`
+##### 使用`set `	<a name="673318"> </a>
 
 扩展上面的程序：忽略常见的单词。我们可以用`set`保存想要忽略的单词，只对不在集合中的单词统计出现次数：
 
@@ -12365,7 +12399,7 @@ int main() {
 
 关联容器（包括有序的和无序的）都支持下图中的普通<a href="#615819">容器操作</a>：
 
-![](C:/Users/ASUS/AppData/Roaming/Typora/draftsRecover/images/容器操作.png)
+![](./images/容器操作.png)
 
 关联容器**不支持**顺序容器的位置相关的操作，例如`push_front`或`push_back`。这是因为关联容器是根据关键字存储的，这些操作对关联容器没有意义。
 
@@ -12379,7 +12413,7 @@ int main() {
 
 
 
-### 2.1 定义关联容器
+### 2.1 定义关联容器	<a name="940963"> </a>
 
 - 定义一个`map`时，必须既指明关键字类型又指明值类型；
 - 定义一个`set`时，只需指明关键字类型——因为`set`中没有值。
@@ -12492,4 +12526,444 @@ int main() {
 >
 > 这是因为 `std::map` 的行为是，如果你通过一个不存在的键去访问它，它会自动创建一个新的键值对，并将键映射到一个默认构造的值（在这个例子中，就是空的 `vector`）。因此，当你调用 `town[family_name]` 时，如果 `family_name` 不存在，会自动创建一个新的条目。
 >
+
+
+
+### 2.2 关键字类型的要求 #11.4 p396 待完善
+
+关联容器对于其关键字类型有一些限制。
+
+对于无序容器中关键字的要求，在*11.4 p396 待完善*中介绍。
+
+**对于有序容器——`map`，`multimap`，`set`和`multiset`关键字类型必须定义元素比较的方法。**
+
+**默认情况下，标准库使用关键字类型的`<`运算符来比较两个关键字。**在集合类型中，关键字类型就是元素类型；**在映射类型中，关键字类型是元素的第一部分的类型。**因此，<a href="#673318">这里</a> `word_count` 的关键字类型是`string`。类似的，`exclude`的关键字类型也是`string`。
+
+> 传递给<a href="#568608">排序算法</a>的可调用对象必须满足与关联容器中关键字一样的类型要求。
+
+
+
+##### 有序容器的关键字类型
+
+可以<a href="#568608">向一个算法提供我们自己定义的比较操作</a>，与之类似，也可以提供自己定义的操作来代替关键字上的`<`运算符。所提供的操作必须在关键字类型上定义一个**严格弱序**(strict weak ordering)。可以将严格弱序看作“小于等于”，虽然实际定义的操作可能是一个复杂的函数。无论我们怎样定义比较函数,它必须具备如下基本性质：
+
+- 两个关键字不能同时“小于等于”对方；如果 k1“小于等于”k2，那么k2绝不能“小于等于”k1。
+- 如果k1“小于等于”k2，且k2“小于等于”k3，那么k1必须“小于等于”k3。
+- 如果存在两个关键字，任何一个都不“小于等于”另一个，那么我们称这两个关键字是“等价”的。如果k1“等价于”k2，且k2“等价于”k3，那么k1必须“等价于”k3。
+
+如果两个关键字是等价的（即，任何一个都不“小于等于”另一个)，那么容器将它们视作相等来处理。当用作`map`的关键字时，只能有一个元素与这两个关键字关联，我们可以用两者中任意一个来访问对应的值。
+
+> 在实际编程中，重要的是，如果一个类型定义了“行为正常”的<运算符，则它可以用作关键字类型。
+
+
+
+##### 使用关键字类型的比较函数
+
+用来组织一个容器中元素的操作的类型也是该容器类型的一部分。为了指定使用自定义的操作，必须在定义关联容器类型时提供此操作的类型。
+
+如前所述，用尖括号指出要定义哪种类型的容器，自定义的操作类型必须在尖括号中紧跟着元素类型给出。
+
+在尖括号中出现的每个类型，就仅仅是一个类型而已。当我们创建一个容器（对象）时，才会以构造函数参数的形式提供真正的比较操作（其类型必须与在尖括号中指定的类型相吻合）。
+
+例：我们不能直接定义一个`Sales_data`的`multiset`，因为`Sales_data`没有<运算符。
+
+但是，可以用一个`compareIsbn`函数来定义一个`multiset`。此函数在`Sales_data`对象的ISBN成员上定义了一个严格弱序：
+
+```C++
+bool compareIsbn(const Sales_data &lhs, const Sales_data &rhs) {
+    return lhs.isbn() < rhs.isbn();
+}
+```
+
+接下来，为了使用自己定义的操作，在定义`multiset`时我们必须提供两个类型：关键字类型`Sales_data`，以及比较操作类型——应该是一种<a href="#828175">函数指针类型</a>，可以指向`compareIsbn`。当定义此容器类型的对象时，需要提供想要使用的操作的指针。在本例中，我们提供一个指向`compareIsbn`的指针：
+
+```C++
+	// bookstore中多条记录可以有相同的ISBN
+	// bookstore中的元素以ISBN的顺序进行排列
+	multiset<Sales_data, decltype(compareIsbn)*> bookstore(compareIsbn);
+```
+
+在上面的代码中，使用`decltype`来指出自定义操作的类型。
+
+当用`decltype`来获得一个函数指针类型时，必须加上一个`*`来指出我们要使用一个<a href="#379821">给定函数类型的指针</a>。
+
+用`compareIsbn`来初始化`bookstore`对象，这表示当我们向`bookstore`添加元素时，通过调用`compareIsbn`来为这些元素排序。即，`bookstore`中的元素将按它们的ISBN成员的值排序。
+
+可以用`compareIsbn`代替`&compareIsbn`作为构造函数的参数，因为<a href="#567694">**当我们使用一个函数的名字时，在需要的情况下它会自动转化为一个指针。**</a>当然，使用`&compareIsbn`的效果也是一样的。
+
+
+
+##### 思考题
+
+1. 可以定义一个`vector<int>::iterator`到`int`的`map`吗？`list<int>::iterator`到`int`的`map`呢？
+
+答：由于有序容器要求关键字类型必须支持比较操作<，因此`map<vector<int>::iterator, int> m1;`是可以的，因为`vector`的迭代器支持比较操作。而`map<list<int>::iterator, int> m2;`是不行的，因为`list`的元素不是连续存储，其迭代器不支持比较操作。
+
+
+
+2. 定义一个`map`，将单词与一个行号的`list`关联，`list`中保存的是单词所出现的行号。
+
+   ```C++
+   #include <iostream>
+   #include <fstream>
+   #include <sstream>
+   #include <map>
+   #include <string>
+   #include <list>
+   
+   using namespace std;
+   
+   string& trans(string& word) {
+       for (int p = 0; p != word.size(); ++p) {
+           if (word[p] >= 'A' && word[p] <= 'Z') {
+               word[p] -= ('A' - 'a');
+           } else if (word[p] == '.' || word[p] == ',') {
+               word.erase(p, 1);	// erase函数第一个参数是迭代器，第二个参数是删除的个数
+           }
+       }
+       return word;
+   }
+   
+   void print_res_map(const map<string, list<int>>& word_lineNum) {
+       for (const auto& w : word_lineNum) {
+           cout << w.first << " 的所在行：";
+           for (const auto n : w.second) {
+               cout << n << " ";
+           }
+           cout << endl;
+       }
+   }
+   
+   int main() {
+       ifstream ifs("read_file.txt");
+       if (!ifs) {
+           cout << "打开文件失败！" << endl;
+           exit(1);
+       }
+       map<string, list<int>> word_lineNum;
+       string single_line;
+       int lineNum = 0;
+       string word;
+       while (getline(ifs, single_line)) {
+           lineNum++;
+           stringstream ss(single_line);
+           while (ss >> word) {
+               trans(word);
+               word_lineNum[word].push_back(lineNum);
+           }
+       }
+       print_res_map(word_lineNum);
+       return 0;
+   }
+   ```
+
+
+
+
+
+### 2.3 `pair`类型
+
+`pair`定义在头文件`utility`中。
+
+一个`pair`可以保存两个数据成员，`pair`是用来生成特定类型的模板。创建一个`pair`时，我们需要提供两个类型名，`pair`的数据成员将具有对应的类型。
+
+这两个数据成员的类型可以相同，也可以不同：
+
+```C++
+	pair<stirng, string> anon;			// 保存两个string
+	pair<string, vector<int>> line;		// 保存string和vector<int>
+```
+
+`pair`的默认构造函数对数据成员进行值初始化。因此，`anon`是一个包含两个空 `string`的`pair`，`line`保存一个空`string`和一个空 `vector.word`。
+
+
+
+我们也可以为每个成员提供初始化器：
+
+```C++
+	pair<string, string> author{"James", "Joyce"};
+```
+
+这条语句创建一个名为`author`的`pair`，两个成员被初始化为`"James"`和`"Joyce"`.
+
+与其他标准库类型不同，`pair`的数据成员是`public`的。两个成员分别命名为`first`和`second`。我们用普通的成员访问符号来访问它们：
+
+```C++
+    for(const auto &w : word_count)	{	// 对map中的每个元素
+        // 打印结果
+        cout << w.first << " occurs " << w.second << ((w.second > 1) ? " times." : " time.") << endl;
+    }
+```
+
+此处，`w`是指向`map`中某个元素的引用。`map`的元素是`pair`。在这条语句中，我们首先打印关键字——元素的`first`成员，接着打印计数器——`second`成员。
+
+标准库只定义了有限的几个pair操作，如下图所示：
+
+![](./images/pair的操作.png)
+
+
+
+##### 创建`pair`对象的函数
+
+如果有一个函数需要返回一个`pair`，在现代C++中，我们可以对返回值进行列表初始化：
+
+```C++
+pair<string, int> process(vector<string> &v) {
+	// 处理v
+	if (!v.empty) {
+		return {v.back(), v.back.size()};	// 列表初始化
+	} else {
+		return pair<string, int>();			// 隐式构造返回值
+	}
+}
+```
+
+若`v`不为空，我们返回一个由`v`中最后一个`string`及其大小组成的`pair`。否则，隐式构造一个空`pair`，并返回它。
+
+在较早的C++版本中,不允许用花括号包围的初始化器来返回`pair`这种类型的对象，必须显式构造返回值：
+
+```C++
+	if (!v.empty) {
+		return pair<string, int>(v.back(), v.back.size());
+	} 
+```
+
+还可以用`make_pair`来生成`pair`对象，`pair`的两个类型来自于`make_pair`的参数：
+
+```C++
+	if (!v.empty) {
+		return make_pair(v.back(), v.back.size());
+	} 
+```
+
+
+
+
+
+## 3. 关联容器的操作
+
+除了<a href="#615819">这张表中列出的类型</a>，关联容器还支持下表中列出的类型。这些类型表示容器关键字和值的类型：
+
+![](./images/关联容器额外的类型别名.png)
+
+对于`set`类型，`key_type`和 `value_type`是一样的；`set`中保存的值就是关键字。在一个`map`中，元素是**关键字-值对**。即，每个元素是一个`pair`对象，包含一个关键字和一个关联的值。**由于我们不能改变一个元素的关键字，因此这些`pair`的关键字部分是`const`的：**
+
+```C++
+    set<string>::value_type v1;         // string
+    set<string>::key_type v2;           // string
+    map<string, int>::value_type v3;    // pair<const string, int>
+    map<string, int>::key_type v4;      // string
+    map<string, int>::mapped_type v5;   // int
+```
+
+和顺序容器一样，使用作用域运算符来提取一个类型的成员——如`map<string, int>::key_type`。
+
+**只有`map`类型（`unordered_map`、`unordered_multimap`、`multimap`和`map`）才定义了`mapped_type`。**
+
+
+
+### 3.1 关联容器迭代器
+
+当解引用一个关联容器迭代器时，我们会得到一个类型为容器的`value_type`的值的引用。对`map`而言，`value_type`是一个`pair`类型，其`first`成员保存`const`的关键字，`second`成员保存值：
+
+```C++
+	// 获得指向word_count中一个元素的迭代器
+	auto map_it = word_count.begin();
+	// *map_it是指向一个pair<const string, size_t>对象的引用
+	cout << map_it->first;				// 打印此元素的关键字
+	cout << " " << map_it->second;		// 打印此元素的值
+	map_it->first = "new key";			// 错误：关键字是const的
+	++map_it->second;					// 正确，我们可以通过迭代器改变元素
+```
+
+> 必须记住，一个`map`的`value_type`是一个`pair`，我们可以改变`pair`的，但不能改变关键字成员的值。
+
+```C++
+    map<string, int> m{ {"A", 1},
+                        {"B", 2},
+                        {"C", 3} };
+    cout << m.begin()->first << endl;       // A
+    cout << m.begin()->second << endl;      // 1
+    cout << ++m.begin()->second << endl;    // 2
+//	m.begin()->first = "D";                 // error: key is const
+```
+
+
+
+##### `set`的关键字是`const`的
+
+虽然`set`类型同时定义了`iterator`和`const_iterator`，但是两种类型都只允许访问`set`中的元素。
+
+与不能改变一个`map`元素的关键字一样，一个`set`中的关键字也是`const`的。可以用一个`set`迭代器来读取元素的值，但是不能修改：
+
+```C++
+    set<int> iset{1, 2, 3, 4, 5, 6, 7, 8, 9};
+    set<int>::iterator set_it = iset.begin();
+    if (set_it != iset.end()) {
+        *iset = 42;     // error: set中的关键字是只读的
+        cout << *set_it << endl;    // 可以读取关键字
+    }
+```
+
+
+
+##### 遍历关联容器
+
+`map`和`set`类型都支持<a href="#615819">这个表中</a>的`begin`和`end`操作。
+
+与往常一样，我们可以用这些函数获取迭代器，然后用迭代器来遍历容器。例如：
+
+```C++
+int main() {
+    map<string, int> m{{"B", 2},
+                       {"A", 1},
+                       {"C", 3}};
+    auto it = m.begin();
+    while (it != m.end()) {
+        cout << it->first << " " << it->second << endl;
+        ++it;
+    }
+    return 0;
+}
+
+/*
+	输出结果为：
+	A 1
+	B 2
+	C 3
+*/
+```
+
+`while`的循环条件和循环中的迭代器递增操作看起来很像我们之前编写的打印一个`vector`或一个`string`的程序。
+
+我们首先初始化迭代器`it`，让它指向`m`中的首元素。只要迭代器不等于`end`，就打印当前元素并递增迭代器。
+
+输出语句解引用`map_it`来获得`pair`的成员。
+
+> **本程序的输出是按字典序排列的。**当使用一个迭代器遍历一个`map`、`multimap`、 `set`或`multiset`时，迭代器按关键字升序遍历元素。
+
+
+
+##### 关联容器和算法	#11.3.5节(第388页）待完善
+
+**我们通常不对关联容器使用泛型算法。**关键字是`const`这一特性意味着不能将关联容器传递给修改或重排容器元素的算法，因为这类算法需要向元素写入值，而`set`类型中的元素是`const`的，`map`中的元素是`pair`，其第一个成员是`const`的。
+
+关联容器可用于只读取元素的算法。但是，很多这类算法都要搜索序列。由于关联容器中的元素不能通过它们的关键字进行（快速）查找，因此对其使用泛型搜索算法几乎总是个坏主意。
+
+例如，我们将在11.3.5节(第388页）中看到，关联容器定义了一个名为`find`的成员，它通过一个给定的关键字直接获取元素。我们可以用泛型`find`算法来查找一个元素，但此算法会进行顺序搜索。使用关联容器定义的专用的`find`成员会比调用泛型`find`快得多。
+
+
+
+在实际编程中，如果我们真要对一个关联容器使用算法，要么是将它当作一个源序列，要么当作一个目的位置。
+
+例如，可以用泛型`copy`算法将元素从一个关联容器拷贝到另一个序列。类似的，可以调用`inserter`将一个<a href="#042979">插入器</a>绑定到一个关联容器。通过使用`inserter`，我们可以将关联容器当作一个目的位置来调用另一个算法。
+
+
+
+### 3.2 添加元素
+
+关联容器的`insert`成员向容器中添加一个元素或一个元素范围。
+
+![](./images/关联容器insert操作.png)
+
+由于`map`和 `set`（以及对应的无序类型）包含不重复的关键字，因此插入一个己存在的元素对容器没有任何影响：
+
+```C++
+    vector<int> ivec{2, 4, 6, 8, 2, 4, 6, 8};           // ivec有8个元素
+    set<int> set2(ivec.cbegin(), ivec.cend());  		// set2有4个元素
+    set2.insert({1, 3, 5, 7, 1, 3, 5, 7});       		// set2有8个元素
+```
+
+`insert`有两个版本，分别接受一对迭代器，或是一个初始化器列表，这两个版本的行为类似<a href="#940963">对应的构造函数</a>——对于一个给定的关键字，只有**第一个**带此关键字的元素才被插入到容器中。
+
+
+
+##### 向`map`添加元素
+
+对一个`map`进行`insert`操作时，必须记住元素类型时`pair`。通常，对于想要插入的数据，并没有一个现成的`pair`对象。可以在`insert`的参数列表中创建一个`pair`：
+
+```C++
+	// 向word_count插入word的四种方法：
+	word_count.insert({word, 1});
+	word_count.insert(make_pair(word, 1));
+	word_count.insert(pair<string, size_t>(word, 1));
+	word_count.insert(map<string, size_t>::value_type(word, 1));
+```
+
+最后一个`insert`调用中的参数：`map<string, size_t>::value_type(word, 1)`这是构造一个恰当的`pair`类型，并构造该类型的一个新对象，插入到`map`中。
+
+
+
+##### 检测`insert`的返回值
+
+`insert`或`emplace`返回的值依赖于容器类型和参数：
+
+对于不包含重复关键字的容器，添加单一元素的`insert`和`emplace`版本返回一个`pair`，告诉我们插入操作是否成功。`pair`的`first`成员是一个迭代器，指向具有给定关键字的元素；`second` 成员是一个`bool`值，指出元素是插入成功还是已经存在于容器中。**如果关键字已在容器中，则`insert`什么事情也不做，且返回值中的`bool`部分为`false`。**如果关键字不存在，元素被插入容器中，且`bool`值为`true`。
+
+例：
+
+```C++
+	// 统计每个单词在输入中出现次数的一种更繁琐的方法
+	map<string, size_t> word_count;			// 从string到size_t的空map
+	string word;
+	while(cin >> word) {
+		// 插入一个元素，关键字等于word，值为1
+		// 若word已经在word_count中，insert什么都不做
+		auto ret = word_count.insert({word, 1});
+		if (!ret.second)			// word已在word_count中
+			++ret.first->second;	// 递增计数器
+	}
+```
+
+对于每个`word`，我们尝试将其插入到容器中，对应的值为1。若`word`已在`map`中，则什么都不做，特别是与`word`相关联的计数器的值不变。若`word`还未在`map`中，则此`string`对象被添加到`map`中，且其计数器的值被置为1。
+
+`if`语句检查返回值的`bool`部分，若为`false`，则表明插入操作未发生。在此情况下，`word`已存在于`word_count`中，因此必须递增此元素所关联的计数器。
+
+
+
+##### 展开递增语句
+
+上面的单词计数程序中，递增计数器的语句很难理解。添加一些括号反映出运算符的优先级：
+
+```C++
+	++((ret.first)->second);		// 等价的表达式
+```
+
+进一步解释这个表达式：
+
+- `ret`保存`insert`返回的值，是一个`pair`。
+- `ret.first`是`pair`的第一个成员，是一个`map`迭代器，指向具有给定关键字的元素。
+- `ret.first->`解引用此迭代器，提取`map`中的元素，元素也是一个`pair`。
+- `ret.first->second` `map`中元素的值部分。
+- `++ret.first->second`递增此值。
+
+
+
+如果使用的是旧版本的编译器，或者是在阅读新标准推出之前编写的代码，`ret`的声明和初始化可能复杂些：
+
+```C++
+	pair<map<string, size_t>::iterator, bool> ret = word_count.insert({word, 1});
+```
+
+
+
+##### 向`multiset`或`mutimap`添加元素
+
+我们的单词计数程序依赖于这样一个事实：一个给定的关键字只能出现一次。这样，任意给定的单词只有一个关联的计数器。
+
+我们有时希望能添加具有相同关键字的多个元素。例如，可能想建立作者到他所著书籍题目的映射。在此情况下，每个作者可能有多个条目，因此我们应该使用`multimap`而不是`map`。由于一个`multi`容器中的关键字不必唯一，在这些类型上调用`insert`总会插入一个元素：
+
+```C++
+	multimap<string, string> authors;
+	// 插入第一个元素，关键字为Barth, John
+	authors.insert({"Barth, John", "Sot-Weed Factor"});
+	// 正确：添加第二个元素，关键字也是Barth, John
+	authors.insert({"Barth, John", "Lost in the Funhouse"});
+```
+
+对允许重复关键字的容器，接受单个元素的insert 操作返回一个指向新元素的迭代器。这里无须返回一个bool值，因为 insert总是向这类容器中加入一个新元素。
+
+
+
+### 3.3 删除元素
 
