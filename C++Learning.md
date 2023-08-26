@@ -8826,7 +8826,7 @@ for (const auto &entry : people) {
 
 
 
-##### 迭代器范围
+##### 迭代器范围	<a name="863786"> </a>
 
 一个**迭代器范围**由一对迭代器表示。这两个迭代器通常被称为`begin`和`end`，分别指向同一个容器中的元素或尾元素之后的位置。这两个迭代器通常被称为`begin`和`end`，或者是`first`和`last`。它们标记了集合中元素的一个范围。
 
@@ -9475,7 +9475,7 @@ C++11引进的三个新成员：`emplace_front`、`emplace`和`emplace_back`，�
 
 ### 3.2 访问元素
 
-下表中是在顺序容器中访问元素的操作：
+下表中是在顺序容器中访问元素的操作：<a name="668895"> </a>
 
 ![](./images/顺序访问元素.png)
 
@@ -12471,7 +12471,7 @@ int main() {
 
 
 
-##### 一道例题：
+##### 一道例题：<a name="008620"> </a>
 
 ```C++
 #include <iostream>
@@ -12740,7 +12740,7 @@ pair<string, int> process(vector<string> &v) {
 
 
 
-## 3. 关联容器的操作
+## 3. 关联容器的操作	<a name="359091"> </a>
 
 除了<a href="#615819">这张表中列出的类型</a>，关联容器还支持下表中列出的类型。这些类型表示容器关键字和值的类型：
 
@@ -12961,9 +12961,271 @@ int main() {
 	authors.insert({"Barth, John", "Lost in the Funhouse"});
 ```
 
-对允许重复关键字的容器，接受单个元素的insert 操作返回一个指向新元素的迭代器。这里无须返回一个bool值，因为 insert总是向这类容器中加入一个新元素。
+对允许重复关键字的容器，接受单个元素的`insert`操作返回一个指向新元素的迭代器。这里无须返回一个`bool`值，因为`insert`总是向这类容器中加入一个新元素。
+
+
+
+##### `map`的`insert`返回值总结：
+
+```C++
+#include <iostream>
+#include <map>
+#include <set>
+
+using namespace std;
+
+int main() {
+    map<string, int> m{{"B", 2},
+                       {"A", 1},
+                       {"C", 3}};
+
+    set<string> s{"B", "A", "C"};
+
+    multimap<string, int> mm{{"B", 2},
+                             {"A", 1},
+                             {"C", 3}};
+
+    multiset<string> ms{"B", "A", "C"};
+
+    auto imit = m.insert({"D", 4});
+    cout << imit.first->first << " " << imit.first->second << endl; // D 4
+    cout << imit.second << endl;    // 1
+
+    auto isit = s.insert("D");
+    cout << *isit.first << endl;    // D
+    cout << isit.second << endl;    // 1
+
+    auto immit = mm.insert({"D", 4});
+    cout << immit->first << " " << immit->second << endl;   // D 4
+
+    auto ismit = ms.insert("D");
+    cout << *ismit << endl; // D
+
+    return 0;
+}
+```
 
 
 
 ### 3.3 删除元素
+
+关联容器定义了三个版本的`erase`，如下表所示：
+
+![](./images/关联容器删除元素.png)
+
+与顺序容器一样，我们可以通过传递给`erase`一个迭代器或一个迭代器对来删除一个元素或者一个元素范围（上图中函数2、3）。这两个版本的`erase`与对应的顺序容器的操作非常相似：指定的元素被删除，函数返回`void`。
+
+关联容器提供一个额外的`erase`操作，它接受一个`key_type`参数（上图中函数1）。**此版本删除所有匹配给定关键字的元素（如果存在的话)，返回实际删除的元素的数量。**我们可以用此版本在打印结果之前从`word_count`中删除一个特定的单词：
+
+```C++
+	// 删除一个关键字，返回删除元素的数量
+	if(word_count.erase(removal_word)) {
+		cout << "ok: " << removal_word << " removed\n";
+	} else cout << "Oops: " << removal_word << " not found!\n";
+```
+
+对于保存不重复关键字的容器，`erase`的返回值总是0或1。若返回值为0，则表明想要删除的元素并不在容器中。
+
+对允许重复关键字的容器，删除元素的数量可能大于1：
+
+```C++
+	auto cnt = author.erase("Barth, John");
+```
+
+
+
+### 3.4 `map`的下标操作
+
+`map`和`unordered_map`容器提供了下标运算符和一个对应的`at`函数，<a href="#668895">见这里</a>，如下表所示：
+
+![](./images/map和unorderedmap的下标操作.png)
+
+`set`类型不支持下标，因为`set`中没有与关键字相关联的“值”。
+
+我们不能对一个`multimap`或一个`unordered_multimap`进行下标操作，因为这些容器中可能有多个值与一个关键字相关联。
+
+
+
+类似我们用过的其他下标运算符，`map`下标运算符接受一个索引(即，一个关键字)，获取与此关键字相关联的值。
+
+但是，与其他下标运算符不同的是，如果关键字并不在`map`中，会为它创建一个元素并插入到`map`中，<a href="#008620">例子见</a>，关联值将进行值初始化。
+
+例：
+
+```C++
+	map<string, size_t> word_count;		// empty map
+	// 插入一个关键字为Anna的元素，关联值进行初始化；然后将1赋予它
+	word_count["Anna"] = 1;
+```
+
+这会执行以下操作：
+
+- 在`word_count`中搜索关键字为Anna的元素，未找到。
+- 将一个新的关键字-值对插入到`word_count`中。关键字是一个`const string`，保存`Anna`。值进行值初始化，在本例中意味着值为0。
+- 提取出新插入的元素，并将值1赋予它。
+
+由于下标运算符可能插入一个新元素，我们只可以对非`const`的`map`使用下标操作。
+
+> 对一个`map`使用下标操作，其行为与数组或`vector`上的下标操作很不相同：使用一个不在容器中的关键字作为下标,会添加一个具有此关键字的元素到`map`中。
+
+由于下标运算符可能插入一个新元素，我们只可以对非`const`的`map`使用下标操作。
+
+
+
+##### 使用下标操作的返回值
+
+`map`的下标运算符与我们用过的其他下标运算符的另一个不同之处是其返回类型。
+
+通常情况下，解引用一个迭代器所返回的类型与下标运算符返回的类型是一样的。但对`map`则不然：当对一个`map`进行下标操作时，会获得一个`mapped_type`对象；但当解引用一个`map`迭代器时，会得到一个`value_type`对象。<a href="#359091">关于`mapped_type`和`value_type`见这里</a>
+
+与其他下标运算符相同的是，`map`的下标运算符返回一个左值。由于返回的是一个左值，所以我们既可以读也可以写元素;
+
+```C++
+	cout << word_count["Anna"];			// 用Anna作为下标提取元素；会打印出1
+	++word_count["Anna"];				// 提取元素，将其增1
+	cout << word_count["Anna"];			// 提取元素并打印它；会打印出2
+```
+
+> 与`vector`或`string` 不同，`map`的下标运算符返回的类型与解引用`map`迭代器得到的类型不同。
+
+如果关键字还未在`map`中，下标运算符会添加一个新元素，这一特性允许我们编写出异常简洁的程序。另一方面，有时只是想知道一个元素是否已在`map`中，但在不存在时并不想添加元素。在这种情况下，就不能使用下标运算符。
+
+
+
+### 3.5 访问元素
+
+关联容器提供多种**查找**一个指定元素的方法。如下表所示：
+
+![](./images/关联容器中查找元素的操作.png)
+
+如果想要知道一个特定元素是否已在容器中，`find`是最佳选择。
+
+对于不允许重复关键字的容器，使用`find`和`count`没什么区别；但是对于允许重复关键字的容器，`count`会做更多工作：如果元素在容器中，`count`还会统计有多少个元素有相同的关键字。如果不需要计数，最好使用`find`：
+
+```C++
+	set<int> iset = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	iset.find(1);		// 返回一个迭代器，指向key==1的元素
+	iset.find(11);		// 返回一个迭代器，其值等于iset.end()
+	iset.count(1);		// 返回1
+	iset.count(11);		// 返回0
+```
+
+
+
+##### 对`map`使用`find`代替下标操作
+
+对`map`和`unordered_map`类型，下标运算符提供了最简单的提取元素的方法。
+
+但是，如果关键字还未在`map`中，下标操作会插入一个具有给定关键字的元素。
+
+如果只是想知道一个给定关键字是否在`map`中，而不想改变`map`，此时就不能使用下标运算符来检查一个元素是否存在，应该使用`find`:
+
+```C++
+	if(word_count.find("foobar") == word_count.end())
+		cout << "foobar is not in the map" << endl;
+```
+
+
+
+##### 在`multimap`或`multiset`中查找元素
+
+在一个不允许重复关键字的关联容器中查找一个元素是一件很简单的事情——元素要么在容器中，要么不在。
+
+但对于允许重复关键字的容器来说，过程就更为复杂：在容器中可能有很多元素具有给定的关键字。如果一个`multimap`或`multiset`中有多个元素具有给定关键字，则这些元素在容器中会相邻存储。
+
+例如，给定一个从作者到著作题目的映射，我们可能想打印一个特定作者的所有著作。可以用*三种*不同方法来解决这个问题。最直观的方法是使用`find`和`count`：
+
+```C++
+int main() {
+    multimap<string, string> books;
+    books.insert({"Barth, John", "Sot-Weed Factor"});
+    books.insert({"Barth, John", "Lost in the Funhouse"});
+    books.insert({"Hawking, Stephen", "A Brief History of Time"});
+    books.insert({"Hawking, Stephen", "The Universe in a Nutshell"});
+    books.insert({"Hawking, Stephen", "On the Shoulders of Giants"});
+
+    string search_item("Barth, John");  // 要查找的作者
+    auto entries = books.count(search_item);  // 查找元素的数量
+    auto iter = books.find(search_item);  // 查找元素的第一个位置
+    while (entries) {
+        cout << iter->second << endl;   // 打印元素的值（书名）
+        ++iter;                         // 迭代器向前移动一个位置 （前进到下一本书）
+        --entries;                      // 递减剩余元素的数量
+    }
+    
+    return 0;
+}
+```
+
+首先调用`count`确定此作者共有多少本著作，并调用`find`获得一个迭代器，指向第一个关键字为此作者的元素。循环的迭代次数依赖于 `count`的返回值。特别是，如果`count`返回0，则循环一次也不执行。
+
+> 当我们遍历一个`multimap` 或`multiset`时，保证可以得到序列中所有具有给定关键字的元素。
+
+
+
+##### 一种不同的，面向迭代器的解决方法
+
+使用`lower_bound`和`upper_bound`解决上面的问题：
+
+这两个操作都接受一个关键字，返回一个迭代器。
+
+- 如果关键字在容器中：
+  - `lower_bound`返回的迭代器将指向第一个具有给定关键字的元素；
+  - `upper_bound`返回的迭代器则指向最后一个匹配给定关键字的元素之后的位置。
+- 如果元素不在`multimap`中：
+  - `lower_bound`和`upper_bound`会返回相等的迭代器——指向一个不影响排序的关键字插入位置
+
+因此，用相同的关键字调用`lower_bound`和`upper_bound`会得到一个<a href="#863786">迭代器范围</a>，表示所有具有该关键字的元素的范围。
+
+
+
+> 这两个操作返回的迭代器可能是容器的尾后迭代器。如果我们查找的元素具有容器中最大的关键字，则此关键字的`upper_bound`返回尾后迭代器。如果关键字不存在，且大于容器中任何关键字，则`lower_bound`返回的也是尾后迭代器。
+>
+> `lower_bound`返回的迭代器可能指向一个具有给定关键字的元素，但也可能不指向。如果关键字不在容器中，则`lower_bound`会返回关键字的第一个安全插入点——不影响容器中元素顺序的插入位置。
+
+
+
+使用这两个操作重写上面的代码：
+
+```C++
+    // books和search_item的定义和初始化与上面相同
+    // begin和end表示对应此作者的元素的范围
+    for (auto beg = books.lower_bound(search_item), end = books.upper_bound(search_item); 
+                beg != end; ++beg)
+        cout << beg->second << endl;    // 打印此作者的每一本书
+```
+
+对`lower_bound`的调用将`beg`定位到第一个与`search_item`匹配的元素（如果存在的话）。
+
+如果容器中没有这样的元素，`beg`将指向第一个关键字大于`search_item`的元素，有可能是尾后迭代器。`upper_bound`调用将`end`指向最后一个匹配指定关键字的元素之后的元素。这两个操作并不报告关键字是否存在，重要的是它们的返回值可作为一个<a href="#863786">迭代器范围</a>。
+
+如果没有元素与给定关键字匹配，则`lower_bound`和`upper_bound`会返回相等的迭代器——都指向给定关键字的插入点，能保持容器中元素顺序的插入位置。
+
+> 如果`lower_bound`和`upper_bound`返回相同的迭代器，则给定关键字不在容器中。
+
+
+
+##### `equal_range`函数
+
+`equal_range`可以更为直接的解决这个问题。
+
+此函数接受一个关键字，返回一个迭代器`pair`。若关键字存在，则第一个迭代器指向第一个与关键字匹配的元素，第二个迭代器指向最后一个匹配元素之后的位置。若未找到匹配元素，则两个迭代器都指向关键字可以插入的位置（这是为了保持容器的有序性。换句话说，如果你决定在这个位置插入该关键字，容器将仍然保持有序）。
+
+
+
+使用`equal_range`修改我们的程序：
+
+```C++
+    // books和search_item的定义和初始化与上面相同
+    // pos表示一个迭代器对，表示此作者的元素的范围
+    for (auto pos = books.equal_range(search_item);
+         pos.first != pos.second; ++pos.first)
+        cout << pos.first->second << endl;  // 打印此作者的每一本书
+```
+
+此程序本质上与前一个使用`upper_bound`和 `lower_bound`的程序是一样的。不同之处就是，没有用局部变量`beg`和`end`来保存元素范围，而是使用了`equal_range`返回的`pair`。此`pair`的`first`成员保存的迭代器与`lower_bound`返回的迭代器是一样的，`second`保存的迭代器与`upper_bound`的返回值是一样的。因此，在此程序中，`pos.first`等价于`beg`，`pos.second`等价于`end`。
+
+
+
+### 3.6 一个单词转换的`map`
 
