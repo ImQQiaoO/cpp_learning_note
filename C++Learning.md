@@ -802,7 +802,7 @@ int main() {
 
 
 
-##### 利用vector和stringstream模拟Java中String的split方法
+##### 利用`vector`和`stringstream`模拟`Java`中`String`的`split`方法
 
 ```C++
 #include <iostream>
@@ -8705,6 +8705,50 @@ for (const auto &entry : people) {
 
 
 
+##### EOF
+
+可以通过以下的方式判断是否已经达到`stringstream`的末尾：
+
+```C++
+    string line;
+    while (getline(in_target, line)) {
+        stringstream ss(line);
+        string single_word;
+        bool last_word = false;
+        while (getline(ss, single_word, ' ')) {
+            comparison(single_word, trans_map);
+            if (ss.peek() == EOF) {
+                last_word = true;
+            }
+            cout << single_word;
+            if (!last_word) {
+                cout << " ";
+            }
+        }
+```
+
+其中，`peek`的作用是查看下一个字符：
+
+```C++
+int main() {
+    stringstream ss("hello beautiful world");
+    string str;
+    while (getline(ss, str, ' ')) {
+        if (ss.peek() == EOF) {
+            cout << "EOF" << endl;
+            continue;
+        }
+        cout << static_cast<char>(ss.peek()) << endl;
+    }
+    return 0;
+}
+/*
+	b
+	w
+	EOF
+*/
+```
+
 
 
 # 顺序容器
@@ -10936,7 +10980,7 @@ void elimDups(vector<string> &words) {
 
 ##### 谓词 !!!待完善
 
-**谓词是一个可调用的表达式，其返回结果是一个能用作*条件*的值。**标准库算法所使用的谓词分为两类：一**元谓词**（意味着它们只接受单一参数）和**二元谓词**（意味着它们有两个参数)。接受谓词参数的算法对输入序列中的元素调用谓词。因此，元素类型必须能转换为谓词的参数类型。
+**谓词是一个可调用的表达式，其返回结果是一个能用作*条件*的值。**标准库算法所使用的谓词分为两类：**一元谓词**（意味着它们只接受单一参数）和**二元谓词**（意味着它们有两个参数)。接受谓词参数的算法对输入序列中的元素调用谓词。因此，元素类型必须能转换为谓词的参数类型。
 
 接受一个二元谓词参数的`sort`版本用这个谓词代替`<`来比较元素。我们提供给`sort`的谓词必须满足***将在11.2.2节（第378页）中所介绍的条件***。当前，我们只需知道，此操作必须在输入序列中所有可能的元素值上定义一个一致的序。下面定义的 `isShorter`就是一个满足这些要求的函数，因此可以将 `isShorter`传递给`sort`。这样做会将元素按大小重新排序：<a name="isShorter"> </a>
 
@@ -11801,11 +11845,11 @@ int main() {
 
 
 
-##### 使用算法操作流迭代器	#待完善 p365 10.5.1
+##### 使用算法操作流迭代器
 
 算法使用迭代器操作来处理数据，而流迭代器又至少支持某些迭代器操作，所以我们至少可以用某些算法来操作流迭代器。
 
-在10.5.1 p365会看到如何分辨那些算法可以用于流迭代器。
+<a href="#771253">在这里</a>会看到如何分辨那些算法可以用于流迭代器。
 
 例：我们可以用一对`istream_iterator`来调用`accumulate`：
 
@@ -12090,7 +12134,7 @@ int main() {
 
 
 
-##### 迭代器类别
+##### 迭代器类别	<a name="771253"> </a>
 
 1. **输入迭代器**（input iterator）：可以读取序列中的元素，一个输入迭代器必须支持以下操作：
 
@@ -12283,7 +12327,7 @@ int main() {
 
 
 
-# 关联容器 待完善 p394 11.4
+# 关联容器
 
 关联容器支持高效的关键字查找和访问操作。2个主要的关联容器类型是`map`和`set`。
 
@@ -12310,7 +12354,7 @@ int main() {
 
 顾名思义：`unordered_multi_set`是一个允许重复关键字，元素无序保存的集合，而一个`set`则是一个要求不重复关键字，有序存储的集合。
 
-无序容器使用哈希函数来组织元素，我们将在11.4节（第394页）中详细介绍有关哈希函数的更多内容。
+无序容器使用哈希函数来组织元素，<a href="#841178">这里</a>详细了介绍有关哈希函数的更多内容。
 
 
 
@@ -12328,7 +12372,7 @@ int main() {
 
 
 
-##### 使用`map	`		#待完善 11.2.3节（第379页）
+##### 使用`map	`
 
 例：使用关联数组统计单词出现次数：<a name="912651"> </a>
 
@@ -12354,7 +12398,7 @@ int main() {
 
 在上面的代码中，`map`保存的每个元素，关键字是`string`类型，值是`size_t`类型。当对`word_count`进行下标操作时，我们使用一个`string`作为下标，获得与此`string`相关联的`size_t`类型的计数器。
 
-当从`map`中提取一个元素时，会得到一个`pair`类型的对象，我们将在11.2.3节（第379页）介绍它。简单来说，`pair`是一个模板类型，保存两个名为`first`和`second` 的(公有)数据成员。**`map`所使用的`pair`用`first`成员保存关键字，用`second`成员保存对应的值。**因此，输出语句的效果是打印每个单词及其关联的计数器。
+当从`map`中提取一个元素时，会得到一个<a href="#554624">`pair`类型的对象</a>。简单来说，`pair`是一个模板类型，保存两个名为`first`和`second` 的(公有)数据成员。**`map`所使用的`pair`用`first`成员保存关键字，用`second`成员保存对应的值。**因此，输出语句的效果是打印每个单词及其关联的计数器。
 
 
 
@@ -12395,7 +12439,7 @@ int main() {
 
 
 
-## 2. 关联容器概述 #待完善 表11.7，第388页         参见表11.3，第381页         11.4节（第394页）
+## 2. 关联容器概述
 
 关联容器（包括有序的和无序的）都支持下图中的普通<a href="#615819">容器操作</a>：
 
@@ -12407,7 +12451,7 @@ int main() {
 
 
 
-除了与顺序容器相同的操作之外，关联容器还支持一些顺序容器不支持的操作（参见表11.7，第388页）和类型别名（参见表11.3，第381页)。此外，无序容器还提供一些用来调整哈希性能的操作，我们将在11.4节（第394页）中介绍。
+除了与顺序容器相同的操作之外，关联容器还支持一些<a href="#246945">顺序容器不支持的操作</a>和<a href="#615820">类型别名</a>。此外，无序容器还提供一些用来<a href="#841178">调整哈希性能的操作</a>。
 
 关联容器的迭代器都是<a href="#280133">双向的</a>。
 
@@ -12529,11 +12573,11 @@ int main() {
 
 
 
-### 2.2 关键字类型的要求 #11.4 p396 待完善
+### 2.2 关键字类型的要求
 
 关联容器对于其关键字类型有一些限制。
 
-对于无序容器中关键字的要求，在*11.4 p396 待完善*中介绍。
+对于无序容器中关键字的要求，<a href="#113197">在这里</a>介绍。
 
 **对于有序容器——`map`，`multimap`，`set`和`multiset`关键字类型必须定义元素比较的方法。**
 
@@ -12557,7 +12601,7 @@ int main() {
 
 
 
-##### 使用关键字类型的比较函数
+##### 使用关键字类型的比较函数	<a name="213949"> </a>
 
 用来组织一个容器中元素的操作的类型也是该容器类型的一部分。为了指定使用自定义的操作，必须在定义关联容器类型时提供此操作的类型。
 
@@ -12661,7 +12705,7 @@ bool compareIsbn(const Sales_data &lhs, const Sales_data &rhs) {
 
 
 
-### 2.3 `pair`类型
+### 2.3 `pair`类型	<a name="554624"> </a>
 
 `pair`定义在头文件`utility`中。
 
@@ -12742,7 +12786,7 @@ pair<string, int> process(vector<string> &v) {
 
 ## 3. 关联容器的操作	<a name="359091"> </a>
 
-除了<a href="#615819">这张表中列出的类型</a>，关联容器还支持下表中列出的类型。这些类型表示容器关键字和值的类型：
+除了<a href="#615819">这张表中列出的类型</a>，关联容器还支持下表中列出的类型。这些类型表示容器关键字和值的类型：<a name="615820"> </a>
 
 ![](./images/关联容器额外的类型别名.png)
 
@@ -12844,13 +12888,13 @@ int main() {
 
 
 
-##### 关联容器和算法	#11.3.5节(第388页）待完善
+##### 关联容器和算法
 
 **我们通常不对关联容器使用泛型算法。**关键字是`const`这一特性意味着不能将关联容器传递给修改或重排容器元素的算法，因为这类算法需要向元素写入值，而`set`类型中的元素是`const`的，`map`中的元素是`pair`，其第一个成员是`const`的。
 
 关联容器可用于只读取元素的算法。但是，很多这类算法都要搜索序列。由于关联容器中的元素不能通过它们的关键字进行（快速）查找，因此对其使用泛型搜索算法几乎总是个坏主意。
 
-例如，我们将在11.3.5节(第388页）中看到，关联容器定义了一个名为`find`的成员，它通过一个给定的关键字直接获取元素。我们可以用泛型`find`算法来查找一个元素，但此算法会进行顺序搜索。使用关联容器定义的专用的`find`成员会比调用泛型`find`快得多。
+例如，我们将在<a href="#986388">这里</a>看到，关联容器定义了一个名为`find`的成员，它通过一个给定的关键字直接获取元素。我们可以用泛型`find`算法来查找一个元素，但此算法会进行顺序搜索。使用关联容器定义的专用的`find`成员会比调用泛型`find`快得多。
 
 
 
@@ -13094,7 +13138,7 @@ int main() {
 
 ### 3.5 访问元素
 
-关联容器提供多种**查找**一个指定元素的方法。如下表所示：
+关联容器提供多种**查找**一个指定元素的方法。如下表所示：<a name="246945"> </a>
 
 ![](./images/关联容器中查找元素的操作.png)
 
@@ -13112,7 +13156,7 @@ int main() {
 
 
 
-##### 对`map`使用`find`代替下标操作
+##### 对`map`使用`find`代替下标操作	<a name="986388"> </a>
 
 对`map`和`unordered_map`类型，下标运算符提供了最简单的提取元素的方法。
 
@@ -13229,3 +13273,352 @@ int main() {
 
 ### 3.6 一个单词转换的`map`
 
+下面的程序展现了`map`的创建、搜索以及遍历。
+
+程序的功能如下：给定一个`string`，将它转换为另一个`string`。
+
+程序的输入是两个文件。第一个文件保存的是一些规则，用来转换第二个文件中的文本。第二个输入文件包含要转换的文本。
+
+单词转换文件的内容如下所示：
+
+```
+brb be right back
+k okey?
+y why
+r are
+u you
+pic picture
+thk thanks!
+l8r later
+```
+
+我们希望转换的文本为：
+
+```
+where r u
+y dont u send me a pic
+k thk 18r
+```
+
+程序的输出应该为：
+
+```
+where are you
+why dont you send me a picture
+okay? thanks! later
+```
+
+
+
+##### 单词转换程序
+
+程序将使用三个函数：
+
+- 函数`word_transform`管理整个过程。它接受两个`ifstream`参数：第一个参数应绑定到单词转换文件，第二个参数应绑定到我们要转换的文本文件。
+- 函数`buildMap`会读取转换规则文件，并创建一个`map`，用于保存每个单词到其转换内容的映射。
+- 函数`transform`接受一个`string`，如果存在转换规则，返回转换后的内容。
+
+定义`word_transform`函数，其中最重要的部分是调用`buildMap`和`transform`：
+
+```C++
+void word_transform(ifstream &map_file, ifstream &input) {
+	auto trans_map = build_map(map_file);		// 保存转换规则
+	string text;								// 保存输出中的每一行
+	while (getline(input, text)) {				// 读取一行输入
+		istringstream stream(text);				// 读取每个单词
+		string word;
+		bool first_word = true;					// 控制是否打印空格
+		while(stream >> word) {
+			if (first_word)
+				first_word = false;
+			else
+				cout << " ";					// 在单词间打印一个空格
+			// transform返回它的第一个参数或其转换之后的形式
+			cout << transform(word, trans_map);	// 打印输出
+		}
+		cout << endl;							// 完成一行的转换
+	}
+}
+```
+
+
+
+
+
+##### 建立转换映射
+
+```C++
+map<string, string> build_map(ifstream &map_file) {
+    map<string, string> trans_map;				// 保存转换规则
+    string key;									// 要转换的单词
+    string value;								// 替换后的内容
+    // 读取第一个单词存入key中，行中剩余内容存入value
+    while (map_file >> key && getline(map_file, value)) {
+        if (value.size() > 1) {					// 检查是否有转换规则
+            trans_map[key] = value.substr(1);	// 跳过前导空格
+        } else {
+            throw runtime_error("no rule for " + key);
+        }
+    }
+    return trans_map;
+}
+```
+
+
+
+
+
+##### 生成转换文本
+
+```C++
+const string &transform(const string &s, const map<string, string> &m) {
+    // 实际的转换工作；此部分是程序的核心部分
+    auto map_it = m.find(s);
+    // 如果单词在转换规则map中
+    if (map_it != m.cend()) {
+        return map_it->second;                // 使用替换短语
+    } else {
+        return s;                            // 否则返回原string
+    }
+}
+```
+
+
+
+##### my code:
+
+```C++
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <sstream>
+
+using namespace std;
+
+string &comparison(string &single_word, map<string, string> &trans_map) {
+    if (trans_map.find(single_word) != trans_map.end()) {
+        single_word = trans_map[single_word];
+    }
+    return single_word;
+}
+
+void trans_target(map<string, string> &trans_map, const string &target_file) {
+    ifstream in_target(target_file);
+    if (!in_target) {
+        cout << "Cannot open input file.\n";
+        exit(1);
+    }
+    string line;
+    while (getline(in_target, line)) {
+        stringstream ss(line);
+        string single_word;
+        bool last_word = false;
+        while (getline(ss, single_word, ' ')) {
+            comparison(single_word, trans_map);
+
+            if (ss.peek() == EOF) {
+                last_word = true;
+            }
+            cout << single_word;
+            if (!last_word) {
+                cout << " ";
+            }
+        }
+        cout << endl;
+    }
+}
+
+map<string, string> read_map_file(const string& map_file) {
+    ifstream in_map(map_file);
+    if (!in_map) {
+        cout << "Cannot open input file.\n";
+        exit(1);
+    }
+    map<string, string> trans_map;
+    string strInput;
+    while (getline(in_map, strInput)) {
+        auto first_space_index = strInput.find(' ');
+        trans_map.insert({strInput.substr(0, first_space_index),
+                          strInput.substr(first_space_index + 1)});
+    }
+    return trans_map;
+}
+
+int main() {
+    // 1. 读取map_file文件
+    string map_file("map_file.txt");
+    map<string, string> trans_map = read_map_file(map_file);
+
+    // 2. 读取待转换文件
+    string target_file("target_file.txt");
+    trans_target(trans_map, target_file);
+    return 0;
+}
+```
+
+
+
+## 4. 无序容器	<a name="841178"> </a>
+
+新标准定义了4个无序关联容器。
+
+这些容器**不是使用比较运算符来组织元素，而是使用一个哈希函数和关键字类型的`==`运算符。**
+
+在关键字类型的元素没有明显的序关系的情况下，无序容器是非常有用的。在某些应用中，维护元素的序代价非常高昂，此时无序容器也很有用。
+
+虽然理论上哈希技术能获得更好的平均性能，但在实际中想要达到很好的效果还需要进行一些性能测试和调优工作。因此，使用无序容器通常更为简单(通常也会有更好的性能)。
+
+> 如果关键字类型固有就是无序的,或者性能测试发现问题可以用哈希技术解决，就可以使用无序容器。
+
+
+
+##### 使用无序容器
+
+除了哈希管理操作之外，无序容器还提供了与有序容器相同的操作(`find`、`insert`等)。这意味着我们曾用于`map`和`set`的操作也能用于`unordered_map` 和`unordered_set`。类似的，无序容器也有允许重复关键字的版本。
+
+因此，通常可以用一个无序容器替换对应的有序容器，反之亦然。但是，由于元素未按顺序存储，一个使用无序容器的程序的输出（通常）会与使用有序容器的版本不同。
+
+例：使用`unordered_map` 重写<a href="#912651">单词计数程序</a>：
+
+```C++
+    string str;
+    std::getline(std::cin, str);
+    stringstream ss(str);
+    // 统计每个单词在输入中出现的次数
+    unordered_map<string, size_t> word_count;		// string到size_t的空map
+    string word;
+    while(ss >> word) {
+        ++word_count[word];				// 提取word的计数器并将其加1
+    }
+    for(const auto &w : word_count)	{	// 对map中的每个元素
+        // 打印结果
+        cout << w.first << " occurs " << w.second << ((w.second > 1) ? " times." : " time.") << endl;
+    }
+```
+
+对于每个单词，会得到相同的技术结果，但是在输出时，单词不太可能像之前那样按字典序输出。
+
+
+
+##### 管理桶
+
+无序容器在存储上组织为一组桶，每个桶保存零个或多个元素。无序容器使用一个哈希函数将元素映射到桶。为了访问一个元素，容器首先计算元素的哈希值，它指出应该搜索哪个桶。容器将具有一个特定哈希值的所有元素都保存在相同的桶中。如果容器允许重复关键字，所有具有相同关键字的元素也都会在同一个桶中。因此，无序容器的性能依赖于哈希函数的质量和桶的数量和大小。
+
+对于相同的参数，哈希函数必须总是产生相同的结果。理想情况下，哈希函数还能将每个特定的值映射到唯一的桶。但是，将不同关键字的元素映射到相同的桶也是允许的。当一个桶保存多个元素时，需要顺序搜索这些元素来查找我们想要的那个。计算一个元素的哈希值和在桶中搜索通常都是很快的操作。但是，如果一个桶中保存了很多元素，那么查找一个特定元素就需要大量比较操作。
+
+无序容器提供了一组管理桶的函数，如下表所示。这些成员函数允许我们查询容器的状态以及在必要时强制容器进行重组。
+
+![](./images/管理无序容器.png)
+
+
+
+##### 无序容器对于关键字类型的操作	#待完善 16.5 p626	<a name="113197"> </a>
+
+默认情况下，无序容器使用关键字类型的`==`运算符来比较元素，它们还使用一个`hash<key_type>`类型的对象来生成每个元素的哈希值。
+
+标准库为内置类型（包括指针）提供了`hash`模板。还为一些标准库类型，包括`string`和智能指针类型定义了`hash`。因此，我们可以直接定义关键字是内置类型（包括指针类型)、`string`或者智能指针类型的无序容器。
+
+但是，我们不能直接定义关键字类型为自定义类类型的无序容器。与容器不同，不能直接使用哈希模板，而必须提供我们自己的`hash`模板版本。我们将在16.5节(第626页)中介绍如何做到这一点。
+
+不使用默认的`hash`，而是使用另一种方法类似于<a href="#213949">为有序容器重载关键字类型的默认比较操作</a>。为了能将`Sale_data`用作关键字，我们需要提供函数来替代`==`运算符和哈希值计算函数。我们从定义这些重载函数开始：
+
+```C++
+size_t hasher(const Sales_data &sd) {
+	return hash<string>()(sd.isbn());
+}
+bool eqOp(const Sales_data &lhs, const Sales_data &rhs) {
+	return lhs.isbn() == rhs.isbn();
+}
+```
+
+上面的`hasher`函数使用一个标准库`hash`类型对象来计算ISBN成员的哈希值，该`hash`类型建立在`string`类型之上。类似的，`eq0p`函数通过比较ISBN号来比较两个`Sales_data`。
+
+使用这些函数来定义一个`unordered_multiset`：
+
+```C++
+	using SD_multiset = unordered_multiset<Sales_data, decltype(hasher)*, decltype(eqOp)*>;
+	// 参数是桶大小、哈希函数指针和相等性运算符指针
+	SD_multiset bookstore(42, hasher, eqOp);
+```
+
+如果类定义了`==`运算符，则可以只重载哈希函数：
+
+```C++
+	// 使用FooHash生成哈希值，Foo必须有==运算符
+	unordered_multiset<Foo, decltype(FooHash)*> fooSet(10, FooHash);
+```
+
+
+
+
+
+# 动态内存
+
+我们的程序到目前为止只使用过静态内存或栈内存。
+
+静态内存用来保存局部`static`对象、类`static`数据成员以及定义在任何函数之外的变量。
+
+栈内存用来保存定义在函数内的非`static`对象。
+
+分配在静态或栈内存中的对象由编译器自动创建和销毁。对于栈对象，仅在其定义的程序块运行时才存在；`static`对象在使用之前分配，在程序结束时销毁。
+
+
+
+除了静态内存和栈内存，每个程序还拥有一个内存池。这部分内存被称作自由空间(free store)或堆(heap)。
+
+程序用堆来存储动态分配的对象——即，那些在程序运行时分配的对象。动态对象的生存期由程序来控制，也就是说，当动态对象不再使用时，我们的代码必须显式地销毁它们。
+
+
+
+## 1. 动态内存与智能指针
+
+C++中动态内存的管理是通过一对运算符来完成的：
+
+- **`new`**：在动态内存中为对象分配空间并返回一个指向该对象的指针，我们可以选择对对象进行初始化；
+- **`delete`**：接受一个动态对象的指针，销毁该对象，并释放与之关联的内存。
+
+动态内存的使用很容易出问题，因为确保在正确的时间释放内存是极其困难的。有时我们会忘记释放内存，在这种情况下就会产生内存泄漏；有时在尚有指针引用内存的情况下我们就释放了它，在这种情况下就会产生引用非法内存的指针。
+
+
+
+智能指针使动态内存的使用变得更容易和安全——智能指针的行为类似常规指针，重要的区别是它负责自动释放所指向的对象。
+
+新标准库提供的这两种智能指针的区别在于管理底层指针的方式：
+
+- **`shared_ptr`**允许多个指针指向同一个对象；
+- **`unique_ptr`**则”独占“所指向的对象。
+
+标准库还定义了一个名为`weak_ptr`的伴随类，它是一种弱引用，指向`shared_ptr`所管理的对象。这三种类型都定义在`memory`头文件中。
+
+
+
+### 1.1 `shared_ptr`类	#待完善12.1.3 p412
+
+智能指针是模板。因此，当我们创建一个智能指针时，必须提供额外的信息——指针可以指向的类型。与`vector`一样，我们在尖括号内给出类型，之后是所定义的这种智能指针的名字:
+
+```C++
+	shared_ptr<string> p1;		// shared_ptr, 可以指向string
+	shared_ptr<list<int>> p2;	// shared_ptr, 可以指向int的list
+```
+
+默认初始化的智能指针中保存着一个空指针。在12.1.3节中(见第412页)，我们将介绍初始化智能指针的其他方法。
+
+智能指针的使用方式与普通指针类似。解引用一个智能指针返回它指向的对象。如果在一个条件判断中使用智能指针，效果就是检测它是否为空：
+
+```C++
+	// 如果p1不为空，检查它是否指向一个空string
+	if (p1 && p1->empty())
+		*p1 = "hi";		// 如果p1指向一个空string，解引用p1，将一个新值赋予string
+```
+
+
+
+`shared_ptr`和 `unique_ptr`都支持的操作：
+
+![](./images/su都支持.png)
+
+
+
+`shared_ptr`独有的操作：
+
+![](./images/s独有.png)
