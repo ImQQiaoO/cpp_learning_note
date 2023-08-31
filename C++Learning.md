@@ -7860,7 +7860,7 @@ item.combine(cin);
 
 
 
-##### 抑制构造函数的隐式转换 # `explicit`
+##### 抑制构造函数的隐式转换 # `explicit`  <a name="484364"> </a>
 
 在要求隐式转换的程序上下文中，可以通过将构造函数声明为`explicit`的加以阻止。
 
@@ -13650,7 +13650,7 @@ C++中动态内存的管理是通过一对运算符来完成的：
 
 
 
-##### `shared_ptr`的拷贝和赋值
+##### `shared_ptr`的拷贝和赋值	<a name="495048"> </a>
 
 当进行拷贝或赋值操作时，每个`shared_ptr`都会记录有多少个其他`shared_ptr`指向相同的对象：
 
@@ -13691,7 +13691,7 @@ C++中动态内存的管理是通过一对运算符来完成的：
 
 
 
-##### ...`shared_ptr`还会自动释放相关联的内存
+##### ...`shared_ptr`还会自动释放相关联的内存	<a name="001475"> </a>
 
 当动态对象不再被使用时，`shared_ptr`类会自动释放动态对象。
 
@@ -13790,4 +13790,333 @@ Blob<string> b1;		// 空Blob
 ##### 定义`StrBlob`类	p583 16.1.2 待完善
 
 最终，会将`Blob`类实现为一个模板。现在先定义一个管理`string`的类，将其命名为`StrBlob`。
+
+为了实现数据共享，为每一个`StrBlob`设置一个`shared_ptr`来管理动态分配的`vector`，此 `shared_ptr`的成员将记录有多少个`StrBlob`共享相同的`vector`，并在`vector`的最后一个使用者被销毁时释放`vector`。
+
+
+
+当前，我们将实现一个`vector`操作的小的子集。我们会修改访问元素的操作（如`front`和 `back`）：在我们的类中，如果用户试图访问不存在的元素，这些操作会抛出一个异常。
+
+我们的类有一个默认构造函数和一个构造函数，接受单一的`initializer_list<string>`类型参数。此构造函数可以接受一个初始化器的花括号列表。
+
+```C++
+class StrBlob {
+public:
+    typedef std::vector<std::string>::size_type size_type;
+    StrBlob();
+    StrBlob(std::initializer_list<std::string> il);
+    size_type size() const { return data->size(); }
+    bool empty() const { return data->empty(); }
+    // 添加和删除元素
+    void push_back(const std::string& t) { data->push_back(t); }
+    void pop_back();
+    // 元素访问
+    std::string& front();
+    std::string& back();
+private:
+    std::shared_ptr<std::vector<std::string>> data;
+    // 如果 data[i] 不合法，抛出一个异常
+    void check(size_type i, const std::string& msg) const;
+};
+```
+
+在此类中，我们实现了`size`、`empty`和`push_back` 成员。这些成员通过指向底层`vector`的`data`成员来完成它们的工作。例如，对一个`strBlob`对象调用`size()`会调用`data->size()`。
+
+
+
+##### `StrBlob`构造函数
+
+两个构造函数都使用初始化列表来初始化其`data`成员，令它指向一个动态分配的`vector`。默认构造函数分配一个空`vector`：
+
+```C++
+StrBlob::StrBlob() : data(make_shared<vector<string>>()) {}
+StrBlob::StrBlob(initializer_list<string> il) : data(make_shared<vector<string>>(il)) {}
+```
+
+接受一个`initializer_list`的构造函数将其参数传递给对应的`vector`构造函数。此构造函数通过拷贝列表中的值来初始化`vector`的元素。
+
+
+
+##### 元素访问成员函数
+
+`pop_back`、`front`和`back`操作访问`vector`中的元素。
+
+以上这些操作在试图访问元素之前必须检查元素是否存在。由于这些成员函数需要做相同的检查操作，我们为`StrBlob`定义了一个名为`check`的`private`工具函数，它检查一个给定索引是否在合法范围内。
+
+除了索引，`check`还接受一个`string`参数，它会将此参数传递给异常处理程序，这个`string`描述了错误内容：
+
+```C++
+void StrBlob::check(size_type i, const string &msg) const {
+	if (i >= data->size()) {
+		throw out_of_range(msg);
+	}
+}
+```
+
+`pop_back`和元素访问成员函数首先调用`check`。如果`check`成功，这些成员函数继续利用底层`vector`的操作来完成自己的工作：
+
+```C++
+string &StrBlob::front() {
+    check(0, "front on empty StrBlob");
+    return data->front();
+}
+
+string &StrBlob::back() {
+    check(0, "back on empty StrBlob");
+    return data->back();
+}
+
+void StrBlob::pop_back() {
+    check(0, "pop_back on empty StrBlob");
+    data->pop_back();
+}
+```
+
+
+
+##### StrBlob的拷贝、赋值和销毁
+
+类似`Sales_data`类，`StrBlob`使用默认版本的拷贝、赋值和销毁成员函数来对此类型的对象进行这些操作。
+
+默认情况下，这些操作拷贝、赋值和销毁类的数据成员。我们的`StrBlob`类只有一个数据成员，它是`shared_ptr`类型。因此，当我们拷贝、赋值或销毁一个`StrBlob`对象时，它的`shared_ptr`成员会被拷贝、赋值或销毁。
+
+如前所见，拷贝一个`shared_ptr`会递增其引用计数；将一个`shared_ptr`赋予另一个`shared_ptr` 会递增赋值号右侧`shared_ptr`的引用计数，而递减左侧`shared_ptr`的引用计数。如果一个`shared_ptr`的引用计数变为0，它所指向的对象会被自动销毁。因此，对于由`StrBlob`构造函数分配的`vector`，当最后一个指向它的`StrBlob`对象被销毁时，它会随之被自动销毁。
+
+
+
+##### 练习题：
+
+①：`StrBlob`需要`const`版本的`push_back`和`pop_back`吗？如果需要，添加进去。否则，解释为什么不需要。
+
+不需要：`push_back`和`pop_back`的语义分别是向`strBlob`对象共享的`vector`对象添加元素和从其删除元素。因此，我们不应为其重载`const`版本，因为常量`strBlob`对象是不应被允许修改共享`vector`对象内容的。
+
+
+
+②：未编写接受一个`initializer_list explicit`参数的构造函数。讨论这个设计策略的优点和缺点。(<a href="#484364">explicit</a>)
+
+未编写接受一个初始化列表参数的显式构造函数，意味着可以进行列表向StrBlob 的隐式类型转换，亦即在需要`strBlob`的地方（如函数的参数)，可以使用列表进行替代。而且，可以进行拷贝形式的初始化（如赋值)。这令程序编写更为简单方便。
+
+但这种隐式转换并不总是好的。例如，列表中可能并非都是合法的值。再如，对于接受`strBlob`的函数,传递给它一个列表，会创建一个临时的`strBlob`对象，用列表对其初始化，然后将其传递给函数，当函数完成后，此对象将被丢弃，再也无法访问了。对于这些情况，我们可以定义显式的构造函数，禁止隐式类类型转换。
+
+
+
+③： 编写含`const`版本的`front`和`back`：
+
+```C++
+    const std::string &front() const {
+        check(0, "front on empty StrBlob");
+        return data->front();
+    }
+
+    const std::string &back() const {
+        check(0, "back on empty StrBlob");
+        return data->back();
+    }
+```
+
+
+
+
+
+### 1.2 直接管理内存	#待完善 13章 奇怪的warning
+
+> 在学习第13章之前，除非使用智能指针来管理内存，否则不要分配动态内存。
+
+C++定义了两个运算符来分配和释放动态内存：
+
+- 运算符`new`分配内存；
+- 运算符`delete`释放`new`分配的内存。
+
+相对于智能指针，使用这两个运算符管理内存非常容易出错。
+
+而且，自己直接管理内存的类与使用智能指针的类不同，它们不能依赖类对象拷贝、赋值和销毁操作的任何默认定义。因此，使用智能指针的程序更容易编写和调试。
+
+
+
+##### 使用`new`动态分配和初始化对象
+
+在自由空间（堆空间）分配的内存是无名的，因此`new`无法为其分配的对象命名，而是返回一个指向该对象的指针：
+
+```C++
+	int *pi = new int;
+```
+
+此`new`表达式在自由空间(堆空间)构造一个`int`型对象，并返回指向该对象的指针。
+
+**默认情况下，动态分配的对象是默认初始化的，这意味着内置类型或组合类型的对象的值将是未定义的，而类类型对象将用默认构造函数进行初始化：**
+
+```C++
+	string *ps = new string;		// 初始化为空string
+	int *pi = new int;				// pi指向一个未初始化的int
+```
+
+我们可以使用直接初始化方式来初始化一个动态分配的对象。我们可以使用传统的构造方式（使用圆括号），在新标准下，也可以使用列表初始化（使用花括号）：
+
+```C++
+	int *pi = new int(1024);				// pi指向的对象的值为1024
+	string *ps = new string(10, '9');		// *ps为“999999999”
+
+	vector<int> *pv = new vector<int>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+```
+
+也可以堆动态分配的对象进行值初始化，只需在类型名之后跟一对空括号即可：
+
+```C++
+	string *ps1 = new string;		// 默认初始化为空string
+	string *ps2 = new string();		// 值初始化为空string
+	int *pi1 = new int;				// 默认初始化; *pi1的值未定义
+	int *pi2 = new int();			// 值初始化为0; *pi2为0
+```
+
+对于定义了自己的构造函数的类类型（例如`string`）来说，要求值初始化是没有意义的；不管采用什么形式，对象都会通过默认构造函数来初始化。
+
+但对于内置类型，两种形式的差别就很大了：值初始化的内置类型对象有着良好定义的值，而默认初始化的对象的值则是未定义的。
+
+类似的，对于类中那些依赖于编译器合成的默认构造函数的内置类型成员，如果它们未在类内被初始化，那么它们的值也是未定义的。
+
+
+
+> 出于与变量初始化相同的原因，对动态分配的对象进行初始化通常是个好主意。
+
+
+
+如果我们提供了一个括号包围的初始化器，就可以使用`auto`从此初始化器来推断我们想要分配的对象的类型。但是，由于编译器要用初始化器的类型来推断要分配的类型，只有当括号中仅有单一初始化器时才可以使用`auto`：
+
+```C++
+	auto p1 = new auto(obj);		// p指向一个与obj类型相同的对象
+									// 该对象用obj进行初始化
+	auto p2 = new auto{a, b, c};	// 错误：括号中只能有单个初始化器
+
+	// 但是可以这样：
+	auto p3 = new vector<string>{"hello", "world"};
+    cout << (*p3)[0] << endl;   // hello
+    cout << (*p3)[1] << endl;   // world
+    // 或者
+    cout << *(p3->begin()) << endl; // hello
+    cout << *(p3->begin() + 1) << endl; // world
+```
+
+`p1`的类型是一个指针，指向从`obj`自动推断出的类型。若`obj`是一个`int`，那么`p1`就是`int*`；若`obj`是一个`string`，那么`p1`是一个`string*`：依此类推。新分配的对象用`obj`的值进行初始化。
+
+
+
+##### 动态分配的`const`对象
+
+用`new`分配`const`对象是合法的：
+
+```C++
+	// 分配并初始化一个const int
+	const int *pci = new const int(1024);
+	// 分配并默认初始化一个const的空string
+	const string *pcs = new const string;
+```
+
+一个细节：类似与普通指针和`const`：
+
+```C++
+    const auto p4 = new vector<int>{1, 2};
+    *(p4->begin()) = 10;
+    cout << *(p4->begin()) << endl; // 10
+//    p4 = new vector<int>{3, 4};     // error: assignment of read-only variable ‘p4’
+
+    auto p5 = new const vector<int>{1, 2};
+//  *(p5->begin()) = 10;        // error: assignment of read-only location
+    p5 = new vector<int>{3, 4};
+    cout << *(p5->begin()) << endl; // 3
+```
+
+类似其他任何`const`对象，一个动态分配的`const`对象必须进行初始化。对于一个定义了默认构造函数的类类型，其`const`动态对象可以隐式初始化，而其他类型的对象就必须显式初始化。由于分配的对象是`const`的，`new`返回的指针是一个指向`const`的指针（见上面的细节）。
+
+
+
+##### 内存耗尽	# 待完善 19.1.2节(第729页）
+
+一旦一个程序用光了它所有可用的内存，`new`表达式就会失败。默认情况下，如果`new`不能分配所要求的内存空间，它会抛出一个类型为`bad_alloc`的异常。我们可以改变使用`new`的方式来阻止它抛出异常：
+
+```C
+	// 如果分配失败，new返回一个空指针
+	int *p1 = new int;				// 如果分配失败，new抛出一个std::bad_alloc
+	int *p2 = new (nothrow) int;	//如果分配失败，new返回一个空指针
+```
+
+我们称这种形式的`new`为**定位`new`**，其原因我们将在19.1.2节(第729页）中解释。定位`new`表达式允许我们向`new`传递额外的参数。在此例中，我们传递给它一个由标准库定义的名为`nothrow`的对象。如果将`nothrow`传递给`new`，我们的意图是告诉它不能抛出异常。如果这种形式的`new`不能分配所需内存，它会返回一个空指针。`bad_alloc`和`nothrow`都定义在头文件`new`中。
+
+
+
+##### 释放动态内存
+
+为了防止内存耗尽，在动态内存使用完毕后，必须将其归还给系统。我们通过`delete`表达式来将动态内存归还给系统。`delete`表达式接受一个指针，指向我们想要释放的内存：
+
+```C++
+	delete p;		// p必须指向一个动态分配的对象或者是空指针
+```
+
+与`new`类型类似，`delete`表达式也执行两个动作：销毁给定的指针指向的对象；释放对应的内存。
+
+
+
+##### 指针值和`delete`
+
+我们传递给`delete`的指针必须指向动态分配的内存，或者是一个空指针。释放一块并非`new`分配的内存，或者将相同的指针值释放多次，其行为是未定义的：
+
+```C++
+    int i, *pi1 = &i, *pi2 = nullptr;
+    double *pd = new double(33), *pd2 = pd;
+    delete i;		// 错误：i 不是指针
+    delete pi1;		// 未定义：pi1 指向的对象不是 new 分配的
+    delete pd;		// 正确
+    delete pd2;		// 未定义：pd2 指向的对象已经被 delete 了
+    delete pi2;		// 正确：删除空指针总是安全的
+```
+
+对于`delete i`的请求，编译器会生成一个错误信息，因为它知道`i`不是一个指针。
+
+执行`delete pi1`和`pd2`所产生的错误则更具潜在危害；通常情况下，编译器不能分辨一个指针指向的是静态还是动态分配的对象。类似的，编译器也不能分辨一个指针所指向的内存是否已经被释放了。对于这些`delete`表达式，大多数编译器会编译通过，尽管它们是错误的。
+
+
+
+虽然一个`const`对象的值不能被改变，但它本身是可以被销毁的。如同其他动态对象一样，想要释放一个`const`动态对象，只要`delete`指向它的指针即可：
+
+```C++
+	const int *pci = new const int(1024);
+	delete pci;			// 正确：释放一个const对象
+```
+
+
+
+
+
+##### 动态对象的生存周期直到被释放时为止
+
+<a href="#495048">如前面所述</a>：由`shared_ptr`管理的内存在最后一个`shared_ptr`销毁时会被自动释放。但对于通过内置指针类型来管理的内存，就不是这样了。对于一个由内置指针管理的动态对象，直到被显式释放之前它都是存在的。
+
+返回指向动态内存的指针（而不是智能指针）的函数给其调用者增加了一个额外负担——调用者必须记得释放内存：
+
+```C++
+Foo* factory(T arg) {
+	// 视情况处理arg
+	return new Foo(arg);	// 调用者负责释放此内存
+}
+```
+
+类似于<a href="#001475">前面的`factory`函数</a>，这个版本的`factory`分配一个对象，但是不`delete`它。`factory`的调用者负责在不需要此对象时释放它。**但是不幸的是，调用者经常忘记释放对象：**
+
+```C++
+void use_factory(T args) {
+	Foo *p = factory(arg);
+	// 使用p但不delete它
+}	// p离开了它的作用域，但它所指的内存没有被释放！
+```
+
+此处，当`use_factory`返回时，局部变量`p`被销毁。此变量是一个内置指针，而不是一个智能指针。
+
+与类类型不同，内置指针类型的对象被销毁时什么也不会发生。
+
+特别是，**当一个指针离开其作用域时，它所指向的对象什么也不会发生。如果这个指针指向的是动态内存，那么内存将不会被自动释放。**
+
+> 由内置指针（而不是智能指针）管理的动态内存在被显式释放前一直都会存在。
+
+
+
+
 
