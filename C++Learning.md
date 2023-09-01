@@ -14118,5 +14118,158 @@ void use_factory(T args) {
 
 
 
+在本例中，`p`是指向`factory`分配的内存的唯一指针。一旦`use_factory`返回，程序就没有办法释放这块内存了。根据整个程序的逻辑，修正这个错误的正确方法是在`use_factory`中记得释放内存：
+
+```C++
+void use_factory(T args) {
+	Foo *p = factory(arg);
+	// 使用p
+	delete p;	// 现在记得释放内存，我们已经不需要它了
+}
+```
+
+还有一种可能：我们的系统中的其他代码要使用`use_factory`所分配的对象，我们就应该修改此函数，让它返回一个指针，指向它分配的内存：
+
+```C++
+void use_factory(T args) {
+	Foo *p = factory(arg);
+	// 使用p
+	return p;	// 调用者必须释放内存，当前这种情况，堆内存并没有被释放！
+}
+```
 
 
+
+> 小心：动态内存的管理非常容易出错！
+>
+> 使用`new`和`delete`管理动态内存存在三个常见问题:
+>
+> 1. 忘记`delete`内存。忘记释放动态内存会导致人们常说的“内存泄漏”问题，因为这种内存永远不可能被归还给自由空间了。查找内存泄露错误是非常困难的，因为通常应用程序运行很长时间后，真正耗尽内存时,才能检测到这种错误。
+> 2. 使用已经释放掉的对象。通过在释放内存后将指针置为空，有时可以检测出这种错误。
+> 3. 同一块内存释放两次。当有两个指针指向相同的动态分配对象时，可能发生这种错误。如果对其中一个指针进行了`delete`操作，对象的内存就被归还给自由空间了如果我们随后又`delete`第二个指针，自由空间就可能被破坏。
+>
+> 相对于查找和修正这些错误来说，制造出这些错误要简单得多。
+>
+> 坚持只使用智能指针，就可以避免所有这些问题。对于一块内存，只有在没有任何智能指针指向它的情况下，智能指针才会自动释放它。
+
+
+
+##### `delete`之后重置指针值...
+
+当我们`delete`一个指针后，指针值就变为无效了。虽然指针已经无效，但在很多机器上指针仍然保存着（已经释放了的）动态内存的地址。在`delete`之后，指针就变成了人们所说的**空悬指针**，即，指向一块曾经保存数据对象但现在已经无效的内存的指针。
+
+未初始化指针的所有缺点空悬指针也都有。
+
+如何避免空悬指针：在指针即将要离开其作用域之前释放掉它所关联的内存。这样，在指针关联的内存被释放掉之后，就没有机会继续使用指针了。如果我们需要保留指针，可以在`delete`之后将`nullptr`赋予指针，这样就清楚地指出指针不指向任何对象。
+
+
+
+##### ...这只是提供了有限的保护
+
+动态内存的一个基本问题是可能有多个指针指向相同的内存。在`delete`内存之后重置指针的方法只对这个指针有效，对其他任何仍指向（已释放的）内存的指针是没有作用的。例如：
+
+```C++
+	int *p(new int(42));		// p指向动态内存
+	auto q = p;					// p和q指向相同的内存
+	delete p;					// p和q均变为无效
+	p = nullptr;				// 指出p不再绑定到任何对象
+```
+
+本例中`p`和`q`指向相同的动态分配的对象。我们`delete`此内存，然后将`p`置为`nullptr`，指出它不再指向任何对象。但是，重置`p`对`q`没有任何作用，在我们释放`p`所指向的（同时也是`q`所指向的！）内存时，`q`也变为无效了。在实际系统中，查找指向相同内存的所有指针是异常困难的。
+
+
+
+##### 练习题
+
+1. 编写函数，返回一个动态分配的`int`的 `vector`。将此`vector`传递给另一个函数，这个函数读取标准输入，将读入的值保存在`vector`元素中。再将`vector`传递给另一个函数，打印读入的值。记得在恰当的时刻`delete vector`。
+
+   **重要一点： 动态内存谁申请，谁就负责释放！！**
+
+   ```C++
+   #include <iostream>
+   #include <vector>
+   #include <sstream>
+   #include <string>
+   
+   using namespace std;
+   
+   void output_vector(vector<int> *vec) {
+       for (auto &i: *vec) {
+           cout << i << " ";
+       }
+       cout << endl;
+   }
+   
+   void get_input(vector<int> *vec) {
+       int num;
+       string line;
+       getline(cin, line);
+       stringstream ss(line);
+       while (ss >> num) {
+           vec->push_back(num);
+       }
+   }
+   
+   vector<int> *new_vector() {
+       return new(nothrow) vector<int>;
+   }
+   
+   int main() {
+       auto *vec = new_vector();
+       if (!vec) {
+           cerr << "内存不足" << endl;
+           return -1;
+       }
+       get_input(vec);
+       output_vector(vec);
+       delete vec;         // 动态内存谁申请谁释放
+       vec = nullptr;
+       return 0;
+   }
+   ```
+
+2. 用`shared_ptr`重做上面一题：
+
+   ```C++
+   #include <iostream>
+   #include <vector>
+   #include <sstream>
+   #include <string>
+   #include <memory>
+   
+   using namespace std;
+   
+   void output_vector(const shared_ptr<vector<int>>& spv) {
+       for (auto &i: *spv) {
+           cout << i << " ";
+       }
+       cout << endl;
+   }
+   
+   void get_input(const shared_ptr<vector<int>>& spv) {
+       int num;
+       string line;
+       getline(cin, line);
+       stringstream ss(line);
+       while (ss >> num) {
+           spv->push_back(num);
+       }
+   }
+   
+   shared_ptr<vector<int>> new_vector() {
+       return make_shared<vector<int>>();
+   }
+   
+   int main() {
+       auto spv = new_vector();
+       get_input(spv);
+       output_vector(spv);
+       return 0;
+   }
+   ```
+
+   
+
+### 1.3 `shared_ptr`和`new`结合使用
+
+ 
