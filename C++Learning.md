@@ -14436,6 +14436,9 @@ void use_factory(T args) {
   ```
 
   (a)	合法。`sp`是一个共享指针，指向一个`int`对象。对`process`的调用会拷贝`sp`，传递给`process`的参数`ptr`，两者都指向相同的`int`对象，引用计数变为2。当`process`执行完毕时，`ptr`被销毁，引用计数变回1。
+
   (b)	不合法。因为它将一个 `int*` 指针作为实参传递给函数 `process`，而 `process` 函数的形参是一个 `shared_ptr<int>` 智能指针，它不能隐式地从一个裸指针进行初始化。
+
   (c)	不合法。不能将`int*`转换为`shared_ ptr<int>`。
+
   (d)	合法，但是错误的程序。`p`是一个指向int对象的普通指针，被用来创建一个临时`shared_ptr`，传递给`process`的参数`ptr`，引用计数为1。当`process`执行完毕，ptr`被销毁`，引用计数变为0， `int`对象被销毁。`p`变为空悬指针。
