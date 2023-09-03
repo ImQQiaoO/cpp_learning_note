@@ -14272,8 +14272,7 @@ void use_factory(T args) {
 
 
 
-
-### 1.3 `shared_ptr`和`new`结合使用		#待完善 12.1.4节（第415页）  
+### 1.3 `shared_ptr`和`new`结合使用		#待完善 12.1.4节（第415页）
 
 如果我们不初始化一个智能指针，它就会被初始化为一个空指针。如下表所示，我们还可以用`new`返回的指针来初始化智能指针：
 
@@ -14442,3 +14441,240 @@ void use_factory(T args) {
   (c)	不合法。不能将`int*`转换为`shared_ ptr<int>`。
 
   (d)	合法，但是错误的程序。`p`是一个指向int对象的普通指针，被用来创建一个临时`shared_ptr`，传递给`process`的参数`ptr`，引用计数为1。当`process`执行完毕，ptr`被销毁`，引用计数变为0， `int`对象被销毁。`p`变为空悬指针。
+
+
+
+
+
+### 1.4 智能指针和异常
+
+使用异常处理的程序能在异常发生后令程序流程继续，**这种程序需要确保在异常发生后资源能被正确地释放**。一个简单的确保资源被释放的方法是使用智能指针。
+
+如果使用智能指针，即使程序块过早结束，智能指针类也能确保在内存不再需要时将其释放：
+
+```C++
+void f() {
+	shared_ptr<int> sp(new int(42));		// 动态分配一个新对象
+	// 这段代码抛出一个异常，且在f中未被捕获
+	// 在函数结束时，shared_ptr自动释放内存
+}
+```
+
+函数的退出有两种可能，正常处理结束或者发生了异常，无论哪种情况，局部对象都会被销毁。在上面的程序中，`sp`是一个`shared_ptr`，因此`sp`销毁时会检查引用计数。在此例中，`sp`是指向这块内存的唯一指针，因此内存会被释放掉。
+
+但是，我们直接管理的内存在发生异常时是不会自动释放的。如果使用内置指针管理内存，且在`new`之后在对应的`delete`之前发生了异常，则内存不会被释放：
+
+```C++
+void f() {
+	int *ip = new int(42);		// 动态分配一个新对象
+	// 这段代码抛出一个异常，且在f中未被捕获
+	delete ip;					// 在退出前释放内存
+}
+```
+
+如果在`new`和`delete`之间发生异常，且异常未在`f`中被捕获，则内存就永远不会被释放了。在函数`f`之外没有指针指向这块内存，因此就无法释放它了。
+
+
+
+##### 智能指针和哑类
+
+很多C++类都定义了析构函数，负责清理对象使用的资源。但是，不是所有的类都是这样良好定义的。这些类通常都要求用户显式地释放所使用的任何资源。
+
+那些分配了资源，而又没有定义析构函数来释放这些资源的类，可能会遇到与使用动态内存相同的错误——程序员非常容易忘记释放资源。类似的，如果在资源分配和释放之间发生了异常，程序也会发生资源泄漏。
+
+与管理动态内存类似，我们通常可以使用类似的技术来管理不具有良好定义的析构函数的类。例如，假定我们正在使用一个C和C++都使用的网络库，使用这个库的代码可能是这样的：
+
+```C++
+struct destination;						// 表示我们正在连接什么
+struct connection;						// 使用连接所需的信息
+connection connect(destination*);		// 打开链接
+void disconnect(connection);			// 关闭给定的链接
+void f(destination &d /* 其他参数 */) {
+	// 获得一个链接；记得使用完后要关闭它
+	connection c = connect(&d);
+	// 使用链接
+	// 如果我们在f退出前忘记调用disconnect，就无法关闭c了
+}
+```
+
+如果`connection`有一个析构函数，就可以在`f`结束时由析构函数自动关闭连接。但是，`connection`没有析构函数。这个问题与我们上一个程序中使用`shared_ptr`避免内存泄漏几乎是等价的。使用`shared_ptr`来保证`connection`被正确关闭，已被证明是一种有效的方法。（见下面）
+
+
+
+##### 使用我们自己的释放操作	<a name="712918"> </a>
+
+默认情况下，`shared_ptr`假定它们指向的是动态内存。因此，当一个`shared_ptr`被销毁时，它默认地对它管理的指针进行`delete`操作。为了用`shared_ptr`来管理一个`connection`，我们必须首先定义一个函数来代替`delete`。这个**删除器**函数必须能够完成对`shared_ptr` 中保存的指针进行释放的操作。在本例中，我们的删除器必须接受单个类型为`connection*`的参数：
+
+```C++
+void end_connection(connection *p) { disconnect(*p); };	
+```
+
+当我们创建一个`shared_ptr`时，可以传递一个（可选的）指向删除器函数的参数：
+
+```C++
+void f(destination &d /* 其他参数 */) {
+	connection c = connect(&d);
+	shared_ptr<connection> p(&c, end_connection);
+	// 使用链接
+	// 当f退出时（即使是由于异常退出），connection会被正确关闭
+}
+```
+
+当`p`被销毁时，它不会对自己保存的指针执行`delete`，而是调用`end_connection`。接下来，`end_connection`会调用`disconnect`，从而确保连接被关闭。如果`f`正常退出，那么`p`的销毁会作为结束处理的部分。如果发生了异常，`p`同样会被销毁，从而连接被关闭。
+
+
+
+> 智能指针可以提供对动态分配的内存安全而又方便的管理,但这建立在正确使用的前提下。为了正确使用智能指针，我们必须坚持一些基本规范：
+>
+> - 不使用相同的内置指针值初始化(或reset)多个智能指针。
+> - 不`delete get()`返回的指针。
+> - 如果你使用`get()`返回的指针，记住当最后一个对应的智能指针销毁后，你的指针就变为无效了。
+> - 如果你使用智能指针管理的资源不是`new`分配的内存，记住传递给它一个删除器。
+
+
+
+### 1.5 `unique_ptr`
+
+一个`unique_ptr`"**拥有**"它所指向的对象。
+
+与`shared_ptr`不同，某个时刻只能有一个`unique_ptr`指向一个给定对象。当`unique_ptr`被销毁时，它所指向的对象也被销毁。下表列出了`unique_ptr`特有的操作。与 `shared_ptr`相同的操作列在<a href="#564529">这里</a>。
+
+![](./images/up操作.png)
+
+
+
+与`shared_ptr`不同，没有类似`make_shared`的标准库函数返回一个`unique_ptr`。当我们定义一个`unique_ptr`时，需要将其绑定到一个`new`返回的指针上。类似`shared_ptr`，初始化`unique_ptr`必须采用直接初始化形式：
+
+```C++
+	unique_ptr<double> p1; 				// 可以指向一个double的unique_ptr
+	unique_ptr<int> p2(new int(42)); 	//p2指向一个值为42的int
+```
+
+由于一个`unique_ptr`**拥有**它指向的对象，因此`unique_ptr`**不支持普通的拷贝或赋值操作**：
+
+```C++
+	unique_ptr<string> p1(new string("Hello"));
+	unique_ptr<string> p2(p1);	// 错误：unique_ptr不支持拷贝
+	unique_ptr<string> p3;
+	p3 = p2;					// 错误：unique_ptr不支持赋值
+```
+
+虽然我们不能拷贝或赋值`unique_ptr`，但可以通过调用`release`或`reset`将指针的所有权从一个（非`const`）`unique_ptr`转移给另一个`unique`：
+
+```C++
+	// 将所有权从p1（指向"Hello"）转移给p2
+	unique_ptr<string> p2(p1.release());			// release将p1置为空
+	unique_ptr<string> p3(new string("Trex"));
+	// 将所有权从p3转移给p2
+	p2.reset(p3.release());							// reset释放了原来指向p2的内存
+```
+
+`release`成员返回`unique_ptr`当前保存的指针并将其置为空。因此，`p2`被初始化为`p1`原来保存的指针，而`p1`被置为空。
+
+`reset`成员接受一个可选的指针参数，令`unique_ptr`重新指向给定的指针。如果`unique_ptr`不为空，它原来指向的对象被释放。因此，对`p2`调用`reset`释放了用"Hello"初始化的`string`所使用的内存，将`p3`对指针的所有权转移给`p2`，并将`p3`置为空。
+
+
+
+调用`release`会切断`unique_ptr`和它原来管理的对象间的联系。**`release`返回的指针通常被用来初始化另一个智能指针或给另一个智能指针赋值。**在本例中，管理内存的责任简单地从一个智能指针转移给另一个。但是，如果我们不用另一个智能指针来保存`release`返回的指针，我们的程序就要负责资源的释放：
+
+```C++
+	p2.release();			// 错误：p2不会释放内存，而且我们丢失了指针
+	auto p = p2.release();	// 正确，但是我们必须记得delete(p)
+	// 这相当于p是由new创建出来的内置指针
+```
+
+
+
+##### 传递`unique_ptr`参数和返回`unique_ptr`		#待完善  13.6.2节（第473页）
+
+不能拷贝`unique_ptr`有个例外：**我们可以拷贝或赋值一个将要被销毁的`unique_ptr`。**
+
+最常见的例子是从函数返回一个`unique_ptr`：
+
+```C++
+unique_ptr<int> clone(int p) {
+	// 正确：从int*创建一个unique_ptr<int>
+	return unique_ptr<int>(new int(p));
+}
+```
+
+还可以返回一个局部对象的拷贝：
+
+```C++
+unique_ptr<int> clone(int p) {
+	unique_ptr<int> ret(new int (p));
+	// ...
+	return ret;
+}
+```
+
+对于两段代码，编译器都知道要返回的对象将要被销毁。在此情况下，编译器执行一种特殊的“拷贝”，我们将在13.6.2节（第473页）中介绍它。
+
+
+
+> `auto_ptr`是标准库的一部分。但是在编写程序时要使用`unique_ptr`
+
+
+
+##### 向`unique_ptr`传递删除器	#待完善 16.1.6节（第599页）
+
+类似`shared_ptr`，`unique_ptr`默认情况下用`delete`释放它指向的对象。
+
+与`shared_ptr`一样，我们可以<a href="#712918">重载一个`unique_ptr`中默认的删除器</a>。但是，`unique_ptr`管理删除器的方式与`shared_ptr`不同，其原因我们将在16.1.6节（第599页）中介绍。
+
+重载一个`unique_ptr`中的删除器会影响到`unique_ptr`类型以及如何构造（或`reset`）该类型的对象。与<a href="#213949">重载关联容器的比较操作</a>类似，我们必须在尖括号中`unique_ptr`指向类型之后提供删除器类型。在创建或`reset`一个这种`unique_ptr`类型的对象时，必须提供一个指定类型的可调用对象（删除器）：
+
+```C++
+	// p指向一个类型为objT的对象，并使用一个类型为delT的对象释放objT对象
+	// 它会调用一个名为fcn的delT类型对象
+	unique_ptr<objT, delT> p(new objT, fcn);
+```
+
+作为一个更具体的例子，我们将重写连接程序，用`unique_ptr`来代替`shared_ptr`，如下所示：
+
+```c++
+void f(destination &d /* 其他参数 */) {
+	connection c = connect(&d);		// 打开链接
+	// 当p被销毁时，连接将会关闭
+	unique_ptr<connection, delctype(end_connection)*> p(&c, end_connection);
+	// 使用链接
+	// 当f退出时(即使是由于异常而退出)，connection会被正确关闭
+}
+```
+
+在本例中我们使用了`decltype`来指明函数指针类型。由于`decltype (end connection)`**返回一个函数类型**，所以我们必须添加一个*来指出我们正在使用该类型的一个指针。
+
+
+
+##### 练习题：
+
+下面的`unique_ptr`声明中，哪些是合法的，哪些可能导致后续的程序错误？解释每个错误的问题在哪里。
+
+```C++
+int main() {
+    int ix = 1024, *pi = &ix, *pi2 = new int(2048);
+    typedef std::unique_ptr<int> IntP;
+    /*(a)*/ IntP p0(ix);
+    /* 不合法：p0是一个unique_ptr，不能将一个int类型的ix赋值给它 */
+
+    /*(b)*/ IntP p1(pi);
+    /* 可以编译，但是会出现异常：原因是当unique_ptr p1超出范围时，将调用delete来释放对象。
+     * 但是对象不是使用new分配的。这是未定义行为。*/
+
+    /*(c)*/ IntP p2(pi2);
+    /* 可以编译，但是会出现空悬指针：原因是unique_ptr将释放原始指针所指向的对象。*/
+
+    /*(d)*/ IntP p3(&ix);
+    /* 可以编译，但是会出现异常：原因是当unique_ptr p1超出范围时，将调用delete来释放对象。
+     * 但是对象不是使用new分配的。这是未定义行为。*/
+
+    /*(e)*/ IntP p4(new int(2048));
+    /* 推荐的写法*/
+
+    /*(f)*/ IntP p5(p2.get());
+    /* 双重释放或损坏是在运行时发生的错误，两个unique_ptr指向同一个对象。因此，
+     * 当两个unique_ptr超出其作用域时，操作系统会抛出双重释放或损坏的错误。*/
+    return 0;
+}
+```
+
