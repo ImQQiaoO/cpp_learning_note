@@ -1,6 +1,6 @@
 # 第一部分：C++基础
 
-## 字符串 std::string
+6## 字符串 std::string
 
 
 
@@ -14678,3 +14678,209 @@ int main() {
 }
 ```
 
+
+
+### 1.6 `weak_ptr`
+
+`weak_ptr`是一种**不控制所指向对象生存期的智能指针**，它指向由一个`shared_ptr`管理的对象。
+
+将一个`weak_ptr`绑定到一个`shared_ptr`不会改变`shared_ptr`的引用计数。一旦最后一个指向对象的`shared_ptr`被销毁，对象就会被释放。即使有`weak_ptr`指向对象，对象也还是会被释放，因此，`weak_ptr`的名字抓住了这种智能指针“弱”共享对象的特点。
+
+![](./images/wp.png)
+
+创建`weak_ptr`时，要用一个`shared_ptr`来初始化它：
+
+```C++
+	auto p = make_shared<int>(42);
+	weak_ptr<int> wp(p);				// wp弱共享p; p的引用计数未改变
+```
+
+本例中`wp`和`p`指向相同的对象。由于是弱共享，创建`wp`不会改变`p`的引用计数：**`wp`指向的对象可能被释放掉。**
+
+由于对象可能不存在，我们不能使用`weak_ptr`直接访问对象，而必须调用`lock`。**此函数检查`weak_ptr`指向的对象是否仍存在。**如果存在，`lock`返回一个指向共享对象的`shared_ptr`。与任何其他`shared_ptr`类似，只要此`shared_ptr`存在，它所指向的底层对象也就会一直存在。
+
+在下面这段代码中，只有当`lock`调用返回`true`时我们才会进入`if`语句体。在`if`中，使用`np`访问共享对象是安全的。
+
+```C++
+	if (shared_ptr<int> np = wp.lock()) {		// 如果np不为空则条件成立
+		// 在if中，np与p共享对象
+	}
+```
+
+例：
+
+```C++
+    auto sp = make_shared<string>("hello");
+    auto sp1 = make_shared<string>("hi");
+    weak_ptr<string> wp(sp);
+    sp = sp1;
+    if (auto p = wp.lock()) {
+        cout << *p << endl;
+    } else {
+        cout << "wp is expired" << endl;
+    }
+// 结果输出 wp is expired
+
+// 而：
+	auto sp = make_shared<string>("hello");
+    weak_ptr<string> wp(sp);
+    if (auto p = wp.lock()) {
+        cout << *p << endl;
+    } else {
+        cout << "wp is expired" << endl;
+    }
+// 结果输出 hello
+
+// 但是：
+	auto sp = make_shared<string>("hello");
+    auto sp1 = make_shared<string>("hi");
+    sp = sp1;
+    weak_ptr<string> wp(sp);
+    if (auto p = wp.lock()) {
+        cout << *p << endl;
+    } else {
+        cout << "wp is expired" << endl;
+    }
+// 结果输出 hi
+```
+
+
+
+##### 核查指针类
+
+作为`weak_ptr`用途的一个展示，我们将为`stBlob`类定义一个伴随指针类。我们的指针类将命名为`strBlobPtr`，会保存一个`weak_ptr`，指向`StrBlob`的`data`成员，这是初始化时提供给它的。通过使用`weak_ptr`，不会影响一个给定的`StrBlob`所指向的`vector`的生存期。但是，可以阻止用户访问一个不再存在的`vector`的企图。
+
+`strBlobPtr`会有两个数据成员：
+
+- `wptr`，或者为空，或者指向一个`strBlob`中的`vector`；
+- `curr`，保存当前对象所表示的元素的下标。
+
+类似它的伴随类`strBlob`，我们的指针类也有一个`check`成员来检查解引用`StrBlobPtr`是否安全：
+
+```C++
+// 对于访问一个不存在元素的尝试，StrBlobPtr抛出一个异常
+class StrBlobPtr {
+public:
+	StrBlobPtr() : curr(0) { }
+	StrBlobPtr(StrBlob &a, size_t sz = 0) : wptr(a.data), curr(sz) { }
+	std::string& deref() const;
+	StrBlobPtr& incr();		// 前缀递增
+private:
+    // 若检查成功，check返回一个指向vector的shared_ptr
+    std::shared_ptr<std::vector<std::string>> check(std::size_t, const std::string&) const;
+    // 保存一个weak_ptr，意味着底层vector可能会被销毁
+    std::weak_ptr<std::vector<std::string>> wptr;
+    std::size_t curr;		// 在数组中的当前位置
+}
+```
+
+默认构造函数生成一个空的`StrBlobPtr`。其构造函数初始化列表将`curr`显式初始化为0，并将`wptr`隐式初始化为一个空`weak_ptr`。
+
+第二个构造函数接受一个`StrBlob`引用和一个可选的索引值。此构造函数初始化`wptr`，令其指向给定`strBlob`对象的`shared_ptr`中的`vector`，并将`curr`初始化为`sz`的值。
+
+我们使用了默认参数，表示默认情况下将`curr`初始化为第一个元素的下标。我们将会看到，`StrBlob`的`end`成员将会用到参数`sz`。
+
+
+
+注意，我们不能将`StrBlobPtr`绑定到一个`const StrBlob`对象，这是由于构造函数接受一个非`const StrBlob`对象的引用而导致的。
+
+
+
+`StrBlobPtr`的`check`成员与`StrBlob`中的同名成员不同，它还要检查指针指向的`vector`是否还存在：
+
+```C++
+std::shared_ptr<std::vector<std::string>> StrBlobPtr::check(std::size_t i, const std::string &msg) const {
+    auto ret = wptr.lock();        // vector还存在吗？
+    if (!ret) {
+        throw std::runtime_error("unbound StrBlobPtr");
+    }
+    if (i >= ret->size()) {
+        throw std::out_of_range(msg);
+    }
+    return ret;        // 否则，返回指向vector的shared_ptr
+}
+```
+
+由于一个 `weak_ptr`不参与其对应的`shared_ptr`的引用计数，`StrBlobPtr`指向的`vector`可能已经被释放了。**如果`vector`已销毁，`lock`将返回一个空指针。**在本例中，任何`vector`的引用都会失败，于是抛出一个异常。否则，`check`会检查给定索引，如果索引值合法，`check`返回从`lock`获得的`shared_ptr`。
+
+
+
+##### 指针操作		#待完善  第十四章
+
+我们将在第14章学习如何定义自己的运算符。现在，我们将定义名为`deref`和`incr`的函数，分别用来解引用和递增`StrBlobPtr`。
+
+`deref`成员调用`check`，检查使用`vector`是否安全以及`curr`是否在合法范围内：
+
+```c++
+std::string &StrBlobPtr::deref() const {
+    auto p = check(curr, "dereference past end");
+    return (*p)[curr];        // (*p)是对象所指向的vector
+}
+```
+
+如果`check`成功，`p`就是一个`shared_ptr`，指向`strBlobPtr`所指向的`vector`。表达式`(*p)[curr]`解引用`shared_ptr`来获得`vector`，然后使用下标运算符提取并返回`curr`位置上的元素。
+
+`incr`成员也调用`check`：
+
+```C++
+// 前缀递增：返回递增后对象的引用
+StrBlobPtr &StrBlobPtr::incr() {
+    // 如果curr已经指向容器的尾后位置，就不能递增它
+    check(curr, "increment past end of StrBlobPtr");
+    ++curr;        // 推进当前位置
+    return *this;
+}
+```
+
+当然，为了访问`data`成员，我们的指针类必须声明为`StrBlob`的`friend`。我们还要为`strBlob`类定义`begin`和`end`操作，返回一个指向它自身的`StrBlobPtr`:
+
+```C++
+class StrBlobPtr;
+
+class StrBlob {
+    friend class StrBlobPtr;
+
+public:
+    typedef std::vector<std::string>::size_type size_type;
+
+    StrBlob();
+
+    StrBlob(std::initializer_list<std::string> il);
+
+    size_type size() const { return data->size(); }
+
+    bool empty() const { return data->empty(); }
+
+    // 添加和删除元素
+    void push_back(const std::string &t) { data->push_back(t); }
+
+    void pop_back();
+
+    // 元素访问
+    std::string &front();
+
+    std::string &back();
+
+    // 提供给StrBlobPtr的接口
+    StrBlob::begin() {
+	    return StrBlobPtr(*this);
+	}
+
+    StrBlobPtr end() {
+    	auto ret = StrBlobPtr(*this, data->size());
+    	return ret;
+	}
+
+private:
+    std::shared_ptr<std::vector<std::string>> data;
+
+    // 如果data[i]不合法，抛出一个异常
+    void check(size_type i, const std::string &msg) const;
+};
+```
+
+
+
+##### 反思：头文件的相互引用和类的循环依赖
+
+见 https://blog.csdn.net/u010330109/article/details/120800927
