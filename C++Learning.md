@@ -9825,7 +9825,7 @@ terminate called after throwing an instance of 'std::out_of_range'
 
 
 
-## 4.`vector`对象是如何增长的
+## 4.`vector`对象是如何增长的	<a name="307217"> </a>
 
 为了支持快速随机访问，`vector`将元素连续存储——每个元素紧挨着前一个元素存储，除此之外，`vector`的大小是可变的。
 
@@ -9863,7 +9863,7 @@ terminate called after throwing an instance of 'std::out_of_range'
 
 调用`shrink_to_fit`可以来要求`deque`、`vector`或`string`退回不需要的内存空间。
 
-此函数指出我们不再需要任何多余的内存空间。但是，具体的实现可以选择忽略此请求。也就是说，**调用`shrink_to_fit` 也并不保证一定退回内存空间**。
+此函数指出我们不再需要任何多余的内存空间。但是，具体的实现可以选择忽略此请求。也就是说，**调用`shrink_to_fit`也并不保证一定退回内存空间**。
 
 
 
@@ -14883,4 +14883,505 @@ private:
 
 ##### 反思：头文件的相互引用和类的循环依赖
 
-见 https://blog.csdn.net/u010330109/article/details/120800927
+1. C++头文件的相互引用：
+
+   `A.h`:
+
+   ```C++
+   #include "B.h"
+   ```
+
+   `B.h`:
+
+   ```C++
+   #include "A.h"
+   ```
+
+   如果C++头文件相互引用，编译无法通过：这是由于预处理阶段，`A.h`与`B.h`，相互嵌套，导致头文件展开无限循环。
+
+   为了避免同一个头文件被包含（include）多次，C/C++中有两种宏实现方式：一种是`#ifndef`方式：
+
+   ```C++
+   #ifndef  __SOMEFILE_H__
+   
+   #define   __SOMEFILE_H__
+   
+    ... ... // 声明、定义语句
+   
+   #endif
+   ```
+
+   另一种是`#pragma once`方式：
+
+   ```C++
+   
+   #pragma once
+   
+    ... ... // 声明、定义语句
+   ```
+
+2. 类的循环依赖：
+
+   `#ifndef`和`#pragma once`解决了头文件循环引用的问题，但是如果存在类的相互依赖，编译会出现新的问题：
+
+   `A.h`:
+
+   ```C++
+   #ifndef UNTITLED119_A_H
+   #define UNTITLED119_A_H
+   
+   #include "B.h"
+   
+   class A {
+       B b;
+   };
+   
+   #endif //UNTITLED119_A_H
+   ```
+
+   `B.h`:
+
+   ```C++
+   #ifndef UNTITLED119_B_H
+   #define UNTITLED119_B_H
+   
+   #include "A.h"
+   
+   class B {
+       A a;
+   };
+   
+   #endif //UNTITLED119_B_H
+   ```
+
+   此时编译报错：
+
+   ```C++
+   [1/3] Building CXX object CMakeFiles/untitled119.dir/A.cpp.obj
+   FAILED: CMakeFiles/untitled119.dir/A.cpp.obj 
+   "E:\CLion\CLion 2023.1.3\bin\mingw\bin\g++.exe"   -g -fdiagnostics-color=always -MD -MT CMakeFiles/untitled119.dir/A.cpp.obj -MF CMakeFiles\untitled119.dir\A.cpp.obj.d -o CMakeFiles/untitled119.dir/A.cpp.obj -c E:/Playground/Clearning/C++Learning/untitled119/A.cpp
+   In file included from E:/Playground/Clearning/C++Learning/untitled119/A.h:4,
+                    from E:/Playground/Clearning/C++Learning/untitled119/A.cpp:1:
+   E:/Playground/Clearning/C++Learning/untitled119/B.h:7:5: error: 'A' does not name a type
+       7 |     A a;
+         |     ^
+   [2/3] Building CXX object CMakeFiles/untitled119.dir/B.cpp.obj
+   FAILED: CMakeFiles/untitled119.dir/B.cpp.obj 
+   "E:\CLion\CLion 2023.1.3\bin\mingw\bin\g++.exe"   -g -fdiagnostics-color=always -MD -MT CMakeFiles/untitled119.dir/B.cpp.obj -MF CMakeFiles\untitled119.dir\B.cpp.obj.d -o CMakeFiles/untitled119.dir/B.cpp.obj -c E:/Playground/Clearning/C++Learning/untitled119/B.cpp
+   In file included from E:/Playground/Clearning/C++Learning/untitled119/B.h:4,
+                    from E:/Playground/Clearning/C++Learning/untitled119/B.cpp:1:
+   E:/Playground/Clearning/C++Learning/untitled119/A.h:7:5: error: 'B' does not name a type
+       7 |     B b;
+         |     ^
+   ninja: build stopped: subcommand failed.
+   ```
+
+   解决办法：
+
+   1. 使用前向声明：
+
+      `A.h`:
+
+      ```C++
+      #ifndef UNTITLED119_A_H
+      #define UNTITLED119_A_H
+      
+      class B;
+      
+      class A {
+          B *b;
+      };
+      
+      #endif //UNTITLED119_A_H
+      ```
+
+      `B.h`:
+
+      ```C++
+      #ifndef UNTITLED119_B_H
+      #define UNTITLED119_B_H
+      
+      class A;
+      
+      class B {
+          A *a;
+      };
+      
+      #endif //UNTITLED119_B_H
+      ```
+
+      由于前向声明而没有定义的类是不完整的，所以class A只能用于定义指针、引用、或者用于函数形参的指针和引用，不能用来定义对象，或访问类的成员。
+      这是因为需要确定`class B`空间占用的大小，而类型A还没有定义不能确定大小，但`A*`是指针类型大小已知，因此`Class B`中可以使用`A*`定义成员变量。
+
+   2. 合理安排`#include`语句的位置：
+
+      可以将`#include`语句和使用到该头文件的函数挪到`.cpp`文件中。
+
+      例：
+
+      下面的写法编译会出错，出错内容和上面的一样：
+
+      `StrBlobPtr.cpp`:
+
+      ```C++
+      #include "StrBlobPtr.h"
+      
+      
+      std::shared_ptr<std::vector<std::string>> StrBlobPtr::check(std::size_t i, const std::string &msg) const {
+          auto ret = wptr.lock();        // vector还存在吗？
+          if (!ret) {
+              throw std::runtime_error("unbound StrBlobPtr");
+          }
+          if (i >= ret->size()) {
+              throw std::out_of_range(msg);
+          }
+          return ret;        // 否则，返回指向vector的shared_ptr
+      }
+      
+      std::string &StrBlobPtr::deref() const {
+          auto p = check(curr, "dereference past end");
+          return (*p)[curr];        // (*p)是对象所指向的vector
+      }
+      
+      // 前缀递增：返回递增后对象的引用
+      StrBlobPtr &StrBlobPtr::incr() {
+          // 如果curr已经指向容器的尾后位置，就不能递增它
+          check(curr, "increment past end of StrBlobPtr");
+          ++curr;        // 推进当前位置
+          return *this;
+      }
+      ```
+
+      `StrBlobPtr.h`:
+
+      ```C++
+      #ifndef UNTITLED118_STRBLOBPTR_H
+      #define UNTITLED118_STRBLOBPTR_H
+      
+      
+      #include <vector>
+      #include <string>
+      #include <memory>
+      #include <stdexcept>
+      
+      #include "StrBlob.h"
+      
+      class StrBlob;
+      
+      // 对于访问一个不存在元素的尝试，StrBlobPtr抛出一个异常
+      class StrBlobPtr {
+      
+      public:
+      
+          StrBlobPtr() : curr(0) { }
+          StrBlobPtr(StrBlob &a, size_t sz = 0) : wptr(a.data), curr(sz) { }
+      
+          std::string &deref() const;
+      
+          StrBlobPtr &incr();        // 前缀递增
+      private:
+          // 若检查成功，check返回一个指向vector的shared_ptr
+          std::shared_ptr<std::vector<std::string>> check(std::size_t, const std::string &) const;
+      
+          // 保存一个weak_ptr，意味着底层vector可能会被销毁
+          std::weak_ptr<std::vector<std::string>> wptr;
+          std::size_t curr;        // 在数组中的当前位置
+      };
+      
+      
+      #endif //UNTITLED118_STRBLOBPTR_H
+      
+      ```
+
+      `StrBlob.cpp`:
+
+      ```C++
+      #include "StrBlob.h"
+      
+      using namespace std;
+      
+      StrBlob::StrBlob() : data(make_shared<vector<string>>()) {}
+      
+      StrBlob::StrBlob(initializer_list<string> il) : data(make_shared<vector<string>>(il)) {}
+      
+      void StrBlob::check(size_type i, const string &msg) const {
+          if (i >= data->size()) {
+              throw out_of_range(msg);
+          }
+      }
+      
+      string &StrBlob::front() {
+          check(0, "front on empty StrBlob");
+          return data->front();
+      }
+      
+      string &StrBlob::back() {
+          check(0, "back on empty StrBlob");
+          return data->back();
+      }
+      
+      void StrBlob::pop_back() {
+          check(0, "pop_back on empty StrBlob");
+          data->pop_back();
+      }
+      ```
+
+      `StrBlob.h`:
+
+      ```C++
+      #ifndef UNTITLED107_STRBLOB_H
+      #define UNTITLED107_STRBLOB_H
+      
+      
+      #include <vector>
+      #include <memory>
+      #include <stdexcept>
+      
+      #include "StrBlobPtr.h"
+      
+      
+      class StrBlobPtr;
+      
+      class StrBlob {
+          friend class StrBlobPtr;
+      
+      public:
+          typedef std::vector<std::string>::size_type size_type;
+      
+          StrBlob();
+      
+          StrBlob(std::initializer_list<std::string> il);
+      
+          size_type size() const { return data->size(); }
+      
+          bool empty() const { return data->empty(); }
+      
+          // 添加和删除元素
+          void push_back(const std::string &t) { data->push_back(t); }
+      
+          void pop_back();
+      
+          // 元素访问
+          std::string &front();
+      
+          std::string &back();
+      
+          // 提供给StrBlobPtr的接口
+          StrBlobPtr StrBlob::begin() {
+              return StrBlobPtr(*this);
+          }
+      
+          StrBlobPtr StrBlob::end() {
+              auto ret = StrBlobPtr(*this, data->size());
+              return ret;
+          }
+      
+      
+      private:
+          std::shared_ptr<std::vector<std::string>> data;
+      
+          // 如果data[i]不合法，抛出一个异常
+          void check(size_type i, const std::string &msg) const;
+      };
+      
+      #endif //UNTITLED107_STRBLOB_H
+      ```
+
+      改写成下面的样子即可：
+
+      `StrBlobPtr.cpp`:
+
+      ```C++
+      #include "StrBlobPtr.h"
+      #include "StrBlob.h"
+      
+      StrBlobPtr::StrBlobPtr(StrBlob &a, size_t sz) : wptr(a.data), curr(sz) { }
+      
+      std::shared_ptr<std::vector<std::string>> StrBlobPtr::check(std::size_t i, const std::string &msg) const {
+          auto ret = wptr.lock();        // vector还存在吗？
+          if (!ret) {
+              throw std::runtime_error("unbound StrBlobPtr");
+          }
+          if (i >= ret->size()) {
+              throw std::out_of_range(msg);
+          }
+          return ret;        // 否则，返回指向vector的shared_ptr
+      }
+      
+      std::string &StrBlobPtr::deref() const {
+          auto p = check(curr, "dereference past end");
+          return (*p)[curr];        // (*p)是对象所指向的vector
+      }
+      
+      // 前缀递增：返回递增后对象的引用
+      StrBlobPtr &StrBlobPtr::incr() {
+          // 如果curr已经指向容器的尾后位置，就不能递增它
+          check(curr, "increment past end of StrBlobPtr");
+          ++curr;        // 推进当前位置
+          return *this;
+      }
+      ```
+
+      `StrBlobPtr.h`:
+
+      ```C++
+      #ifndef UNTITLED118_STRBLOBPTR_H
+      #define UNTITLED118_STRBLOBPTR_H
+      
+      
+      #include <vector>
+      #include <string>
+      #include <memory>
+      #include <stdexcept>
+      
+      class StrBlob;
+      
+      // 对于访问一个不存在元素的尝试，StrBlobPtr抛出一个异常
+      class StrBlobPtr {
+      
+      public:
+      
+          StrBlobPtr() : curr(0) { }
+          StrBlobPtr(StrBlob &a, size_t sz = 0);
+      
+          std::string &deref() const;
+      
+          StrBlobPtr &incr();        // 前缀递增
+      private:
+          // 若检查成功，check返回一个指向vector的shared_ptr
+          std::shared_ptr<std::vector<std::string>> check(std::size_t, const std::string &) const;
+      
+          // 保存一个weak_ptr，意味着底层vector可能会被销毁
+          std::weak_ptr<std::vector<std::string>> wptr;
+          std::size_t curr;        // 在数组中的当前位置
+      };
+      
+      
+      #endif //UNTITLED118_STRBLOBPTR_H
+      
+      ```
+
+      `StrBlob.cpp`:
+
+      ```C++
+      #include "StrBlob.h"
+      
+      #include "StrBlobPtr.h"
+      
+      using namespace std;
+      
+      StrBlob::StrBlob() : data(make_shared<vector<string>>()) {}
+      
+      StrBlob::StrBlob(initializer_list<string> il) : data(make_shared<vector<string>>(il)) {}
+      
+      void StrBlob::check(size_type i, const string &msg) const {
+          if (i >= data->size()) {
+              throw out_of_range(msg);
+          }
+      }
+      
+      string &StrBlob::front() {
+          check(0, "front on empty StrBlob");
+          return data->front();
+      }
+      
+      string &StrBlob::back() {
+          check(0, "back on empty StrBlob");
+          return data->back();
+      }
+      
+      void StrBlob::pop_back() {
+          check(0, "pop_back on empty StrBlob");
+          data->pop_back();
+      }
+      
+      StrBlobPtr StrBlob::begin() {
+          return StrBlobPtr(*this);
+      }
+      
+      StrBlobPtr StrBlob::end() {
+          auto ret = StrBlobPtr(*this, data->size());
+          return ret;
+      }
+      ```
+
+      `StrBlob.h`:
+
+      ```C++
+      #ifndef UNTITLED107_STRBLOB_H
+      #define UNTITLED107_STRBLOB_H
+      
+      
+      #include <vector>
+      #include <memory>
+      #include <stdexcept>
+      
+      class StrBlobPtr;
+      
+      class StrBlob {
+          friend class StrBlobPtr;
+      
+      public:
+          typedef std::vector<std::string>::size_type size_type;
+      
+          StrBlob();
+      
+          StrBlob(std::initializer_list<std::string> il);
+      
+          size_type size() const { return data->size(); }
+      
+          bool empty() const { return data->empty(); }
+      
+          // 添加和删除元素
+          void push_back(const std::string &t) { data->push_back(t); }
+      
+          void pop_back();
+      
+          // 元素访问
+          std::string &front();
+      
+          std::string &back();
+      
+          // 提供给StrBlobPtr的接口
+          StrBlobPtr begin();
+      
+          StrBlobPtr end();
+      
+      
+      private:
+          std::shared_ptr<std::vector<std::string>> data;
+      
+          // 如果data[i]不合法，抛出一个异常
+          void check(size_type i, const std::string &msg) const;
+      };
+      
+      #endif //UNTITLED107_STRBLOB_H
+      ```
+
+
+
+
+
+
+## 2. 动态数组	#12.2.2节（第427页）待完善
+
+`new`和`delete`运算符一次分配/释放一个对象，但某些应用需要一次为很多对象分配内存的功能。
+
+例如，`vector`和`string`都是在连续内存中保存它们的元素，因此，当容器<a href="#307217">需要重新分配内存时</a>，必须一次性为很多元素分配内存。
+
+为了支持这种需求，C++语言和标准库提供了两种一次分配一个对象数组的方法。
+
+- C++语言定义了另一种`new`表达式语法，可以分配并初始化一个对象数组。
+- 标准库中包含一个名为`allocator`的类，允许我们将分配和初始化分离。使用`allocator`通常会提供更好的性能和更灵活的内存管理能力，原因我们将在12.2.2节（第427页）中解释。
+
+很多（可能是大多数）应用都没有直接访问动态数组的需求。当一个应用需要可变数量的对象时，我们在`strBlob`中所采用的方法几乎总是更简单、更快速并且更安全的——即，使用`vector`（或其他标准库容器)。使用标准库容器的优势在新标准下更为显著。在支持新标准的标准库中，容器操作比之前的版本要快速得多。
+
+> 大多数应用应该使用标准库容器而不是动态分配的数组。使用容器更为简单、更不容易出现内存管理错误并且可能有更好的性能。
+
+如前所述，使用容器的类可以使用默认版本的拷贝、赋值和析构操作。分配动态数组的类则必须定义自己版本的操作，在拷贝、复制以及销毁对象时管理所关联的内存。
+
+> 直到学习完第13章，不要在类内的代码中分配动态内存。
+
+
+
+### 2.1 `new`和数组
