@@ -15767,3 +15767,160 @@ int main() {
 
 ## 3.使用标准库：文本查询程序
 
+总结练习：
+
+一个简单的文本查询程序。这个程序允许用户在一个给定的文件中查询单词。查询结果是单词在文件中出现的次数及其所在行的列表。如果一个单词在一行中出现多次，此行只列出一次。行会按照升序输出——即，第7行会在第9行之前显示，依此类推。
+
+
+
+### 3.1 文本查询程序设计
+
+分析需求，该程序需要完成以下任务：
+
+- 当程序读取输入文件时，它必须记住单词出现的每一行。因此，程序需要逐行读取输入文件，并将每一行分解为独立的单词
+
+- 当程序生成输出时，
+
+  - 一它必须能提取每个单词所关联的行号
+  - 行号必须按升序出现且无重复
+
+  - —它必须能打印给定行号中的文本。
+
+利用多种标准库设施，我们可以很漂亮地实现这些要求：
+
+- 我们将使用一个`vector<string>`来保存整个输入文件的一份拷贝。输入文件中的每行保存为`vector`中的一个元素。当需要打印一行时，可以用行号作为下标来提取行文本。
+- 我们使用一个`istringstream`来将每行分解为单词。
+- 我们使用一个`set`来保存每个单词在输入文本中出现的行号。这保证了每行只出现一次且行号按升序保存。
+- 我们使用一个`map`来将每个单词与它出现的行号set关联起来。这样我们就可以方便地提取任意单词的`set`。
+
+我们的解决方案还使用了`shared_ptr`。
+
+
+
+
+
+##### 数据结构
+
+虽然我们可以用`vector`、`set`和`map`来直接编写文本查询程序，但如果定义一个更为抽象的解决方案，会更为有效。我们将从定义一个保存输入文件的类开始，这会令文件查询更为容易。我们将这个类命名为`TextQuery`，它包含一个`vector`和一个`map`。`vector`用来保存输入文件的文本，`map`用来关联每个单词和它出现的行号的`set`。这个类将会有一个用来读取给定输入文件的构造函数和一个执行查询的操作。
+
+查询操作要完成的任务非常简单：查找`map`成员，检查给定单词是否出现。设计这个函数的难点是确定应该返回什么内容。一旦找到了一个单词，我们需要知道它出现了多少次、它出现的行号以及每行的文本。
+返回所有这些内容的最简单的方法是定义另一个类，可以命名为`QueryResult`，来保存查询结果。这个类会有一个`print`函数，完成结果打印工作。
+
+
+
+
+
+##### 在类之间共享数据
+
+我们的`QueryResult`类要表达查询的结果。这些结果包括与给定单词关联的行号的`set`和这些行对应的文本。这些数据都保存在`TextQuery`类型的对象中。
+
+由于`QueryResult`所需要的数据都保存在一个`TextQuery`对象中，我们就必须确定如何访问它们。我们可以拷贝行号的`set`，但这样做可能很耗时。而且，我们当然不希望拷贝`vector`，因为这可能会引起整个文件的拷贝，而目标只不过是为了打印文件的一小部分而已（通常会是这样）。
+
+通过返回指向`TextQuery`对象内部的迭代器（或指针），我们可以避免拷贝操作。但是，这种方法开启了一个陷阱：如果`TextQuery`对象在对应的`QueryResult`对象之前被销毁，会发生什么?在此情况下，`QueryResult`就将引用一个不再存在的对象中的数据。
+
+对于`QueryResult`对象和对应的`TextQuery`对象的生存期应该同步这一观察结果，其实已经暗示了问题的解决方案。考虑到这两个类概念上“共享”了数据，可以使用`shared_ptr`来反映数据结构中的这种共享关系。
+
+
+
+
+
+##### 使用`TextQuery`类
+
+当我们设计一个类时，在真正实现成员之前先编写程序使用这个类，是一种非常有用的方法。通过这种方法，可以看到类是否具有我们所需要的操作。例如，下面的程序使用了`TextQuery`和`QueryResult`类。这个函数接受一个指向要处理的文件的`ifstream`，并与用户交互，打印给定单词的查询结果
+
+```C++
+void runQueries(ifstream &infile) {
+	// infile是一个ifstream，只想我们要处理的文件
+	TextQuery tq(infile);		// 保存文件并建立查询map
+	// 与用户交互：提示用户输入要查询的单词，完成查询并打印结果
+	while (true) {
+		cout << "enter word to look for, or q to quit: ";
+		string s;
+		// 若遇到文件尾或用户输入了'q'时循环停止
+		if (!(cin >> s) || s == "q") break;
+		// 指向查询并打印结果
+		print(cout, tq.query(s)) << endl;
+	}
+}
+```
+
+我们首先用给定的`ifstream`初始化一个名为`tq`的`TextQuery`对象。`TextQuery`的构造函数读取输入文件，保存在 `vector`中，并建立单词到所在行号的`map`。
+
+`while`（无限）循环提示用户输入一个要查询的单词，并打印出查询结果，如此往复。循环条件检测字面常量`true`，因此永远成功。循环的退出是通过if语句中的`break`实现的。此if语句检查输入是否成功。如果成功，它再检查用户是否输入了`q`。输入失败或用户输入了`q`都会使循环终止。一旦用户输入了要查询的单词，我们要求`tq`查找这个单词，然后调用`print`打印搜索结果。
+
+
+
+##### my_code:
+
+```C++
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <utility>
+#include <sstream>
+#include <map>
+#include <algorithm>
+
+/* My Exercise For 12.3 */
+
+void IO(const std::vector<std::pair<std::string, int>> &str_vec, std::map<std::string, std::vector<int>> &word_map) {
+    std::cout << "Please Enter a word to search: ";
+    std::string searching_word;
+    std::cin >> searching_word;
+    std::cout << searching_word << " occurs " << word_map[searching_word].size() << " times." << std::endl;
+    auto iter = std::unique(word_map[searching_word].begin(), word_map[searching_word].end());
+    word_map[searching_word].erase(iter, word_map[searching_word].end());
+    for (auto &num: word_map[searching_word]) {
+        std::cout << "\t(line: " << num << ") " << str_vec[num - 1].first << std::endl;
+    }
+}
+
+void remove_punctuation(std::string &s) {
+    if (s == "Mr." || s == "Mrs." || s == "Ms." || s == "Dr." || s == "Jr.") {
+        return;
+    }
+    while (s.find_first_of(",.?!") != std::string::npos) {
+        s.erase(s.find_first_of(",.?!"), 1);
+    }
+}
+
+int main() {
+    std::ifstream in("Story.txt");
+    if (!in) {
+        std::cerr << "Cannot open file." << std::endl;
+        return -1;
+    }
+    std::string line;
+    std::vector<std::pair<std::string, int>> str_vec;
+    std::map<std::string, std::vector<int>> word_map;
+    int line_cnt = 0;
+    while (getline(in, line)) {
+        line_cnt++;         // line_cnt starts from 1
+        str_vec.emplace_back(line, line_cnt);
+        std::stringstream ss(line);
+        std::string single_word;
+        while (ss >> single_word) {
+            remove_punctuation(single_word);
+            for (auto &c: single_word) {
+                c = tolower(c);
+            }
+            std::vector<int> line_set;
+            if (word_map.find(single_word) == word_map.end()) {
+                line_set.push_back(line_cnt);
+                word_map[single_word] = line_set;
+            } else {
+                word_map[single_word].push_back(line_cnt);
+            }
+        }
+    }
+    IO(str_vec, word_map);
+    return 0;
+}
+```
+
+
+
+### 3.2 文本查询程序类的定义
+
+定义`TextQuery`。
