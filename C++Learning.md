@@ -14746,6 +14746,87 @@ int main() {
 
 
 
+
+
+##### `shared_ptr`带来了循环引用问题
+
+```C++
+#include <memory>
+#include <iostream>
+
+class B;
+
+class A {
+public:
+    void setB(std::shared_ptr<B> b) {
+        mB = b;
+    }
+
+private:
+    std::shared_ptr<B> mB;
+};
+
+class B {
+public:
+    void setA(std::shared_ptr<A> a) {
+        mA = a;
+    }
+
+private:
+    std::shared_ptr<A> mA;
+};
+
+int main() {
+    auto a = std::make_shared<A>();
+    auto b = std::make_shared<B>();
+
+    a->setB(b);
+    b->setA(a);
+
+    // 此时a和b的引用计数都是2，出现了循环引用
+    std::cout << "a.use_count() = " << a.use_count() << std::endl;  // 2
+    std::cout << "b.use_count() = " << b.use_count() << std::endl;  // 2
+
+
+    return 0;
+}
+```
+
+
+
+
+
+##### 使用`weak_ptr`打破循环引用
+
+将类`B`中的`shared_ptr`修改为`weak_ptr`:
+
+```C++
+class B {
+public:
+    void setA(std::weak_ptr<A> a) {
+        mA = a;
+    }
+
+private:
+    std::weak_ptr<A> mA;
+};
+```
+
+此时输出：
+
+```
+a.use_count() = 1
+b.use_count() = 2
+```
+
+这是因为`weak_ptr`不会增加引用计数，所以A持有B的`weak_ptr`不会增加B的引用计数。而B持有A的`weak_ptr`也不会增加A的引用计数，因为`weak_ptr`只是对对象的一个弱引用，不会阻止对象的销毁。因此，A的引用计数为1，B的引用计数为2。
+
+这说明使用`weak_ptr`打破了A和B之间的循环引用，避免了内存泄漏。当A和B之间的关系不再需要时，它们的引用计数都会降为0，从而自动销毁。
+
+
+
+
+
 ##### 核查指针类
 
 作为`weak_ptr`用途的一个展示，我们将为`stBlob`类定义一个伴随指针类。我们的指针类将命名为`strBlobPtr`，会保存一个`weak_ptr`，指向`StrBlob`的`data`成员，这是初始化时提供给它的。通过使用`weak_ptr`，不会影响一个给定的`StrBlob`所指向的`vector`的生存期。但是，可以阻止用户访问一个不再存在的`vector`的企图。
@@ -15923,4 +16004,135 @@ int main() {
 
 ### 3.2 文本查询程序类的定义
 
-定义`TextQuery`。
+##### 定义`TextQuery`类
+
+```C++
+class QueryResult;		// 为了定义函数query的返回类型，这个定义是必需的
+class TextQuery {
+public:
+	using line_no = std::vector<std::string>::size_type;
+    TextQuery(std::ifstream&); 
+    QueryResult query(const std::string&) const;
+private:
+    std::shared_ptr<std::vector<std::string>> file;		// 输入文件
+    // 每个单词到它所在行号的集合的映射
+    std::map<std::string, std::shared_ptr<std::set<line_no>>> wm;
+};
+```
+
+
+
+
+
+##### `TextQuery`构造函数
+
+```C++
+TextQuery::TextQuery(ifstream &is) : file(new vector<string>) {
+    string text;
+    while (getline(is, text)) {			// 对文件中的每一行
+        file->push_back(text);			// 保留此行文本
+        int n = file->size() - 1;		// 当前行号
+        istringstream line(text);		// 将行文本分解为单词
+        string word;
+        while (line >> word) {			// 对行中每个单词
+            // 如果单词不在wm中，以之为下标在wm中添加一项
+            auto &lines = wm[word];		// lines是一个shared_ptr
+            if (!lines)					// 在我们第一次遇到这个单词时，此指针为空
+                lines.reset(new set<line_no>);		// 分配一个新的set
+            lines->insert(n);			// 将此行号插入set中
+        }
+    }
+}
+```
+
+- 构造函数初始化器分配一个新的`vector`来保存输入文件中的文本；
+- `getline`逐行读取输入文件，并存入`vector`中；
+- `file`是一个`shared_ptr`，使用`->`运算符解引用`file`来提取`file`指向的`vector`对象的`push_back`成员；
+- 使用`istringstream`处理刚刚读入一行中的每个单词：
+  - 内层`while`使用`istringstream`的输入运算符来从读取当前行读取每个单词，存入`word`中；
+  - 在`while`循环内，我们用`map`下标运算符提取与`word`相关联的`shared_ptr<set>`，并将`lines`绑定到此指针；
+  - 若`word`不在`map`中，下标运算符会将`word`添加到`wm`中，`lines`将是一个空指针；
+  - 若`lines`为空，我们分配一个新的`set`，并调用`reset`更新`lines`引用的`shared_ptr`，使其指向这个新分配的`set`。
+
+不管是否创建了一个新的`set`，我们都调用`insert`将当前行号添加到`set`中。由于`lines`是一个引用，对`insert`的调用会将新元素添加到`wm`中的`set`中。如果一个给定单词在同一行中出现多次，对`insert`的调用什么都不会做。
+
+
+
+
+
+
+
+##### `QueryResult`类
+
+```C++
+class QueryResult {
+    friend std::ostream &print(std::ostream &, const QueryResult &);
+public:
+    QueryResult(std::string s,
+                std::shared_ptr<std::set<TextQuery::line_no>> p,
+                std::shared_ptr<std::vector<std::string>> f) :
+            sought(s), lines(p), file(f) {}
+private:
+    std::string sought;        // 查询单词
+    std::shared_ptr<std::set<TextQuery::line_no>> lines;        // 出现的行号
+    std::shared_ptr<std::vector<std::string>> file;        // 输入文件
+};
+```
+
+
+
+
+
+
+
+##### `query`函数
+
+```C++
+QueryResult TextQuery::query(const string &sought) const {
+    // 如果未找到sought，我们将返回一个指向此set的指针
+    static shared_ptr<set<line_no>> nodata(new set<line_no>);
+    // 使用find而不是下标运算符来查找单词，避免将单词添加到wm中
+    auto loc = wm.find(sought);
+    if (loc == wm.end())
+        return QueryResult(sought, nodata, file);    // 未找到
+    else
+        return QueryResult(sought, loc->second, file);
+}
+```
+
+
+
+
+
+
+
+##### 打印结果
+
+```C++
+std::ostream &print(std::ostream &os, const QueryResult &qr) {
+    // 如果找到了单词，打印出现次数和所有出现的位置
+    os << qr.sought << " occurs " << qr.lines->size() << " "
+       << make_plural(qr.lines->size(), "time", "s") << std::endl;
+    // 打印单词出现的每一行
+    for (auto num : *qr.lines)        // 对set中每个单词
+        // 避免行号从0开始给用户带来的困惑
+        os << "\t(line " << num + 1 << ") "
+           << *(qr.file->begin() + num) << std::endl;
+    return os;
+}
+```
+
+其中，`make_plural`的实现为：
+
+```C++
+std::string make_plural(size_t count, const std::string &word, const std::string &ending) {
+    return count > 1 ? word + ending : word;
+}
+```
+
+
+
+
+
+# 拷贝控制
+
