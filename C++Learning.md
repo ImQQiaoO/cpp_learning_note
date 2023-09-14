@@ -14758,72 +14758,105 @@ class B;
 
 class A {
 public:
-    void setB(std::shared_ptr<B> b) {
-        mB = b;
-    }
+    std::shared_ptr<B> _a;
 
-private:
-    std::shared_ptr<B> mB;
+    ~A() {
+        std::cout << "class A disconstruct " << std::endl;
+    }
 };
 
 class B {
 public:
-    void setA(std::shared_ptr<A> a) {
-        mA = a;
-    }
+    std::shared_ptr<A> _b;
 
-private:
-    std::shared_ptr<A> mA;
+    ~B() {
+        std::cout << "class B disconstruct " << std::endl;
+    }
 };
 
 int main() {
-    auto a = std::make_shared<A>();
-    auto b = std::make_shared<B>();
+    std::shared_ptr<A> a_ptr = std::make_shared<A>();
+    std::shared_ptr<B> b_ptr = std::make_shared<B>();
+    std::cout << "a_ptr use count:" << a_ptr.use_count() << std::endl;
+    std::cout << "b_ptr use count:" << b_ptr.use_count() << std::endl;
 
-    a->setB(b);
-    b->setA(a);
-
-    // 此时a和b的引用计数都是2，出现了循环引用
-    std::cout << "a.use_count() = " << a.use_count() << std::endl;  // 2
-    std::cout << "b.use_count() = " << b.use_count() << std::endl;  // 2
-
+    a_ptr->_a = b_ptr;
+    b_ptr->_b = a_ptr;
+    std::cout << "a_ptr use count:" << a_ptr.use_count() << std::endl;
+    std::cout << "b_ptr use count:" << b_ptr.use_count() << std::endl;
 
     return 0;
 }
 ```
 
+上面这段程序会输出：
 
+```
+a_ptr use count:1
+b_ptr use count:1
+a_ptr use count:2
+b_ptr use count:2
+```
+
+由输出的内容我们可以知道，直到程序结束，类`A`和类`B`的析构函数都没有被执行。这会导致内存泄漏。
 
 
 
 ##### 使用`weak_ptr`打破循环引用
 
-将类`B`中的`shared_ptr`修改为`weak_ptr`:
+将`shared_ptr`修改为`weak_ptr`:
 
 ```C++
+#include <iostream>
+#include <memory>
+
+class B;
+
+class A {
+public:
+    std::weak_ptr<B> _a;
+
+    ~A() {
+        std::cout << "class A disconstruct " << std::endl;
+    }
+};
+
 class B {
 public:
-    void setA(std::weak_ptr<A> a) {
-        mA = a;
-    }
+    std::weak_ptr<A> _b;
 
-private:
-    std::weak_ptr<A> mA;
+    ~B() {
+        std::cout << "class B disconstruct " << std::endl;
+    }
 };
+
+int main() {
+    std::shared_ptr<A> a_ptr = std::make_shared<A>();
+    std::shared_ptr<B> b_ptr = std::make_shared<B>();
+    std::cout << "a_ptr use count:" << a_ptr.use_count() << std::endl;
+    std::cout << "b_ptr use count:" << b_ptr.use_count() << std::endl;
+
+    a_ptr->_a = b_ptr;
+    b_ptr->_b = a_ptr;
+    std::cout << "a_ptr use count:" << a_ptr.use_count() << std::endl;
+    std::cout << "b_ptr use count:" << b_ptr.use_count() << std::endl;
+
+    return 0;
+}
 ```
 
 此时输出：
 
 ```
-a.use_count() = 1
-b.use_count() = 2
+a_ptr use count:1
+b_ptr use count:1
+a_ptr use count:1
+b_ptr use count:1
+class B disconstruct 
+class A disconstruct 
 ```
 
-这是因为`weak_ptr`不会增加引用计数，所以A持有B的`weak_ptr`不会增加B的引用计数。而B持有A的`weak_ptr`也不会增加A的引用计数，因为`weak_ptr`只是对对象的一个弱引用，不会阻止对象的销毁。因此，A的引用计数为1，B的引用计数为2。
-
-这说明使用`weak_ptr`打破了A和B之间的循环引用，避免了内存泄漏。当A和B之间的关系不再需要时，它们的引用计数都会降为0，从而自动销毁。
-
-
+使用`weak_ptr`打破了A和B之间的循环引用，避免了内存泄漏。当A和B之间的关系不再需要时，它们的引用计数都会降为0，从而自动销毁。
 
 
 
