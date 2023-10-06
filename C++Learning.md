@@ -15722,7 +15722,7 @@ int main() {
 
 
 
-### 2.2 `allocator`类
+### 2.2 `allocator`类	<a name="160700"> </a>
 
 `new`有一些灵活上的局限：它将内存分配和对象构造结合在了一起。类似，`delete`将对象析构和内存释放组合在了一起。
 
@@ -15779,7 +15779,7 @@ int main() {
 
 
 
-##### `allocator`分配未构造的内存
+##### `allocator`分配未构造的内存	！请注意，`construct`函数已在C++17中被标记为不推荐，在C++20及以后版本中被删除！
 
 `allocator`分配的内存是未构造的。我们按需要在此内存中构造对象。
 
@@ -15850,7 +15850,7 @@ int main() {
 
 
 
-##### 拷贝和填充未初始化内存的算法
+##### 拷贝和填充未初始化内存的算法	<a name="162432"> </a>
 
 标准库为`allocator`类定义了两个伴随算法，可以在未初始化内存中创建对象。
 
@@ -17164,3 +17164,607 @@ void swap(Foo &lhs, Foo &rhs) {
 
 创建一个新的`Message`，要指明消息内容，但不会指出`Folder`。为了将一条`Message`放到一个特定`Folder`中，必须需要调用`save`。
 
+当我们拷贝一个`Message`时，副本和原对象将是不同的`Message`对象，但两个`Message`都出现在相同的`Folder`中。因此，拷贝`Message`的操作包括消息内容和`Folder`指针`set`的拷贝。而且，我们必须在每个包含此消息的`Folder`中都添加一个指向新创建的 `Message`的指针。
+
+当我们将一个`Message`对象赋予另一个`Message`对象时，左侧`Message`的内容会被右侧`Message`的内容所替代。我们还必须更新`Folder`集合，从原来包含左侧`Message`的`Folder`中将它删除，并将它添加到包含右侧`Message`的`Folder`中。
+
+观察这些操作，我们可以看到，析构函数和拷贝赋值运算符都必须从包含一条`Message`的所有`Folder`中删除它。类似的，拷贝构造函数和拷贝赋值运算符都要将一个`Message`添加到给定的一组`Folder`中。我们将定义两个`private`的工具函数来完成这些工作。
+
+> 拷贝赋值运算符通常执行拷贝构造函数和析构函数中也要做的工作。这种情况下，公共的工作应该放在`private`的工具函数中完成。
+
+`Folder`类也需要类似的拷贝控制成员，来添加或删除它保存的`Message`。
+
+
+
+##### `Message`类
+
+```C++
+class Message {
+    friend class Folder;
+public:
+    // folders被隐式初始化为空集合
+    explicit Message(const std::string &str = "") : contents(str) {}
+    // 拷贝控制成员，用来管理指向本Message的指针
+    Message(const Message &);            // 拷贝构造函数
+    Message &operator=(const Message &); // 拷贝赋值运算符
+    ~Message();                         // 析构函数
+    // 从给定Folder集合中添加/删除本Message
+    void save(Folder &);
+    void remove(Folder &);
+
+private:
+    std::string contents;           // 实际消息文本
+    std::set<Folder *> folders;     // 包含本Message的Folder
+    // 拷贝构造函数、拷贝赋值运算符和析构函数所使用的工具函数
+    // 将本Message添加到指向参数的Folder中
+    void add_to_Folders(const Message &);
+    // 从folders中的每个Folder中删除本Message
+    void remove_from_Folders();
+};
+```
+
+这个类定义了两个数据成员：`contents`，保存消息文本；`folders`，保存指向本`Message`所在`Folder`的指针。
+
+接受一个`string`参数的构造函数将给定`string`拷贝给`contents`，并将`folders`（隐式）初始化为空集。由于此构造函数有一个默认参数，因此它也被当作 `Message`的默认构造函数。
+
+> 如何将`folder`隐式初始化为空集的？
+>
+> *在C++中，如果一个类的成员变量是一个类类型的对象，那么这个成员变量会在构造函数执行之前被默认构造。在这个例子中，`folders`是一个`std::set<Folder *>`类型的成员变量，因此在`Message`对象被构造之前，`folders`会被默认构造为空集合。这就是`folders`被隐式初始化为空集合的原因*
+
+
+
+
+
+##### `save`和`remove`成员
+
+`Message`类的两个公共成员：`save`，将本`Message`存放在给定`Folder`中；`remove`，删除本`Message`：
+
+```C++
+void Message::save(Folder &f) {
+    folders.insert(&f); // 将给定Folder添加到我们的Folder列表中
+    f.addMsg(this);     // 将本Message添加到f的Message集合中
+}
+
+void Message::remove(Folder &f) {
+    folders.erase(&f);  // 将给定Folder从我们的Folder列表中删除
+    f.remMsg(this);     // 将本Message从f的Message集合中删除
+}
+```
+
+为了保存（或删除）一个`Message`，需要更新本`Message`的`folders`成员。当`save`一个`Message`时，我们应保存一个指向给定`Folder`的指针；当`remove`一个`Message`时，我们要删除此指针。
+
+这些操作还必须更新给定的`Folder`。更新一个`Folder`的任务是由`Folder`类的`addMsg`和`remMsg`成员来完成的，分别添加和删除给定`Message`的指针。
+
+
+
+
+
+##### `Message`类的拷贝控制成员
+
+当我们拷贝一个`Message`时，得到的副本应该与原`Message`出现在相同的`Folder`中。因此，我们必须遍历`Folder`指针的`set`，对每个指向原`Message`的`Folder`添加一个指向新`Message` 的指针。拷贝构造函数和拷贝赋值运算符都需要做这个工作，因此我们定义一个函数来完成这个公共操作：
+
+```C++
+// 将本Message添加到指向m的Folder中
+void Message::add_to_Folders(const Message &m) {
+    for (auto f : m.folders)    // 对每个包含m的Folder
+        f->addMsg(this);        // 向该Folder添加一个指向本Message的指针
+}
+```
+
+此例中我们对`m.folders`中每个`Folder`调用`addMsg`。函数`addMsg`会将本`Message`的指针添加到每个`Folder`中。
+
+`Message`的拷贝构造函数拷贝给定对象的数据成员：
+
+```c++
+Message::Message(const Message &m) : contents(m.contents), folders(m.folders) {
+    add_to_Folders(m);  // 将本消息添加到指向m的Folder中
+}
+```
+
+并调用`add_to_Folders`将新创建的`Message`的指针添加到每个包含原`Message`的`Folder`中。
+
+
+
+
+
+##### `Message`的析构函数
+
+当一个`Message`被销毁时，我们必须从指向此`Message`的`Folder`中删除它。拷贝赋值运算符也要执行此操作，因此我们会定义一个公共函数来完成此工作：
+
+```C++
+// 从对应的Folder中删除本Message
+void Message::remove_from_Folders() {
+    for (auto f : folders)  // 对folders中每个指针
+        f->remMsg(this);           // 从该Folder中删除本Message
+}
+```
+
+函数`remove_from_Folders`的实现类似`add_to_Folders`，不同之处是它调用`remMsg`来删除当前`Message`而不是调用`addMsg`来添加`Message`。
+
+析构函数基于函数`remove_from_Folders`：
+
+```C++
+Message::~Message() {
+    remove_from_Folders();
+}
+```
+
+调用`remove_from_Folders`确保没有任何`Folder`保存正在销毁的`Message`的指针。编译器自动调用`string`的析构函数来释放`contents`，并自动调用`set`的析构函数来清理集合成员使用的内存。
+
+
+
+
+
+##### `Message`的拷贝赋值运算符
+
+与大多数赋值运算符相同，我们的`Message`类的拷贝赋值运算符必须执行拷贝构造函数和析构函数的工作。与往常一样，最重要的是我们要组织好代码结构，使得即使左侧和右侧运算对象是同一个`Message`，拷贝赋值运算符也能正确执行。
+
+在本例中，我们先从左侧运算对象的`folders`中删除此`Message`的指针，然后再将指针添加到右侧运算对象的`folders`中，从而实现了自赋值的正确处理：
+
+```C++
+Message &Message::operator=(const Message &rhs) {
+    remove_from_Folders();      // 更新已有Folder
+    contents = rhs.contents;    // 从rhs拷贝消息内容
+    folders = rhs.folders;      // 从rhs拷贝Folder指针
+    add_to_Folders(rhs);        // 将本Message添加到那些Folder中
+    return *this;
+}
+```
+
+如果左侧和右侧运算对象是相同的`Message`，则它们具有相同的地址。如果我们在`add_to_Folders`之后调用`remove_from_Folders`，就会将此`Message`从它所在的所有`Folder`中删除。
+
+
+
+
+
+##### `Message` 的`swap`函数
+
+标准库中定义了`string`和`set`的`swap`版本。这方便了我们定义`Message`类自己的`swap`。定义特定版本的`swap`可以避免对`contents`和`folders`成员进行不必要的拷贝。
+
+但是，我们的`swap`函数必须管理指向被交换`Message`的`Folder`指针。在调用`swap(m1 , m2)`之后，原来指向`m1`的`Folder`现在必须指向`m2`，反之亦然。
+
+我们通过两遍扫描`folders`中每个成员来正确处理`Folder`指针。第一遍扫描将`Message`从它们所在的`Folder`中删除。接下来我们调用`swap`来交换数据成员。最后对`folders`进行第二遍扫描来添加交换过的`Message`：
+
+```C++
+void swap(Message &lhs, Message &rhs) {
+    using std::swap;    // 在本例中严格来说并不需要，但这是一个好习惯
+    // 将每个消息的指针从它原来所在的Folder中删除
+    for (auto f : lhs.folders)
+        f->remMsg(&lhs);
+    for (auto f : rhs.folders)
+        f->remMsg(&rhs);
+    // 交换contents和Folder指针set
+    swap(lhs.folders, rhs.folders);     // 使用swap(set&, set&)
+    swap(lhs.contents, rhs.contents);   // 使用swap(string&, string&)
+    // 将每个Message的指针添加到它的新Folder中
+    for (auto f : lhs.folders)
+        f->addMsg(&lhs);
+    for (auto f : rhs.folders)
+        f->addMsg(&rhs);
+}
+```
+
+
+
+##### 完整的代码
+
+Folder.h:
+
+```C++
+#ifndef FOLDER_H
+#define FOLDER_H
+
+#include <set>
+
+class Folder {
+    friend class Message;
+    friend void swap(Folder &, Folder &);
+    friend void swap(Message &, Message &);
+public:
+    Folder() = default;
+    Folder(const Folder &);
+    Folder &operator=(const Folder &);
+    ~Folder();
+
+private:
+    std::set<Message *> msgs;
+
+    void add_to_Message(const Folder &);
+    void remove_from_Message();
+
+    void addMsg(Message *m) { msgs.insert(m); }
+    void remMsg(Message *m) { msgs.erase(m); }
+};
+
+void swap(Folder &, Folder &);
+
+#endif // FOLDER_H
+```
+
+
+
+Folder.cpp:
+
+```c++
+#include "Folder.h"
+#include "Message.h"
+
+void swap(Folder &lhs, Folder &rhs) {
+    using std::swap;
+    // 将每个Folder的指针从它原来所在的Message中删除
+    for (auto m : lhs.msgs)
+        m->remFldr(&lhs);
+    for (auto m : rhs.msgs)
+        m->remFldr(&rhs);
+    // 交换Folder指针set
+    swap(lhs.msgs, rhs.msgs);
+    // 将每个Folder的指针添加到它的新Message中
+    for (auto m : lhs.msgs)
+        m->addFldr(&lhs);
+    for (auto m : rhs.msgs)
+        m->addFldr(&rhs);
+}
+
+Folder::Folder(const Folder &f) : msgs(f.msgs) {
+    add_to_Message(f);
+}
+
+Folder::~Folder() {
+    remove_from_Message();
+}
+
+Folder &Folder::operator=(const Folder &rhs) {
+    remove_from_Message();
+    msgs = rhs.msgs;
+    add_to_Message(rhs);
+    return *this;
+}
+
+void Folder::add_to_Message(const Folder &f) {
+    for (auto m : f.msgs)
+        m->addFldr(this);
+}
+
+void Folder::remove_from_Message() {
+    for (auto m : msgs)
+        m->remFldr(this);
+}
+```
+
+
+
+Message.h:
+
+```C++
+#ifndef MESSAGE_H
+#define MESSAGE_H
+
+#include <set>
+#include <string>
+
+class Message {
+    friend class Folder;
+    friend void swap(Message &, Message &);
+    friend void swap(Folder &, Folder &);
+public:
+    // folders被隐式初始化为空集合
+    explicit Message(const std::string &str = "") : contents(str) {}
+    // 拷贝控制成员，用来管理指向本Message的指针
+    Message(const Message &);               // 拷贝构造函数
+    Message &operator=(const Message &);    // 拷贝赋值运算符
+    ~Message();                             // 析构函数
+    // 从给定Folder集合中添加/删除本Message
+    void save(Folder &);
+    void remove(Folder &);
+
+private:
+    std::string contents;           // 实际消息文本
+    std::set<Folder *> folders;     // 包含本Message的Folder
+    // 拷贝构造函数、拷贝赋值运算符和析构函数所使用的工具函数
+    // 将本Message添加到指向参数的Folder中
+    void add_to_Folders(const Message &);
+    // 从folders中的每个Folder中删除本Message
+    void remove_from_Folders();
+
+    void addFldr(Folder *f) { folders.insert(f); }
+    void remFldr(Folder *f) { folders.erase(f); }
+};
+
+void swap(Message &, Message &);
+
+#endif // MESSAGE_H
+```
+
+
+
+Message.cpp:
+
+```C++
+#include "Message.h"
+#include "Folder.h"
+
+void Message::save(Folder &f) {
+    folders.insert(&f); // 将给定Folder添加到我们的Folder列表中
+    f.addMsg(this);     // 将本Message添加到f的Message集合中
+}
+
+void Message::remove(Folder &f) {
+    folders.erase(&f);  // 将给定Folder从我们的Folder列表中删除
+    f.remMsg(this);     // 将本Message从f的Message集合中删除
+}
+
+// 将本Message添加到指向m的Folder中
+void Message::add_to_Folders(const Message &m) {
+    for (auto f : m.folders)    // 对每个包含m的Folder
+        f->addMsg(this);             // 向该Folder添加一个指向本Message的指针
+}
+
+Message::Message(const Message &m) : contents(m.contents), folders(m.folders) {
+    add_to_Folders(m);  // 将本消息添加到指向m的Folder中
+}
+
+// 从对应的Folder中删除本Message
+void Message::remove_from_Folders() {
+    for (auto f : folders)  // 对folders中每个指针
+        f->remMsg(this);           // 从该Folder中删除本Message
+}
+
+Message::~Message() {
+    remove_from_Folders();
+}
+
+Message &Message::operator=(const Message &rhs) {
+    remove_from_Folders();      // 更新已有Folder
+    contents = rhs.contents;    // 从rhs拷贝消息内容
+    folders = rhs.folders;      // 从rhs拷贝Folder指针
+    add_to_Folders(rhs);        // 将本Message添加到那些Folder中
+    return *this;
+}
+
+void swap(Message &lhs, Message &rhs) {
+    using std::swap;    // 在本例中严格来说并不需要，但这是一个好习惯
+    // 将每个消息的指针从它原来所在的Folder中删除
+    for (auto f : lhs.folders)
+        f->remMsg(&lhs);
+    for (auto f : rhs.folders)
+        f->remMsg(&rhs);
+    // 交换contents和Folder指针set
+    swap(lhs.folders, rhs.folders);     // 使用swap(set&, set&)
+    swap(lhs.contents, rhs.contents);   // 使用swap(string&, string&)
+    // 将每个Message的指针添加到它的新Folder中
+    for (auto f : lhs.folders)
+        f->addMsg(&lhs);
+    for (auto f : rhs.folders)
+        f->addMsg(&rhs);
+    // 注释的代码也可用
+    //using std::swap;
+    //lhs.remove_from_Folders(); // Use existing member function to avoid duplicate code.
+    //rhs.remove_from_Folders(); // Use existing member function to avoid duplicate code.
+
+    //swap(lhs.folders, rhs.folders);
+    //swap(lhs.contents, rhs.contents);
+
+    //lhs.add_to_Folders(lhs); // Use existing member function to avoid duplicate code.
+    //rhs.add_to_Folders(rhs); // Use existing member function to avoid duplicate code.
+}
+
+```
+
+
+
+
+
+## 5.动态内存管理类
+
+某些类需要在运行时分配可变大小的内存空间。这种类通常可以（并且如果它们确实可以的话，一般应该）使用标准库容器来保存它们的数据。例如，我们的`StrBlob`类使用一个`vector`来管理其元素的底层内存。
+
+但是，这一策略并不是对每个类都适用：某些类需要自己进行内存分配。这些类一般来说必须定义自己的拷贝控制成员来管理所分配的内存。
+
+例如，我们将实现标准库`vector`类的一个简化版本。我们所做的一个简化是不使用模板，我们的类只用于`string`。因此，它被命名为`Strvec`。
+
+
+
+
+
+##### `SteVec`类的设计
+
+`vector`类将其元素保存在连续内存中，`vector`预先分配足够的内存来保存可能需要的更多元素。`vector`的每个添加元素的成员函数会检查是否有空间容纳更多的元素。如果有，成员函数会在下一个可用位置构造一个对象。如果没有可用空间，`vector`就会重新分配空间：它获得新的空间，将已有元素移动到新空间中，释放旧空间，并添加新元素。
+
+我们在`StrVec`类中使用类似的策略。我们将使用一个<a href="#160700">`allocator`</a>来获得原始内存。由于`allocator`分配的内存是未构造的，我们将在需要添加新元素时用`allocator`的`construct`成员在原始内存中创建对象。类似的，当我们需要删除一个元素时，我们将使用`destroy`成员来销毁元素。
+
+每个`StrVec`有三个指针成员指向其元素所使用的内存：
+
+- `elements`，指向分配的内存中的首元素
+- `first_free`，指向最后一个实际元素之后的位置
+- `cap`，指向分配的内存末尾之后的位置
+
+下面是这些指针的含义：
+
+![](./images/strVec.png)
+
+除了这些指针以外，`StrVec`还有一个名为`alloc`的静态成员，其类型为`allocator<string>`。`alloc`成员会分配`strVec`使用的内存。我们的类还有4个工具函数：
+
+- `alloc_n_copy`会分配内存，并拷贝一个给定范围中的元素。
+- `free`会销毁构造的元素并释放内存。
+- `chk_n_alloc`保证`strVec`至少有容纳一个新元素的空间。如果没有空间添加新元素，`chk_n_alloc`会调用`reallocate`来分配更多内存。
+- `reallocate`在内存用完时为`StrVec`分配新内存。
+
+
+
+
+
+##### `StrVec`类定义
+
+有了上述实现概要，我们现在可以定义`StrVec`类，如下所示：
+
+```C++
+// 类vector类分配内存策略的简化实现：
+class StrVec {
+public:
+    // allocator成员进行默认初始化
+    StrVec() : elements(nullptr), first_free(nullptr), cap(nullptr) {}   
+    StrVec(const StrVec&);                  // 拷贝构造函数
+    StrVec& operator=(const StrVec&);       // 拷贝赋值运算符
+    ~StrVec();                              // 析构函数
+    void push_back(const std::string&);     // 拷贝元素
+    size_t size() const { return first_free - elements; }  // 返回元素个数
+    size_t capacity() const { return cap - elements; }     // 返回容量
+    std::string *begin() const { return elements; }
+    std::string *end() const { return first_free; }
+    // ...
+private:
+    static std::allocator<std::string> alloc;  // 分配元素的工具
+    // 被添加元素的函数所使用
+    void chk_n_alloc() { if (size() == capacity()) reallocate(); }
+    // 工具函数，被拷贝构造函数、赋值运算符和析构函数所使用
+    std::pair<std::string*, std::string*> alloc_n_copy(const std::string*, const std::string*);
+    void free();            // 销毁元素并释放内存
+    void reallocate();      // 获得更多内存并拷贝已有元素
+    // 指向数组首元素的指针
+    std::string *elements;
+    // 指向数组第一个空闲元素的指针
+    std::string *first_free;
+    // 指向数组尾后位置的指针
+    std::string *cap;
+};
+```
+
+类体定义了多个成员：
+
+- 默认构造函数（隐式地）默认初始化`alloc`并（显式地）将指针初始化为`nullptr`，表明没有元素。
+- `size`成员返回当前真正在使用的元素的数目，等于`first_free - elements`。
+- `capacity`成员返回`StrVec`可以保存的元素的数量，等价于`cap - elements`。
+- 当没有空间容纳新元素，即`cap == first_free`时，`chk_n_alloc`会为`StrVec`重新分配内存。
+- `begin`和`end`成员分别返回指向首元素（即`elements`）和最后一个构造的元素之后位置（即`first_free`）的指针。
+
+
+
+
+
+##### 使用`construct`	！请注意，此函数已在C++17中被标记为不推荐，在C++20及以后版本中被删除！
+
+函数`push_back`调用`chk_n_alloc`确保有空间容纳新元素。如果有必要，`chk_n_alloc`会调用`reallocate`。
+
+当`chk_n_alloc`返回时，`push_back`知道必有空间容纳新元素。它要求其`allocator`成员来`construct`新的尾元素：
+
+```C++
+void StrVec::push_back(const std::string &s) {
+    chk_n_alloc();  // 确保有空间容纳新元素
+    // 在first_free指向的元素中构造s的副本
+    //alloc.construct(first_free++, s);		// 注意：C++20中此函数已被移除！！
+}
+```
+
+当使用`allocator`分配内存时，必须记住内存是**未构造的**。为了使用此原始内存，我们必须调用`construct`，在此内存中构造一个对象。传递给`construct`的第一个参数必须是一个指针，指向调用`allocate`所分配的未构造的内存空间。剩余参数确定用哪个构造函数来构造对象。在本例中，只有一个额外参数，类型为`string`，因此会使用`string`的拷贝构造函数。
+
+值得注意的是，对`construct`的调用也会递增`first_free`，表示已经构造了一个新元素。它使用前置递增，因此这个调用会在`first_free`当前值指定的地址构造一个对象，并递增`first_free`指向下一个未构造的元素。
+
+
+
+
+
+##### `alloc_n_copy`成员
+
+我们在拷贝或赋值`StrVec`时，可能会调用`alloc_n_copy`成员。类似`vector`，我们的`StrVec`类有<a href="#000796">类值的行为</a>。当我们拷贝或赋值`StrVec`时，必须分配独立的内存，并从原`StrVec`对象拷贝元素至新对象。
+
+`alloc_n_copy`成员会分配足够的内存来保存给定范围的元素，并将这些元素拷贝到新分配的内存中。此函数返回一个指针的`pair`，两个指针分别指向新空间的开始位置和拷贝的尾后的位置：
+
+```c++
+std::pair<std::string *, std::string *> StrVec::alloc_n_copy(const std::string *b,
+    const std::string *e) {
+
+    // 分配空间保存给定范围中的元素
+    auto data = alloc.allocate(e - b);
+    // 初始化并返回一个pair，该pair由data和uninitialized_copy的返回值构成
+    return { data, uninitialized_copy(b, e, data) };
+}
+```
+
+`alloc_n_copy`用尾后指针减去首元素指针，来计算需要多少空间。在分配内存之后，它必须在此空间中构造给定元素的副本。
+
+它是在返回语句中完成拷贝工作的，返回语句中对返回值进行了列表初始化。返回的`pair`的`first`成员指向分配的内存的开始位置；`second`成员则是<a href="#162432">`uninitialized_copy`</a>的返回值，此值是一个指针，指向最后一个构造元素之后的位置。
+
+
+
+
+
+##### `free`成员
+
+`free`成员有两个责任：
+
+- 首先`destroy`元素；
+- 然后释放`StrVec`自己分配的内存空间。`for`循环调用`allocator`的`destroy`成员，从构造的尾元素开始，到首元素为止，逆序销毁所有元素：
+
+```C++
+void StrVec::free() {
+    // 不能传递给deallocate一个空指针，如果elements为0，函数什么也不做
+    if (elements) {
+        // 逆序销毁旧元素
+        for (auto p = first_free; p != elements; /* 空 */) {
+            // destroy的参数必须是指向构造出的元素
+            // alloc.destory(--p);
+            std::allocator_traits<decltype(alloc)>::destroy(alloc, --p);
+        }
+        alloc.deallocate(elements, cap - elements);
+    }
+}
+```
+
+`destroy`函数会运行`string`的析构函数。`string`的析构函数会释放`string`自己分配的内存空间。
+
+一旦元素被销毁，我们就调用`deallocate`来释放本`StrVec`对象分配的内存空间。我们传递给`deallocate`的指针必须是之前某次`allocate`调用所返回的指针。因此，在调用`deallocate`之前我们首先检查`elements`是否为空。
+
+
+
+
+
+##### 拷贝控制成员
+
+在实现`alloc_n_copy`和`free`成员后，实现类的拷贝控制成员就简单多了：
+
+- 拷贝构造函数调用`alloc_n_copy`：
+
+  ```C++
+  StrVec::StrVec(const StrVec &s) {
+      // 调用alloc_n_copy分配空间以容纳与s中一样多的元素
+      auto newdata = alloc_n_copy(s.begin(), s.end());
+      elements = newdata.first;
+      first_free = cap = newdata.second;
+  }
+  ```
+
+  并将返回结果赋予数据成员。`alloc_n_copy`的返回值是一个指针的`pair`。其`first`成员指向第一个构造的元素，`second`成员指向最后一个构造的元素之后的位置。由于`alloc_n_copy`分配的空间恰好容纳给定的元素，`cap`也指向最后一个构造的元素之后的位置。
+
+- 析构函数调用`free`：
+
+  ```C++
+  StrVec::~StrVec() {
+      free();
+  }
+  ```
+
+- **拷贝赋值运算符在释放已有元素之前调用`alloc_n_copy`**，这样就可以正确处理自赋值了：
+
+  ```C++
+  StrVec &StrVec::operator=(const StrVec &rhs) {
+      // 调用alloc_n_copy分配内存，大小与rhs中元素占用空间一样多
+      auto data = alloc_n_copy(rhs.begin(), rhs.end());
+      free();     // 销毁对象在this指向的元素
+      elements = data.first;
+      first_free = cap = data.second;
+      return *this;
+  }
+  ```
+
+  类似拷贝构造函数，拷贝赋值运算符使用`alloc_n_copy`的返回值来初始化它的指针。
+  
+
+
+
+##### 在重新分配内存的过程中移动而不是拷贝元素
+
+在编写`reallocate`成员函数之前，思考此函数应该做什么：
+
+- 为一个新的、更大的`string`数组分配内存
+- 在内存空间的前一部分构造对象，保存现有元素
+- 销毁原内存空间中的元素，并释放这块内存
