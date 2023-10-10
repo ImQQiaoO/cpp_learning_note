@@ -13874,7 +13874,7 @@ void StrBlob::pop_back() {
 
 
 
-##### StrBlob的拷贝、赋值和销毁
+##### `StrBlob`的拷贝、赋值和销毁
 
 类似`Sales_data`类，`StrBlob`使用默认版本的拷贝、赋值和销毁成员函数来对此类型的对象进行这些操作。
 
@@ -17613,7 +17613,7 @@ public:
     std::string *end() const { return first_free; }
     // ...
 private:
-    static std::allocator<std::string> alloc;  // 分配元素的工具
+    std::allocator<std::string> alloc;  // 分配元素的工具
     // 被添加元素的函数所使用
     void chk_n_alloc() { if (size() == capacity()) reallocate(); }
     // 工具函数，被拷贝构造函数、赋值运算符和析构函数所使用

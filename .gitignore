@@ -1,3 +1,8 @@
 *.pdf
 .idea
 .vs
+cpp/*/.idea
+cpp/*/.vs
+cpp/*/cmake-build-debug
+cpp/*/out
+cpp/*/*.json
