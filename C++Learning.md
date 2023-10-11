@@ -17802,7 +17802,7 @@ void StrVec::free() {
 
 
 
-##### `reallocate`成员
+##### `reallocate`成员	<a name="493787"> </a>
 
 函数调用`allocate`分配新内存空间。我们每次重新分配内存时都会将`StrVec`的容量加倍，当`StrVec`为空时，我们将分配容纳一个元素的空间。
 
@@ -17839,6 +17839,157 @@ void StrVec::reallocate() {
 剩下的就是更新指针，指向新分配并已初始化过的数组了。`first_free`和`cap`指针分别被设置为指向最后一个构造的元素之后的位置及指向新分配空间的尾后位置。
 
 
+
+##### 习题
+
+编写标准库`string`类的简化版本，命名为`String`。你的类应该至少有一个默认构造函数和一个接受C风格字符串指针参数的构造函数。使用`allocator`为你的`string`类分配所需内存。
+
+String.h:
+
+```C++
+#ifndef STRING_H
+#define STRING_H
+
+#include <memory>
+#include <utility>
+
+class String {
+    friend std::ostream& operator<<(std::ostream&, const String&); // 输出运算符
+    friend String operator+(const String&, const String&);
+public:
+    String() : String("") {}          // 默认构造函数
+    String(const char* s);              // 构造函数
+    String(const String&);              // 拷贝构造函数
+    String& operator=(const String&);   // 拷贝赋值运算符
+    ~String();                          // 析构函数
+    //// 移动构造函数
+    //String(String&& s) noexcept : elements(s.elements), end(s.end) {
+    //    s.elements = s.end = nullptr;
+    //}
+    //// 移动赋值运算符
+    //String& operator=(String&& rhs) noexcept {
+    //    if (this != &rhs) {
+    //        free();
+    //        elements = rhs.elements;
+    //        end = rhs.end;
+    //        rhs.elements = rhs.end = nullptr;
+    //    }
+    //    return *this;
+    //}
+    size_t size() const { return end - elements; } // 返回数组大小
+    String& operator+=(const String&);  // 重载+=运算符
+
+private:
+    std::allocator<char> alloc;  // 分配内存
+
+    char* elements; // 指向数组首元素的指针
+    char* end;  // 指向数组尾元素的下一个位置的指针
+
+    void init(const char*); // 工具函数
+    void free();    // 工具函数
+
+    std::pair<char*, char*> equal_range(const char* b, const char* e); // 工具函数
+    void range_pointer(const char* first, const char* last); // 工具函数
+
+};
+
+std::ostream& operator<<(std::ostream&, const String&); // 输出运算符
+String operator+(const String&, const String&); // 重载+运算符
+
+#endif // STRING_H
+
+```
+
+String.cpp:
+
+```C++
+#include <memory>
+#include <algorithm>
+#include <iostream>
+
+#include "String.h"
+
+// 构造首尾指针范围内的元素
+std::pair<char*, char*> String::equal_range(const char* b, const char* e) {
+    auto data = String::alloc.allocate(e - b);
+    return { data, std::uninitialized_copy(b, e, data) };
+}
+
+// 记录首尾指针
+void String::range_pointer(const char* first, const char* last) {
+    const auto res = equal_range(first, last);
+    this->elements = res.first;
+    this->end = res.second;
+}
+
+void String::init(const char* s) {
+    auto p = s;
+    while (*p) {
+        ++p;
+    }
+    range_pointer(s, p);
+}
+
+String::String(const char* s) {
+    init(s);
+    // 此处需要construct吗？
+    // 不需要。因为init函数中已经调用了uninitialized_copy函数，该函数会调用construct函数。
+}
+
+String::String(const String& rhs) {
+    std::cout << "Copy Constructor, curr element is : " << rhs << std::endl;
+    range_pointer(rhs.elements, rhs.end);
+}
+
+void String::free() {
+    // 确认对象不为空
+    if (elements) {
+        std::for_each(elements, end, [this](char& c) {
+            std::allocator_traits<decltype(alloc)>::destroy(alloc, &c);
+            });
+        alloc.deallocate(elements, end - elements);
+    }
+}
+
+String::~String() {
+    free();
+}
+
+String& String::operator=(const String& rhs) {
+    std::cout << "Copy Assignment Operator" << std::endl;
+    if (this == &rhs) {
+        //std::cout << "Self Assignment" << std::endl;
+        return *this;
+    }
+    this->free();
+    range_pointer(rhs.elements, rhs.end);
+    return *this;
+}
+
+std::ostream& operator<<(std::ostream& os, const String& s) {
+    for (auto p = s.elements; p != s.end; ++p) {
+        os << *p;
+    }
+    return os;
+}
+
+String& String::operator+=(const String& rhs) {
+    const auto new_size = size() + rhs.size();
+    auto new_data = alloc.allocate(new_size);
+    auto dest = std::uninitialized_copy(elements, end, new_data);
+    dest = std::uninitialized_copy(rhs.elements, rhs.end, dest);
+    this->free();
+    this->elements = new_data;
+    this->end = dest;
+    return *this;
+}
+
+String operator+(const String& rhs, const String& lhs) {
+    String ret = rhs;
+    ret += lhs;
+    return ret;     // 返回一个rvalue
+}
+```
 
 
 
@@ -17955,3 +18106,154 @@ void StrVec::reallocate() {
 
    - 左值引用：可以绑定到左值的引用（也叫常规引用）；
    - 右值引用：对即将被销毁的对象的引用。
+
+   我们可以将一个右值引用绑定到需要转换的表达式、字面值或返回右值的表达式上，但我们不能直接将一个右值引用绑定到一个左值上。
+
+   - `lvalue`：返回左值引用的函数，赋值，下标，解引用和前缀递增/递减运算符。
+   - `rvalue` / `const reference`：返回非引用的函数，算术，关系位运算符，后缀递增/递减运算符。
+
+   
+
+2. 判断左值引用还是右值引用：
+
+   ```C++
+   	int f();
+   	vector<int> vi(100);
+   
+   	int&& r1 = f();
+   	int& r2 = vi[0];
+   	int& r3 = r1;
+   	int&& r4 = vi[0] * f();
+   ```
+
+
+
+
+
+### 6.2 移动构造函数与移动赋值运算符
+
+为了让我们自己的类型支持移动操作，需要为其定义移动构造函数和移动赋值运算符。这两个成员类似对应的拷贝操作，但它们从给定对象“**窃取**”资源而不是拷贝资源。
+
+类似拷贝构造函数，移动构造函数的第一个参数是该类类型的一个引用。不同于拷贝构造函数的是，这个引用参数在移动构造函数中是一个**右值引用**。**与拷贝构造函数一样，任何额外的参数都必须有默认实参。**
+
+除了完成资源移动，移动构造函数还必须确保移后源对象处于这样一个状态——销毁它是无害的。特别是，一旦资源完成移动，源对象必须不再指向被移动的资源——这些资源的所有权已经归属新创建的对象。
+
+例：我们为`StrVec`类定义移动构造函数，实现从一个`StrVec`到另一个`StrVec`的元素移动而非拷贝：
+
+```C++
+StrVec::StrVec(StrVec &&s) noexcept     // 移动操作不应抛出任何异常
+    // 成员初始化器接管s中的资源
+    : elements(s.elements), first_free(s.first_free), cap(s.cap) {
+    // 令s进入这样的状态：对其运行析构函数是安全的
+    s.elements = s.first_free = s.cap = nullptr;
+}
+```
+
+`noexcept`通知标准库我们的构造函数不抛出任何异常。
+
+与拷贝构造函数不同，移动构造函数不分配任何新内存；它接管给定的`StrVec`中的内存。在接管内存之后，它将给定对象中的指针都置为`nullptr`。这样就完成了从给定对象的移动操作，此对象将继续存在。最终，移后源对象会被销毁，意味着将在其上运行析构函数。`StrVec`的析构函数在`first_free`上调用`deallocate`。如果我们忘记了改变`s.first_free`，则销毁移后源对象就会释放掉我们刚刚移动的内存。
+
+
+
+
+
+##### 移动操作、标准库容器和异常
+
+移动操作“窃取”资源，它通常不分配任何资源。因此，移动操作通常不会抛出任何异常。
+
+当编写一个不抛出异常的移动操作时，我们应该将此事通知标准库。
+
+除非标准库知道我们的移动构造函数不会抛出异常，否则它会认为移动我们的类对象时可能会抛出异常，并且为了处理这种可能性而做一些额外的工作。
+
+
+
+一种通知标准库的方法是在我们的构造函数中指明`noexcept`。
+
+`noexcept`是我们承诺一个函数不抛出异常的一种方法。我们在一个函数的参数列表后指定`noexcept`。在一个构造函数中，`noexcept`出现在参数列表和初始化列表开始的冒号之间：
+
+```C++
+class StrVec{
+public:
+	StrVec(StrVec&&) noexcept;		// 移动构造函数
+	// 其他函数的定义 ...
+};
+StrVec::StrVec(StrVec&& s) noexcept : /* 成员初始化器 */
+{ /* 构造函数体 */ }
+```
+
+**两个必须：**
+
+我们**必须**在类头文件的声明中和定义中（如果定义在类外的话）都指定`noexcept`。
+
+不抛出异常的移动构造函数和移动赋值运算符**必须**标记为`noexcept`。
+
+
+
+需要指出一个移动操作不抛出异常，这是因为两个互相关联的事实：
+
+- 虽然移动操作通常不抛出异常，但抛出异常也是允许的；
+- 其次，标准库容器能对异常发生时其自身的行为提供保障。例如，`vector`保证，如果我们调用`push_back`时发生异常，`vector`自身不会发生改变。
+
+思考`push_back`内部发生了什么。类似对应的`StrVec`操作，对一个`vector`调用`push_back`可能要求为`vector`重新分配内存空间。当重新分配`vector`的内存时，`vector`将元素从旧空间移动到新内存中，就像在<a href="#493787">`reallocate`</a>中所做的那样。
+
+移动一个对象通常会改变它的值。如果重新分配过程使用了移动构造函数，且在移动了部分而不是全部元素后抛出了一个异常，就会产生问题。旧空间中的移动源元素已经被改变了，而新空间中未构造的元素可能尚不存在。在此情况下，`vector`将不能满足自身保持不变的要求。
+
+另一方面，如果`vector`使用了拷贝构造函数且发生了异常，它可以很容易地满足要求。在此情况下，当在新内存中构造元素时，旧元素保持不变。如果此时发生了异常，`vector`可以释放新分配的（但还未成功构造的）内存并返回。`vector`原有的元素仍然存在。
+
+为了避免这种潜在问题，除非`vector`知道元素类型的移动构造函数不会抛出异常，否则在重新分配内存的过程中，它就必须使用拷贝构造函数而不是移动构造函数。如果希望在`vector`重新分配内存这类情况下对我们自定义类型的对象进行移动而不是拷贝，就必须显式地告诉标准库我们的移动构造函数可以安全使用。我们通过将移动构造函数（及移动赋值运算符）标记为`noexcept`来做到这一点。
+
+
+
+
+
+##### 移动赋值运算符
+
+移动赋值运算符执行与析构函数和移动构造函数相同的工作。与移动构造函数一样，如果我们的移动赋值运算符不抛出任何异常，我们就应该将它标记为`noexcept`。类似拷贝赋值运算符，移动赋值运算符必须正确处理自赋值：
+
+```C++
+StrVec& StrVec::operator=(StrVec&& rhs) noexcept {
+    if (this == &rhs) {
+        return *this;
+    }
+    free();     // 释放已有元素
+    elements = rhs.elements;    // 从rhs中接管资源
+    first_free = rhs.first_free;
+    cap = rhs.cap;
+    // 将rhs置于可析构状态
+    rhs.elements = rhs.first_free = rhs.cap = nullptr;
+    return *this;
+}
+```
+
+在此例中，我们直接检查`this`指针与`rhs`的地址是否相同。如果相同，右侧和左侧运算对象指向相同的对象，我们不需要做任何事情。否则，我们释放左侧运算对象所使用的内存，并接管给定对象的内存。与移动构造函数一样，我们将`rhs`中的指针置为`nullptr`。
+
+我们费心地去检查自赋值情况看起来有些奇怪。毕竟，移动赋值运算符需要右侧运算对象的一个右值。我们进行检查的原因是此右值可能是`move`调用的返回结果。与其他任何赋值运算符一样，关键点是我们不能在使用右侧运算对象的资源之前就释放左侧运算对象的资源（可能是相同的资源）。
+
+
+
+
+
+##### 移后源对象必须可析构
+
+从一个对象移动数据并不会销毁此对象，但有时在移动操作完成后，源对象会被销毁。因此，在编写一个移动操作时，必须确保移后源对象进入一个可析构的状态。我们的`StrVec`的移动操作满足这一要求，这是通过将移后源对象的指针成员置为`nullptr`来实现的。
+
+除了将移后源对象置为析构安全的状态之外，移动操作还必须保证对象仍然是**有效**的。**一般来说，对象有效就是指可以安全地为其赋予新值或者可以安全地使用而不依赖其当前值。**另一方面，移动操作对移后源对象中留下的值没有任何要求。因此，我们的程序不应该依赖于移后源对象中的数据。
+
+例如，当一个标准库`string`或容器对象移动数据时，可以知道移后源对象仍然保持有效。因此，可以对它执行诸如`empty`或`size`这些操作。但是，将不知道将会得到什么结果。我们可能期望一个移后源对象是空的，但这并没有保证。
+
+我们的`StrVec`类的移动操作将移后源对象置于与默认初始化的对象相同的状态。因此，我们可以继续对移后源对象执行所有的`StrVec`操作，与任何其他默认初始化的对象一样。而其他内部结构更为复杂的类，可能表现出完全不同的行为。
+
+
+
+> 在移动操作之后，移后源对象必须保持有效的、可析构的状态，但是用户不能对其值进行任何假设。
+
+
+
+
+
+##### 合成的移动操作
+
+与处理拷贝构造函数和拷贝赋值运算符一样，编译器也会合成移动构造函数和移动赋值运算符。但是，合成移动操作的条件与合成拷贝操作的条件大不相同。
+
+
+
