@@ -14,6 +14,8 @@ public:
     StrVec(const StrVec &);                  // 拷贝构造函数
     StrVec &operator=(const StrVec &);       // 拷贝赋值运算符
     ~StrVec();                              // 析构函数
+    StrVec(StrVec &&) noexcept;              // 移动构造函数
+    StrVec &operator=(StrVec &&) noexcept;   // 移动赋值运算符
     void push_back(const std::string &);     // 拷贝元素
     size_t size() const { return first_free - elements; }  // 返回元素个数
     size_t capacity() const { return cap - elements; }     // 返回容量
@@ -22,7 +24,7 @@ public:
     // ...
 
 private:
-    static std::allocator<std::string> alloc;  // 分配元素的工具
+    std::allocator<std::string> alloc;  // 分配元素的工具
     // 被添加元素的函数所使用
     void chk_n_alloc() { if (size() == capacity()) reallocate(); }
     // 工具函数，被拷贝构造函数、赋值运算符和析构函数所使用

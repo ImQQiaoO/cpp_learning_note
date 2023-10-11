@@ -32,6 +32,7 @@ String::String(const char* s) {
 }
 
 String::String(const String& rhs) {
+    std::cout << "Copy Constructor, curr element is : " << rhs << std::endl;
     range_pointer(rhs.elements, rhs.end);
 }
 
@@ -50,19 +51,36 @@ String::~String() {
 }
 
 String& String::operator=(const String& rhs) {
+    std::cout << "Copy Assignment Operator" << std::endl;
     if (this == &rhs) {
-        std::cout << "Self Assignment" << std::endl;
+        //std::cout << "Self Assignment" << std::endl;
         return *this;
     }
-    free();
+    this->free();
     range_pointer(rhs.elements, rhs.end);
     return *this;
 }
 
-std::ostream &operator<<(std::ostream &os, const String &s) {
+std::ostream& operator<<(std::ostream& os, const String& s) {
     for (auto p = s.elements; p != s.end; ++p) {
         os << *p;
     }
     return os;
 }
 
+String& String::operator+=(const String& rhs) {
+    const auto new_size = size() + rhs.size();
+    auto new_data = alloc.allocate(new_size);
+    auto dest = std::uninitialized_copy(elements, end, new_data);
+    dest = std::uninitialized_copy(rhs.elements, rhs.end, dest);
+    this->free();
+    this->elements = new_data;
+    this->end = dest;
+    return *this;
+}
+
+String operator+(const String& rhs, const String& lhs) {
+    String ret = rhs;
+    ret += lhs;
+    return ret;     // 返回一个rvalue
+}

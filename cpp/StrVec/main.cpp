@@ -3,9 +3,6 @@
 
 using namespace std;
 
-// 静态变量
-allocator<string> StrVec::alloc;
-
 int main() {
     StrVec sv;
     sv.push_back("Hello");

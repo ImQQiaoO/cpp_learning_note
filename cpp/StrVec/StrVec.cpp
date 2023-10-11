@@ -4,15 +4,15 @@
 
 #include "StrVec.h"
 
-void StrVec::push_back(const std::string &s) {
+void StrVec::push_back(const std::string& s) {
     chk_n_alloc();  // 确保有空间容纳新元素
     // 在first_free指向的元素中构造s的副本
     //alloc.construct(first_free++, s);		// 注意：C++20中此函数已被移除！！
     std::allocator_traits<decltype(alloc)>::construct(alloc, first_free++, s);
 }
 
-std::pair<std::string *, std::string *> StrVec::alloc_n_copy(const std::string *b,
-    const std::string *e) {
+std::pair<std::string*, std::string*> StrVec::alloc_n_copy(const std::string* b,
+    const std::string* e) {
 
     // 分配空间保存给定范围中的元素
     auto data = alloc.allocate(e - b);
@@ -32,7 +32,7 @@ void StrVec::free() {
     }
 }
 
-StrVec::StrVec(const StrVec &s) {
+StrVec::StrVec(const StrVec& s) {
     // 调用alloc_n_copy分配空间以容纳与s中一样多的元素
     auto newdata = alloc_n_copy(s.begin(), s.end());
     elements = newdata.first;
@@ -43,13 +43,13 @@ StrVec::~StrVec() {
     free();
 }
 
-StrVec &StrVec::operator=(const StrVec &rhs) {
+StrVec& StrVec::operator=(const StrVec& rhs) {
     if (this == &rhs) {
         return *this;
     }
     // 调用alloc_n_copy分配内存，大小与rhs中元素占用空间一样多
     auto data = alloc_n_copy(rhs.begin(), rhs.end());
-    free();     // 销毁对象在this指向的元素
+    this->free();     // 销毁对象在this指向的元素
     elements = data.first;
     first_free = cap = data.second;
     return *this;
@@ -80,7 +80,7 @@ void StrVec::reallocate() {
 // 例如：os << "{Hello, World}"，会报错：error C2679: 二进制“<<”: 没有找到接受“const char [14]”类型的左操作数的运算符(或没有可接受的转换)
 // 原因： MSVC编译器不支持C++20中的std::string_view类型，而C++20中的std::string_view类型可以直接使用字符串的字面值。
 //os << std::string("{");
-std::ostream &operator<<(std::ostream &os, const StrVec &sv) {
+std::ostream& operator<<(std::ostream& os, const StrVec& sv) {
     os << "{";
     for (auto p = sv.begin(); p != sv.end(); ++p) {
         os << *p;
@@ -90,5 +90,25 @@ std::ostream &operator<<(std::ostream &os, const StrVec &sv) {
     }
     os << "}";
     return os;
+}
+
+StrVec::StrVec(StrVec&& s)      // 移动操作不应抛出任何异常
+// 成员初始化器接管s中的资源
+    : elements(s.elements), first_free(s.first_free), cap(s.cap) {
+    // 令s进入这样的状态：对其运行析构函数是安全的
+    s.elements = s.first_free = s.cap = nullptr;
+}
+
+StrVec& StrVec::operator=(StrVec&& rhs) noexcept {
+    if (this == &rhs) {
+        return *this;
+    }
+    this->free();     // 释放已有元素
+    elements = rhs.elements;    // 从rhs中接管资源
+    first_free = rhs.first_free;
+    cap = rhs.cap;
+    // 将rhs置于可析构状态
+    rhs.elements = rhs.first_free = rhs.cap = nullptr;
+    return *this;
 }
 
