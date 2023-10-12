@@ -15,6 +15,7 @@ public:
     ~String();                          // 析构函数
     // 移动构造函数
     String(String&& s) noexcept : elements(s.elements), end(s.end) {
+        std::cout << "Move Constructor" << std::endl;
         s.elements = s.end = nullptr;
     }
     // 移动赋值运算符

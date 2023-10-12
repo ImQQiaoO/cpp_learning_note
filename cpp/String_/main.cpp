@@ -37,8 +37,7 @@ void test_func() {
     cout << s7.size() << endl;
 }
 
-int main() {
-    //test_func();
+void vec_push() {
     vector<String> vec;
     vec.reserve(5); // 申请5个空间，避免多次扩容
     vec.push_back("Hello0");
@@ -46,6 +45,12 @@ int main() {
     vec.push_back("Hello2");
     vec.push_back("Hello3");
     vec.push_back("Hello4");
+}
 
+int main() {
+    //test_func();
+    //vec_push();
+    String s1("Hi!");
+    String s2 = std::move(s1);  // 调用移动构造函数
     return 0;
 }

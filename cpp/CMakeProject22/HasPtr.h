@@ -17,7 +17,7 @@ public:
     }
     HasPtr &operator=(const HasPtr &);
     ~HasPtr();
-
+  
 private:
     std::string *ps;
     int i;
