@@ -32,6 +32,7 @@ private:
 
     void addFldr(Folder *f) { folders.insert(f); }
     void remFldr(Folder *f) { folders.erase(f); }
+    void move_Folders(Message *m);
 };
 
 void swap(Message &, Message &);

@@ -77,3 +77,13 @@ void swap(Message &lhs, Message &rhs) {
 void Message::print_debug() const {
     std::cout << contents << std::endl;
 }
+
+// 从本Message移动Folder指针
+void Message::move_Folders(Message *m) {
+    folders = std::move(m->folders);    // 使用set的移动赋值运算符
+    for (auto f : folders) {            // 对每个Folder
+        f->remMsg(m);                   // 从Folder中删除旧Message
+        f->addMsg(this);                // 将本Message添加到Folder中
+    }
+    m->folders.clear();                 // 确保销毁m是无害的
+}
