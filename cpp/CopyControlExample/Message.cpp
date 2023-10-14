@@ -24,6 +24,11 @@ Message::Message(const Message &m) : contents(m.contents), folders(m.folders) {
     add_to_Folders(m);  // 将本消息添加到指向m的Folder中
 }
 
+// 移动构造函数
+Message::Message(Message &&m) : contents(std::move(m.contents)) {
+    move_Folders(&m);   // 移动folders并更新Folder指针
+}
+
 // 从对应的Folder中删除本Message
 void Message::remove_from_Folders() {
     for (auto f : folders)  // 对folders中每个指针
@@ -40,6 +45,16 @@ Message &Message::operator=(const Message &rhs) {
     folders = rhs.folders;      // 从rhs拷贝Folder指针
     add_to_Folders(rhs);        // 将本Message添加到那些Folder中
     return *this;
+}
+
+// 移动赋值运算符
+Message &Message::operator=(Message &&rhs) {
+    if (this != &rhs) {         // 直接检测自赋值情况
+        remove_from_Folders();  // 更新已有Folder
+        contents = std::move(rhs.contents);    // 从rhs移动消息内容
+        move_Folders(&rhs);     // 移动Folder指针
+        return *this;
+    }
 }
 
 // TODO: 

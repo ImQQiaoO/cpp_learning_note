@@ -23,6 +23,5 @@ int main() {
     delete m1;
     delete m2;
     delete f1;
-
     return 0;
 }
