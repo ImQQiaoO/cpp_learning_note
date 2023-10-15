@@ -17,6 +17,7 @@ public:
     StrVec(StrVec &&) noexcept;              // 移动构造函数
     StrVec &operator=(StrVec &&) noexcept;   // 移动赋值运算符
     void push_back(const std::string &);     // 拷贝元素
+    void push_back(std::string &&);          // 移动元素
     size_t size() const { return first_free - elements; }  // 返回元素个数
     size_t capacity() const { return cap - elements; }     // 返回容量
     std::string *begin() const { return elements; }

@@ -11,6 +11,13 @@ void StrVec::push_back(const std::string& s) {
     std::allocator_traits<decltype(alloc)>::construct(alloc, first_free++, s);
 }
 
+void StrVec::push_back(std::string &&s) {
+    chk_n_alloc();  // 确保有空间容纳新元素
+    // 在first_free指向的元素中构造s的副本
+    //alloc.construct(first_free++, std::move(s));		// 注意：C++20中此函数已被移除！！
+    std::allocator_traits<decltype(alloc)>::construct(alloc, first_free++, std::move(s));
+}
+
 std::pair<std::string*, std::string*> StrVec::alloc_n_copy(const std::string* b,
     const std::string* e) {
 
