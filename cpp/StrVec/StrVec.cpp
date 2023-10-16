@@ -99,7 +99,7 @@ std::ostream& operator<<(std::ostream& os, const StrVec& sv) {
     return os;
 }
 
-StrVec::StrVec(StrVec&& s)      // 移动操作不应抛出任何异常
+StrVec::StrVec(StrVec&& s)  noexcept     // 移动操作不应抛出任何异常
 // 成员初始化器接管s中的资源
     : elements(s.elements), first_free(s.first_free), cap(s.cap) {
     // 令s进入这样的状态：对其运行析构函数是安全的
