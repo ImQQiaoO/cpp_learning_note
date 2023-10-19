@@ -1,6 +1,7 @@
 *.pdf
 .idea
 .vs
+.obsidian
 cpp/*/.idea
 cpp/*/.vs
 cpp/*/cmake-build-debug
