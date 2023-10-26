@@ -11067,7 +11067,7 @@ int main() {
 
 
 
-### 3.2 lambda表达式
+### 3.2 lambda表达式	<a name="034493"> </a>
 
 根据算法接受一元谓词还是二元谓词，我们传递给算法的谓词必须严格接受一个或两个参数。但是，有时我们希望进行的操作需要更多参数，超出了算法对谓词的限制。
 
@@ -11264,7 +11264,7 @@ int main() {
 
 
 
-##### 值捕获
+##### 值捕获	<a name="375055"> </a>
 
 类似参数传递，变量的捕获方式也可以是值或引用。下表是几种不同的构造捕获列表的方式：
 
@@ -11286,7 +11286,7 @@ void fcn1() {
 
 
 
-##### 引用捕获
+##### 引用捕获	<a name="220251"> </a>
 
 我们定义lambda时可以采用引用的方式捕获变量。
 
@@ -11371,7 +11371,7 @@ void biggies(vector<string> &words, vector<string>::size_type sz, ostream &os = 
 
 
 
-##### 可变lambda
+##### 可变lambda	<a name="931330"> </a>
 
 默认情况下，对于一个值被拷贝的变量，lambda不会改变其值。如果我们希望能改变一个被捕获的变量的值，就必须在参数列表首加上关键字mutable。因此，可变lambda能省略参数列表：
 
@@ -11486,7 +11486,7 @@ bool check_size(const string &s, string::size_type sz) {
 
 
 
-##### 标准库`bind`函数
+##### 标准库`bind`函数	<a name="070660"> </a>
 
 解决向`check_size`传递一个长度参数的问题，方法是使用一个新的名为`bind`的标准库函数，它定义在头文件`functional`中。
 
@@ -19451,3 +19451,268 @@ public:
 2. 如果`point`是定义了`operator->`的类的一个对象,则我们使用`point.operator->()`的结果来获取`mem`。其中，如果该结果是一个指针，则执行第1步；如果该结果本身含有重载的`operator->()`，则重复调用当前步骤。最终，当这一过程结束时程序或者返回了所需的内容，或者返回一些表示程序错误的信息。
 
 > **重载的箭头运算符必须返回类的指针或者自定义了箭头运算符的某个类的对象。**
+
+
+
+
+
+## 8. 函数调用运算符
+
+如果类重载了函数调用运算符，则我们**可以像使用函数一样使用该类的对象**。
+
+因为这样的类同时也能存储状态，所以与普通函数相比它们更加灵活。
+
+例：下面这个名为`absInt`的`struct`含有一个调用运算符，该运算符负责返回其参数的绝对值：
+
+```C++
+struct absInt {
+	int operator()(int val) const {
+		return val < 0 ? -val : val;
+	}
+};
+```
+
+这个类只定义了函数调用运算符，它负责接受一个`int`类型的实参，然后返回该实参的绝对值。
+
+我们使用调用运算符的方式是令一个`absInt`对象作用于一个实参列表，这一过程看起来非常像调用函数的过程：
+
+```C++
+	int i = -42;
+	absInt absObj;			// 含有函数调用运算符的对象
+	int ui = absObj(i);		// 将i传递给absObj.opeartor()
+```
+
+即使`absObj`只是一个对象而非函数，我们也能“调用”该对象。调用对象实际上是在运行重载的调用运算符。在此例中，该运算符接受一个`int`值并返回其绝对值。
+
+**函数调用运算符必须是成员函数。**一个类可以定义多个不同版本的调用运算符，相互之间应该在参数数量或类型上有所区别。
+
+如果类定义了调用运算符，则该类的对象称作**函数对象**。因为可以调用这种对象，所以我们说这些对象的“行为像函数一样”。
+
+
+
+
+
+##### 含有状态的函数对象类
+
+和其他类一样，函数对象类除了`operator()`之外也可以包含其他成员。函数对象类通常含有一些数据成员，这些成员被用于定制调用运算符中的操作。
+
+例：定义一个打印`string`实参内容的类。默认情况下，我们的类会将内容写入到`cout`中，每个`string`之间以空格隔开。同时也允许类的用户提供其他可写入的流及其他分隔符。我们将该类定义如下：
+
+```C++
+class PrintString {
+public:
+    PrintString(std::ostream &o = std::cout, char c = ' ') : os(o), sep(c) {}
+    void operator()(const std::string &s) const { os << s << sep; }
+
+private:
+    std::ostream &os;
+    char sep;
+};
+```
+
+我们的类有一个构造函数，它接受一个输出流的引用以及一个用于分隔的字符，这两个形参的默认实参分别是`cout`和空格。之后的函数调用运算符使用这些成员协助其打印给定的`string`。
+
+```C++
+    std::string s = "hello";
+    PrintString printer;        // 使用默认值，打印到cout
+    printer(s);                 // 在cout中打印s，后面跟一个空格
+    PrintString errors(std::cerr, '\n');
+    errors(s);                  // 在cerr中打印s，后面跟一个换行
+```
+
+**函数对象常常作为泛型算法的实参。**例如，可以使用标准库`for_each`算法和我们自己的`PrintString`类来打印容器的内容：
+
+```C++
+    std::vector<std::string> vs = {"hello", "world", "!"};
+    std::for_each(vs.begin(), vs.end(), PrintString(std::cout, '\n'));
+```
+
+`for_each`的第三个实参是类型`PrintString`的一个临时对象，其中我们用`cerr`和换行符初始化了该对象。当程序调用`for_each`时，将会把`vs`中的每个元素依次打印到`cerr`中，元素之间以换行符分隔。
+
+
+
+
+
+### 8.1 lambda是函数对象
+
+在上面，我们使用一个`PrintString`对象作为调用`for_each`的形参，这个用法类似于<a href="#034493">使用lambda表达式的程序</a>。
+
+当我们编写了一个lambda后，编译器将该表达式翻译成一个未命名类的未命名对象。在 lambda表达式产生的类中含有一个重载的函数调用运算符，例如，对于我们传递给`stable_sort`作为其最后一个实参的lambda表达式来说：
+
+```C++
+	// 根据单词的长度对其进行排序，对于长度相同的单词按照字母表顺序排序
+	stable_sort(words.begin(), words.end(), 
+				[](const string &a, const string &b)
+				   {return a.size() < b.size();});
+```
+
+其行为类似于下面这个类的一个未命名对象	<a name="936824"> </a>
+
+```C++
+class ShorterString {
+public:
+	bool opeartor()(const string &s1, const string &s2) const
+	{ return s1.size() < s2.size(); }
+};
+```
+
+**产生的类只有一个函数调用运算符成员**，它负责接受两个`string`并比较它们的长度，它的形参列表和函数体与lambda表达式完全一样。在<a href="#931330">可变lambda章节</a>所见，默认情况下lambda不能改变它捕获的变量。因此在默认情况下，由lambda产生的类当中的函数调用运算符是一个`const`成员函数。如果lambda被声明为可变的，则调用运算符就不是`const`的了。
+
+用这个类替代lambda表达式后，重写并重新调用`stable_sort`：
+
+```C++
+	stable_sort(words.begin(), words.end(), ShorterString());
+```
+
+第三个实参是新构建的`ShorterString` 对象，当`stable_sort`内部的代码每次比较两个`string`时就会“调用”这一对象，此时该对象将调用运算符的函数体，判断第一个`string`的大小小于第二个时返回`true`。
+
+
+
+
+
+##### 表示lambda及相应捕获行为的类
+
+- 当一个lambda表达式通过引用捕获变量时，将由程序负责确保lambda执行时引用所引的对象确实存在（<a href="#220251">见引用捕获章节</a>）。因此，编译器可以直接使用该引用而无须在lambda产生的类中将其存储为数据成员。
+
+- 相反，通过值捕获的变量被拷贝到lambda中（<a href="#375055">见值捕获章节</a>）。因此，这种lambda产生的类必须为每个值捕获的变量建立对应的数据成员，同时创建构造函数，令其使用捕获的变量的值来初始化数据成员。
+
+  例：这个lambda的作用是找到第一个长度不小于给定值的`string`对象：
+
+  ```C++
+  	// 获得第一个指向满足条件元素的迭代器，该元素满足size() is >= sz
+  	auto wc = find_if(words.begin(), words.end(),
+  					  [sz](const string &a) { return a.size() >= sz; });
+  ```
+
+  该lambda表达式产生的类形如：
+
+  ```C++
+  class SizeComp {
+  	SizeComp(size_t n) : sz(n) {}	// 该形参对应捕获的变量
+  	// 该调用运算符的返回类型、形参和函数体都与lambda一致
+  	bool opeartor()(const string &s) const {
+  		return s.size() >= sz;
+  	}
+  private:
+  	size_t sz;		// 该数据成员对应通过值捕获的变量
+  };
+  ```
+
+  <a href="#936824">`ShorterString`类</a>不同，`SizeComp`类含有一个数据成员以及一个用于初始化该成员的构造函数。这个合成的类不含有默认构造函数，因此要想使用这个类必须提供一个实参：
+
+  ```C++
+  	// 获得第一个指向满足条件元素的迭代器，该元素满足size() is >= sz
+  	auto wc = find_if(words.begin(), words.end(), SizeComp(sz));
+  ```
+
+  lambda表达式产生的类不含默认构造函数、赋值运算符及默认析构函数；它是否含有默认的拷贝/移动构造函数则通常要视捕获的数据成员类型而定。
+
+
+
+
+
+### 8.2 标准库定义的函数对象
+
+标准库定义了一组表示算术运算符、关系运算符和逻辑运算符的类，每个类分别定义了一个执行命名操作的调用运算符。
+
+例，`plus`类定义了一个函数调用运算符用于对一对运算对象执行`+`的操作；`modulus`类定义了一个调用运算符执行二元的`%`操作；`equal_to`类执行`==`，等等。
+
+这些类都被定义成模板的形式，我们可以为其指定具体的应用类型，这里的类型即调用运算符的形参类型。例如，`plus<string>`令 `string`加法运算符作用于`string`对象；`plus<int>`的运算对象是`int`；`plus<Sales_data>`对`Sales_data`对象执行加法运算，以此类推：
+
+```C++
+    plus<int> intAdd;       // 可执行int类型的加法的函数对象
+    negate<int> intNegate;  // 可执行int类型的取反的函数对象
+    // 使用intAdd::operator(int, int)执行加法，求10 + 20的结果
+    int sum = intAdd(10, 20);       // 等价于sum = 30
+    sum = intNegate(intAdd(10, 20)); // 等价于sum = -30
+    // 使用intNegate::operator(int)执行取反，求-10的结果
+    // 然后将-10作为intAdd::operator(int, int)的第二个参数
+    sum = intAdd(10, intNegate(10)); // 等价于sum = 0
+```
+
+
+
+下表所列的类型定义在`functional`头文件中：
+
+![](./images/标准库函数对象.png)
+
+
+
+
+
+##### 在算法中使用标准库函数对象
+
+表示运算符的函数对象类常用来替换算法中的默认运算符。如我们所知，在默认情况下排序算法使用`operator<`将序列按照升序排列。如果要执行降序排列的话，我们可以传入一个`greater`类型的对象。该类将产生一个调用运算符并负责执行待排序类型的大于运算。例如，如果`svec`是一个`vector<string>`，
+
+```C++
+	// 传入一个临时的函数对象用于执行两个string对象的>比较运算
+	sort(svec.begin(), svec.end(), greater<string>());
+```
+
+则上面的语句将按照降序对`svec`进行排序。第三个实参是`greater<string>`类型的一个未命名的对象，因此当`sort`比较元素时，不再是使用默认的`<`运算符，而是调用给定的`greater`函数对象。该对象负责在`string`元素之间执行`>`比较运算。
+
+
+
+特别注意：标准库规定其函数对象对于指针同样适用。我们之前曾经介绍过比较两个无关指针将产生未定义的行为，然而我们可能会希望通过比较指针的内存地址来`sort`指针的`vector`。直接这么做将产生未定义的行为，因此我们可以使用一个标准库函数对象来实现该目的：
+
+```C++
+	vector<string *> nameTable;		// 指针的vector
+	// 错误：nameTable中的指针彼此之间没有关系，所以<将产生未定义的行为
+	sort(nameTable.begin(), nameTable.end(), [](string *a, string *b) { return a < b; });
+	// 正确：标准库规定指针的less是定义良好的
+	sort(nameTable.begin(), nameTable.end(), less<string *>());
+```
+
+**关联容器使用`less<key_type>`对元素排序，因此我们可以定义一个指针的`set`或者在`map`中使用指针作为关键值而无须直接声明`less`。**
+
+
+
+
+
+### 8.3 可调用对象与`function`
+
+C++中有几种可调用的对象：函数、函数指针、<a href="#034493">lambda表达式</a>、<a href="#070660">`bind`创建的对象</a>以及重载了函数调用运算符的类。
+
+和其他对象一样，可调用的对象也有类型。例如，每个 lambda有它自己唯一的（未命名）类类型；函数及函数指针的类型则由其返回值类型和实参类型决定，等等。
+
+然而，两个不同类型的可调用对象却可能共享同一种**调用形式**。调用形式指明了调用返回的类型以及传递给调用的实参类型。一种调用形式对应一个函数类型，例如:
+
+```C++
+	int(int, int)
+```
+
+是一个函数类型，它接受两个`int`、返回一个`int`。
+
+
+
+
+
+##### 不同类型可能具有相同的调用形式
+
+对于几个可调用对象共享同一种调用形式的情况，有时我们会希望把它们看成具有相同的类型。例如，考虑下列不同类型的可调用对象：
+
+```C++
+	// 普通函数
+	int add(int i, int j) {
+		return i + j;
+	}
+	
+	// lambda，其产生一个未命名的函数对象类
+	auto mod = [](int i, int j) {
+		return i % j;
+	}
+	
+	// 函数对象类
+	struct divide {
+		int operator()(int denominator, int divisor) {
+			return denominator / divisor;
+		}
+	};
+```
+
+上面这些可调用对象分别对其参数执行了不同的算术运算，尽管它们的类型各不相同，但是共享同一种调用形式：
+
+```C++
+		int(int, int)
+```
+
