@@ -3488,9 +3488,9 @@ case false:
 	}
 ```
 
->    在这个`case`语句中，声明语句被放置在了一个语句块内部，这个语句块只包含了这个声明语句。这意味着这个变量的作用域被限制在了这个语句块内部，其他分支无法访问这个变量。如果您在其他分支中访问这个变量，编译器将会报错。
+>                在这个`case`语句中，声明语句被放置在了一个语句块内部，这个语句块只包含了这个声明语句。这意味着这个变量的作用域被限制在了这个语句块内部，其他分支无法访问这个变量。如果您在其他分支中访问这个变量，编译器将会报错。
 >
->    当然，如果在这个`case`语句中存在其他语句，而这些语句也需要访问这个变量，那么这个`case`语句就不再是正确的了。在这种情况下，您需要将声明语句放置在`switch`语句之前，或者将这个变量声明为`switch`语句外部的变量。
+>                当然，如果在这个`case`语句中存在其他语句，而这些语句也需要访问这个变量，那么这个`case`语句就不再是正确的了。在这种情况下，您需要将声明语句放置在`switch`语句之前，或者将这个变量声明为`switch`语句外部的变量。
 
 
 
@@ -5345,14 +5345,14 @@ void fooBar(int ival)
 > int square(int width = 10, int height = 10);
 > 
 > int main() {
->  cout << square() << endl;       // 100
->  cout << square(20) << endl;  // 200
->  cout << square(20, 15) << endl;  // 300
->  return 0;
+> cout << square() << endl;       // 100
+> cout << square(20) << endl;  // 200
+> cout << square(20, 15) << endl;  // 300
+> return 0;
 > }
 > 
 > int square(int width, int height) {
->  return width * height;
+> return width * height;
 > }
 > ```
 
@@ -16538,7 +16538,7 @@ public:
 - 对于动态分配的对象，当对指向它的指针应用`delete`运算符时被销毁。
 - 对于临时对象，当创建它的完整表达式结束时被销毁。
 
-由于析构函数自动运行，我们的程序可以按需要分配资源，而（通常）无须担心何时释放这些资源。
+66666666由于析构函数自动运行，我们的程序可以按需要分配资源，而（通常）无须担心何时释放这些资源。
 
 下面的代码定义了四个`Sales_data`对象：
 
@@ -20970,4 +20970,364 @@ public:
 
 ## 5. 访问控制与继承
 
-每个类分别控制自己的成员初始化过程，与之类似，每个类还分别控制着其成员对于派生类来说是否可访问。
+每个类分别控制自己的成员初始化过程，与之类似，每个类还分别控制着其成员对于派生类来说是否**可访问**。
+
+
+
+##### 受保护的成员
+
+如前所述，一个类使用`protected`关键字来声明那些它希望与派生类分享但是不想被其他公共访问使用的成员。`protected`说明符可以看做是`public`和`private`中和后的产物：
+
+- 和私有成员类似，受保护的成员对于类的用户来说是不可访问的。
+- 和公有成员类似，受保护的成员对于派生类的成员和友元来说是可访问的。
+- **派生类的成员或友元只能*通过派生类对象来访问基类的受保护成员*。*派生类对于一个基类对象中的受保护成员没有任何访问特权*。**
+
+理解上面第三条规则的例子：
+
+```C++
+class Base {
+protected:
+    int prot_mem;       // protected member
+};
+class Sneaky : public Base {
+    friend void clobber(Sneaky &);      // 友元函数，能访问Sneaky::prot_mem
+    friend void clobber(Base &);        // 友元函数，不能访问Base::prot_mem
+    int j;                              // private member
+};
+// 正确：clobber() 是 Sneaky 的友元，能访问其 private 和 protected 成员
+void clobber(Sneaky &s) { s.j = s.prot_mem = 0; }
+// 错误：clobber() 不是 Base 的友元，不能访问其 protected 成员
+void clobber(Base &b) { b.prot_mem = 0; }
+```
+
+如果派生类（及其友元）能访问基类对象的受保护成员，则上面的第二个`clobber`（接受一个`Base&`）将是合法的。该函数不是`Base`的友元，但是它仍然能够改变一个`Base`对象的内容。如果按照这样的思路，则我们只要定义一个形如`Sneaky`的新类就能非常简单地规避掉`protected`提供的访问保护了。
+
+要想阻止以上的用法，我们就要做出如下规定，即**派生类的成员和友元只能访问派生类对象中的基类部分的受保护成员**；对于普通的基类对象中的成员不具有特殊的访问权限。
+
+（*一个派生类的对象可以访问其基类的受保护成员，但是对于基类的对象，派生类没有任何访问特权。*）
+
+
+
+
+
+##### 公有、私有和受保护继承
+
+某个类对其继承而来的成员的访问权限受到两个因素影响：
+
+1. 基类中该成员的访问说明符，
+
+2. 派生类的派生列表中的访问说明符。
+
+举个例子，考虑如下的继承关系：
+
+```C++
+class Base {
+public:
+    void pub_mem();     // public成员
+protected:
+    int prot_mem;       // protected成员
+private:
+    char priv_mem;      // private成员
+};
+
+struct Pub_Derv : public Base {
+    // 正确：派生类能访问protected成员
+    int f() { return prot_mem; }
+    // 错误：派生类不能访问private成员
+    char g() { return priv_mem; }	// 错误！
+};
+
+struct Priv_Derv : private Base {
+    // 正确：private继承方式下，派生类能访问protected成员
+    int f1() const { return prot_mem; }
+};
+```
+
+派生访问说明符对于派生类的成员（及友元）能否访问其直接基类的成员没什么影响。
+
+**对基类成员的访问权限只与基类中的访问说明符有关**。`Pub_Derv`和 `Priv_Derv`都能访问受保护的成员`prot_mem`，同时它们都不能访问私有成员`priv_mem`。
+
+
+
+派生访问说明符的目的是**控制派生类用户**（派生类对象以及派生类的派生类）对于基类成员的访问权限：
+
+```C++
+	Pub_Derv d1;		// 继承自Base的成员是public的
+	Priv_Derv d2;		// 继承自Base的成员是private的
+	d1.pub_mem();		// 正确：pub_mem在派生类中是public的
+	d2.pub_mem();		// 错误：pub_mem在派生类中是private的
+```
+
+`Pub_Derv`和`Priv_Derv`都继承了`pub_mem`函数。如果继承是公有的，则成员将遵循其原有的访问说明符，此时`d1`可以调用`pub_mem`。在`Priv_Derv`中，`Base`的成员是私有的，因此类的用户不能调用`pub_mem`。
+
+
+
+派生访问说明符还可以控制继承自派生类的新类的访问权限：
+
+```C++
+struct Derived_from_Public : public Pub_Derv {
+    // 正确：Base::prot_mem在Pub_Derv中仍然是protected的
+    int use_base() { return prot_mem; }
+};
+
+struct Derived_from_Private : public Priv_Derv {
+    // 错误：Base::prot_mem在Priv_Derv中仍然是private的
+    int use_base() { return prot_mem; }
+};
+```
+
+`Pub_Derv`的派生类之所以能访问`Base`的`prot_mem`成员是因为该成员在`Pub_Derv`中仍然是受保护的。相反，`Priv_Derv`的派生类无法执行类的访问，对于它们来说，`Priv_Derv`继承自`Base`的所有成员都是私有的。
+
+假设我们之前还定义了一个名为`Prot_Derv`的类，它采用受保护继承，则`Base`的所有公有成员在新定义的类中都是受保护的。`Prot_Derv`的用户不能访问`pub_mem`，但是`Prot_Derv`的成员和友元可以访问那些继承而来的成员。
+
+> 总结：
+>
+> 1. 派生访问说明符的目的是**控制派生类用户**（派生类对象以及派生类的派生类）对于基类成员的访问权限；
+>
+> 2. 
+>
+>    - 公有继承：`class Derive : public Base{...};` **基类**的成员的访问权限在派生类中没有发生变化；
+>
+>    - 私有继承：`class Derive : private Base{...};` **基类**的成员的访问权限在派生类中均为`private`，无法被派生来对象在类外访问，也无法被派生类的派生类访问；
+>
+>    - 受保护继承：`class Derive : protected Base{...};` **基类**的`public`成员和`protected`成员的访问权限在派生类中均为`protected`，`private`成员的访问权限为`private`。
+
+
+
+
+
+##### 派生类向基类转换的可访问性
+
+派生类向基类的转换是否可访问由使用该转换的代码决定，同时派生类的派生访问说明符也会有影响。假定`D`继承自`B`：
+
+- 只有当`D`公有地继承`B`时，用户代码才能使用派生类向基类的转换；如果`D`继承`B`的方式是受保护的或者私有的，则用户代码不能使用该转换。
+- 不论`D`以什么方式继承`B`，`D`的成员函数和友元都能使用派生类向基类的转换；派生类向其直接基类的类型转换对于派生类的成员和友元来说永远是可访问的。
+- 如果`D`继承`B`的方式是公有的或者受保护的，则`D`的派生类的成员和友元可以使用`D`向`B`的类型转换；反之，如果`D`继承`B`的方式是私有的，则不能使用。
+
+> 对于代码中的某个给定节点来说，如果基类的公有成员是可访问的，则派生类向基类的类型转换也是可访问的；反之则不行。
+
+
+
+> 概念：类的设计与受保护的成员：
+>
+> 不考虑继承的话，我们可以认为一个类有两种不同的用户：普通用户和类的实现者。
+>
+> 其中，普通用户编写的代码使用类的对象，这部分代码只能访问类的公有（接口）成员；实现者则负责编写类的成员和友元的代码，成员和友元既能访问类的公有部分，也能访问类的私有（实现）部分。
+>
+> 如果进一步考虑继承的话就会出现第三种用户，即派生类。基类把它希望派生类能够使用的部分声明成受保护的。普通用户不能访问受保护的成员,而派生类及其友元仍旧不能访问私有成员。
+>
+> 和其他类一样，基类应该将其接口成员声明为公有的；同时将属于其实现的部分分成两组：一组可供派生类访问，另一组只能由基类及基类的友元访间。对于前者应该声明为受保护的，这样派生类就能在实现自己的功能时使用基类的这些操作和数据；对于后者应该声明为私有的。
+
+
+
+
+
+##### 友元与继承
+
+就像友元关系不能传递一样，友元关系同样也不能继承。基类的友元在访问派生类成员时不具有特殊性，类似的，派生类的友元也不能随意访问基类的成员：
+
+```C++
+class Base {
+    friend class Pal;    // Pal在访问Base的派生类时不具有特殊性
+
+protected:
+    int prot_mem;       // protected member
+};
+
+class Sneaky : public Base {
+    int j;                              // private member
+};
+
+class Pal {
+public:
+    int f(Base b) { return b.prot_mem; }    // 正确：Pal是Base的友元
+    int f2(Sneaky s) { return s.j; }        // 错误：Pal不是Sneaky的友元
+    // 对基类的访问权限由基类本身的访问说明符决定，即使对于派生类的基类部分也是如此
+    int f3(Sneaky s) { return s.prot_mem; }  // 正确：Pal是Base的友元
+};
+```
+
+如前所述，每个类负责控制自己的成员的访问权限，因此尽管看起来有点儿奇怪，但`f3`确实是正确的。`Pal`是`Base`的友元，所以`Pal`能够访问`Base`对象的成员，这种可访问性包括了`Base`对象内嵌在其派生类对象中的情况。
+
+当一个类将另一个类声明为友元时，这种友元关系只对做出声明的类有效。对于原来那个类来说，其友元的基类或者派生类不具有特殊的访问能力：
+
+```C++
+// D2对Base的protected和private成员不具有特殊的访问能力
+class D2 : public Pal {
+public:
+	int mem(Base b) {
+		return b.prot_mem;		// 错误：友元关系不能继承
+	}
+};
+```
+
+> 不能继承友元关系；每个类负责控制各自成员的访问权限。
+
+
+
+
+
+##### 改变个别成员的可访问性
+
+有时我们需要改变派生类继承的某个名字的访问级别，通过使用`using`声明可以达到这一目的：
+
+```c++
+class Base {
+public:
+    std::size_t size() const { return n; }
+protected:
+    std::size_t n;
+};
+
+class Derived : private Base {
+public:
+    // 保持对象尺寸相关的成员的访问级别
+    using Base::size;
+protected:
+    using Base::n;
+};
+```
+
+因为`Derived`使用了私有继承，所以继承而来的成员`size`和`n` （在默认情况下）是`Derived`的私有成员。
+
+然而，我们使用`using`声明语句改变了这些成员的可访问性。改变之后，`Derived`的用户将可以使用`size`成员，而`Derived`的派生类将能使用`n`。
+
+通过在类的内部使用`using`声明语句，我们可以将该类的直接或间接基类中的任何可访问成员（例如,非私有成员）标记出来。
+
+`using`声明语句中名字的访问权限由该`using`声明语句之前的访问说明符来决定。也就是说，如果一条`using`声明语句出现在类的`private`部分，则该名字只能被类的成员和友元访问；如果`using`声明语句位于`public`部分，则类的所有用户都能访问它；如果`using`声明语句位于`protected`部分，则该名字对于成员、友元和派生类是可访问的。
+
+> **派生类只能为那些它可以访问的名字提供`using`声明。**
+
+
+
+
+
+##### 默认的继承保护级别
+
+使用`struct`和`class`关键字定义的类具有不同的默认访问说明符。类似的，默认派生运算符也由定义派生类所用的关键字来决定。
+
+默认情况下，使用`class`关键字定义的派生类是私有继承的；而使用`struct`关键字定义的派生类是公有继承的：
+
+```C++
+class Base { /* ... */ };
+struct D1 : Base { /* ... */ };			// 默认public继承
+class D2 : Base { /* ... */ };			// 默认private继承
+```
+
+在使用`struct`关键字和`class`关键字定义的类唯一的差别就是默认成员访问说明符及默认派生访问说明符。
+
+> 一个私有派生的类最好显式地将`private`声明出来，而不要仅仅依赖于默认的设置。显式声明的好处是可以令私有继承关系清晰明了，不至于产生误会。
+
+
+
+
+
+## 6. 继承中的类作用域
+
+在类定义自己的作用域内定义类的成员。**当存在继承关系时，派生类的作用域嵌套在其基类的作用域之内。**如果一个名字在派生类的作用域内无法正确解析，则编译器将继续在外层的基类作用域中寻找该名字的定义。
+
+虽然我们在程序的文本中派生类和基类的定义是相互分离开的。但正因为类作用域有这种继承嵌套的关系，所以派生类才能像使用自己的成员一样使用基类的成员。
+
+例：
+
+```C++
+	Bulk_quote bulk;
+	cout << bulk.isbn();
+```
+
+名字`isbn`的解析将按照下述过程所示：
+
+- 因为我们是通过`Bulk_quote`的对象调用`isbn`的，所以首先在`Bulk_quote`中查找，这一步没有找到名字`isbn`。
+- 因为`Bulk_quote`是`Disc_quote`的派生类，所以接下来在`Disc_quote`中查找，仍然找不到。
+- 因为`Disc_quote`是`Quote`的派生类，所以接着查找`Quote`；此时找到了名字`isbn`，所以我们使用的`isbn`最终被解析为`Quote`中的`isbn`。
+
+
+
+
+
+##### 在编译时进行名字查找
+
+一个对象、引用或指针的静态类型决定了该对象的哪些成员是可见的。即使静态类型与动态类型可能不一致（当使用基类的引用或指针时会发生这种情况），但是我们能使用哪些成员仍然是由静态类型决定的。
+
+举个例子，我们可以给`Disc_quote`添加一个新成员，该成员返回一个存有最小（或最大）数量及折扣价格的`pair`：
+
+```C++
+class Disc_quote : public Quote {
+public:
+    std::pair<size_t, double> discount_policy() const {
+        return { quantity, discount };
+    }
+    /* 其他成员与之前版本一致 */
+};
+```
+
+我们只能通过`Disc_quote`及其派生类的对象、引用或指针使用`discount_policy`：
+
+```C++
+	Bulk_quote bulk;
+	Bulk_quote *bulkP = &bulk;			// 静态类型与动态类型一致
+	Quote *itemP = &bulk;				// 静态类型与动态类型不一致
+	bulkP->discount_policy();			// 正确：bulkP的类型是Bulk_quote *
+	itemP->discount_policy();			// 错误：itemP的类型是Quote *
+```
+
+尽管在`bulk`中确实含有一个名为`discount_policy`的成员，但是该成员对于`itemP`却是不可见的。
+
+`itemP`的类型是`Quote`的指针，意味着对`discount_policy`的搜索将从`Quote`开始。显然`Quote`不包含名为`discount_policy`的成员，所以我们无法通过`Quote`的对象、引用或指针调用`discount_policy`。
+
+
+
+
+
+##### 名字冲突与继承
+
+和其他作用域一样，派生类也能重用定义在其直接基类或间接基类中的名字，此时定义在内层作用域（即派生类）的名字将隐藏定义在外层作用域（即基类）的名字：
+
+```C++
+struct Base {
+    Base() : mem(0) {}
+
+protected:
+    int mem;
+};
+
+struct Derived : Base {
+    Derived(int i) : mem(i) {}      // 用i初始化Derived::mem
+                                    // Base::mem进行默认初始化
+    int get_mem() { return mem; }   // 返回Derived::mem
+
+    int get_base_mem() { return Base::mem; }
+
+protected:
+    int mem;                        // 隐藏了基类中的Base::mem
+};
+```
+
+`get_mem`中`mem`引用的解析结果是定义在`Derived`中的名字，下面的代码会输出42
+
+```C++
+    Derived d(42);
+    std::cout << d.get_mem() << std::endl;        // 输出42
+```
+
+派生类的成员将隐藏同名的基类成员。
+
+
+
+
+
+##### 通过作用域运算符来使用隐藏的成员
+
+通过作用域运算符来使用一个被隐藏的基类成员：
+
+```C++
+struct Derived : Base {
+	/* 其他成员和之前一致 */
+	int get_base_mem() { return Base::mem; }
+	// ...
+};
+```
+
+作用域运算符将覆盖掉原有的查找规则，并指示编译器从`Base`类的作用域开始查找`mem`。
+
+> **除了覆盖继承而来的虚函数之外，派生类最好不要重用其他定义在基类中的名字。**
