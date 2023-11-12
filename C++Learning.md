@@ -12637,7 +12637,7 @@ int main() {
 
 
 
-##### 使用关键字类型的比较函数	<a name="213949"> </a>
+##### 使用关键字类型的比较函数	 <a name="213949"> </a>
 
 用来组织一个容器中元素的操作的类型也是该容器类型的一部分。为了指定使用自定义的操作，必须在定义关联容器类型时提供此操作的类型。
 
@@ -12650,9 +12650,20 @@ int main() {
 但是，可以用一个`compareIsbn`函数来定义一个`multiset`。此函数在`Sales_data`对象的ISBN成员上定义了一个严格弱序：
 
 ```C++
+// 用函数
 bool compareIsbn(const Sales_data &lhs, const Sales_data &rhs) {
     return lhs.isbn() < rhs.isbn();
 }
+// 用lambda
+class A {
+public:
+    int a;
+    A(int a) : a(a) {}
+    virtual ~A() = default;
+};
+auto compare = [](const shared_ptr<A> &a, const shared_ptr<A> &b) {
+	return a->a < b->a;
+};
 ```
 
 接下来，为了使用自己定义的操作，在定义`multiset`时我们必须提供两个类型：关键字类型`Sales_data`，以及比较操作类型——应该是一种<a href="#828175">函数指针类型</a>，可以指向`compareIsbn`。当定义此容器类型的对象时，需要提供想要使用的操作的指针。在本例中，我们提供一个指向`compareIsbn`的指针：
@@ -12661,6 +12672,14 @@ bool compareIsbn(const Sales_data &lhs, const Sales_data &rhs) {
 	// bookstore中多条记录可以有相同的ISBN
 	// bookstore中的元素以ISBN的顺序进行排列
 	multiset<Sales_data, decltype(compareIsbn)*> bookstore(compareIsbn);
+	// 或
+	multiset<Sales_data, decltype(compareIsbn)*> bookstore{ compareIsbn };
+	
+	// --------------------------------------------------------------
+	// 例二：
+	multiset<shared_ptr<A>, decltype(compare)> ms(compare);
+	// 或
+	multiset<shared_ptr<A>, decltype(compare)> ms{ compare };
 ```
 
 在上面的代码中，使用`decltype`来指出自定义操作的类型。
@@ -13172,7 +13191,7 @@ int main() {
 
 
 
-### 3.5 访问元素
+### 3.5 访问元素	<a name="443552"> </a>
 
 关联容器提供多种**查找**一个指定元素的方法。如下表所示：<a name="246945"> </a>
 
@@ -13243,7 +13262,7 @@ int main() {
 
 
 
-##### 一种不同的，面向迭代器的解决方法
+##### 一种不同的，面向迭代器的解决方法	<a name="936586"> </a>
 
 使用`lower_bound`和`upper_bound`解决上面的问题：
 
@@ -16070,7 +16089,7 @@ int main() {
 
 
 
-### 3.2 文本查询程序类的定义
+### 3.2 文本查询程序类的定义	<a name="377897"> </a>
 
 ##### 定义`TextQuery`类
 
@@ -20882,7 +20901,7 @@ struct D3 : public D2 {
 
 
 
-##### 纯虚函数
+##### 纯虚函数	<a name="588131"> </a>
 
 上述问题的关键所在：根本不希望用户创建一个`Disc_quote`对象。`Disc_quote`类表示的是一本打折书籍的通用概念，而非某种具体的折扣策略。
 
@@ -21797,3 +21816,409 @@ public:
 
 值得注意的是，我们将`basket`定义成`shared_ptr<Quote>`，但是在第二个`push_back`中传入的是一个`Bulk_quote`对象的`shared_ptr`。正如我们可以将一个派生类的普通指针转换成基类指针一样，我们也能把一个派生类的智能指针转换成基类的智能指针。在此例中，`make_shared<Bulk_quote>`返回一个`shared_ptr<Bulk_quote>`对象，当我们调用`push_back`时该对象被转换成`shared_ptr<Quote>`。因此尽管在形式上有所差别，但实际上`basket`的所有元素的类型都是相同的。
 
+
+
+
+
+### 8.1 编写`Basket`类
+
+对于C++面向对象的编程来说，一个悖论是我们无法直接使用对象进行面向对象编程。相反，我们必须使用指针和引用。因为指针会增加程序的复杂性，所以我们经常定义一些辅助的类来处理这种复杂情况。首先，我们定义一个表示购物篮的类：
+
+```C++
+class Basket {
+public:
+    // Basket使用合成的默认构造函数和拷贝控制成员
+    void add_item(const std::shared_ptr<Quote> &sale) { items.insert(sale); }
+    // 打印每本书的总价和购物篮中所有书的总价
+    double total_receipt(std::ostream &) const;
+private:
+    // 该函数用于比较shared_ptr,multiset成员会用到它
+    static bool compare(const std::shared_ptr<Quote> &lhs,
+                        const std::shared_ptr<Quote> &rhs) {
+        return lhs->isbn() < rhs->isbn();
+    }
+    // multiset保存多个报价，按照compare成员排序
+    std::multiset<std::shared_ptr<Quote>, decltype(compare) *> items{ compare };
+};
+```
+
+我们的类使用一个`multiset`来存放交易信息，这样我们就能保存同一本书的多条交易记录，而且对于一本给定的书籍，它的所有交易信息都保存在一起。
+
+`multiset`的元素是`shared_ptr`。因为`shared_ptr`没有定义小于运算符，所以为了对元素排序我们必须提供自己的比较运算符（<a href="#213949">参见这里</a>）。在此例中，我们定义了一个名为`compare`的私有静态成员，该成员负责比较`shared_ptr`所指的对象的`isbn`。我们初始化`multiset`，通过类内初始值调用比较函数：
+
+```C++
+	// multiset保存多个报价，按照compare成员排序
+    std::multiset<std::shared_ptr<Quote>, decltype(compare) *> items{ compare };
+```
+
+从左向右理解这个定义，我们就能明白它其实是定义了一个指向`Quote`对象的`shared_ptr`的`multiset`。这个`multiset`将使用一个与`compare`成员类型相同的函数来对其中的元素进行排序。`multiset`成员的名字是`items`，我们初始化`items`并令其使用我们的`compare`函数。
+
+> 为什么在这里（`Basket`类中）不能写成以下的形式，而必须写成大括号？
+>
+> ```C++
+> std::multiset<std::shared_ptr<Quote>, decltype(compare) *> items(compare);	// 错误
+> ```
+>
+> 原因：
+>
+> 当使用圆括号时，编译器可能会将其解释为一个函数声明，导致最终的语义不是你所期望的。这被称为C++中的“最让人烦恼的解析”（most vexing parse）。为了避免这种歧义，可以使用花括号初始化。
+
+
+
+
+
+##### 定义`Basket`的成员
+
+`Basket`类只定义两个操作。第一个成员是我们在类的内部定义的`add_item`成员，该成员接受一个指向动态分配的`Quote`的`shared_ptr`,然后将这个`shared_ptr`放置在`multiset`中。第二个成员的名字是`total_receipt`，它负责将购物篮的内容逐项打印成清单，然后返回购物篮中所有物品的总价格：
+
+```C++
+double Basket::total_receipt(std::ostream &os) const {
+    double sum = 0.0;       // 保存实时计算出的总价格
+    // iter指向ISBN相同的一批元素中的第一个
+    // upper_bound返回一个迭代器，该迭代器指向这批元素的尾后位置
+    for (auto iter = items.cbegin(); iter != items.cend(); iter = items.upper_bound(*iter)) {
+        // 我们知道在当前的Basket中至少有一个该关键字的元素
+        // 打印该书籍对应的项目
+        sum += print_total(os, **iter, items.count(*iter));
+    }
+    os << "Total Sale: " << sum << std::endl;   // 打印最终的总价格
+    return sum;
+}
+```
+
+我们的`for`循环首先定义并初始化`iter`，令其指向`multiset`的第一个元素。条件部分检查`iter`是否等于`items.cend()`：如果相等，表明我们已经处理完了所有购买记录，接下来应该跳出`for`循环；否则，如果不相等，则继续处理下一本书籍。
+
+`for`循环中的“递增”表达式。与通常的循环语句依次读取每个元素不同，我们直接令`iter`指向下一个关键字，调用<a href="#936586">`upper_bound`函数</a>可以令我们跳过与当前关键字相同的所有元素。对于`upper_bound`函数来说，它返回的是一个迭代器，该迭代器指向所有与`iter`关键字相等的元素中最后一个元素的下一位置。因此，我们得到的迭代器或者指向集合的末尾，或者指向下一本书籍。
+
+在`for`循环内部，我们通过调用<a href="#173715">`print_total`</a>来打印购物篮中每本书籍的细节：
+
+```C++
+	sum += print_total(os, **iter, items.count(*iter));
+```
+
+`print_total`的实参包括一个用于写入数据的`ostream`、一个待处理的`Quote`对象和一个计数值。当我们解引用`iter`后将得到一个指向准备打印的对象的`shared_ptr`。为了得到这个对象，必须解引用该`shared_ptr`。因此，`**iter`是一个 `Quote`对象（或者`Quote`的派生类的对象）。我们使用`multiset`的<a href="#443552">`count`成员</a>来统计在`multiset`中有多少元素的键值相同（即ISBN相同)。
+
+如我们所知，`print_total`调用了虚函数`net_price`，因此最终的计算结果依赖于`**iter`的动态类型。`print_total`函数打印并返回给定书籍的总价格，我们把这个结果添加到`sum`当中，最后当循环结束后打印`sum`。
+
+
+
+
+
+##### 隐藏指针
+
+`Basket`的用户仍然必须处理动态内存，原因是`add_item`需要接受一个`shared_ptr`参数。因此，用户不得不按照如下形式编写代码：
+
+```C++
+	Basket bsk;
+	bsk.add_item(make_shared<Quote>("123", 45));
+	bsk.add_item(make_shared<Bulk_quote>("345", 45, 3, .15));
+```
+
+下一步：重新定义`add_item`，使得它接受一个`Quote`对象而非`shared_ptr`。新版本的`add_item`将负责处理内存分配，这样它的用户就不必再受困于此了。我们将定义两个版本，一个拷贝它给定的对象，另一个则采取移动操作：
+
+```C++
+	void add_item(const Quote &sale);		// 拷贝给定的对象
+	void add_item(Quote &&sale);			// 移动给定的对象
+```
+
+唯一的问题是`add_item`不知道要分配的类型。当`add_item`进行内存分配时，它将拷贝（或移动）它的`sale`参数。在某处可能会有一条如下形式的`new`表达式：
+
+```C++
+	new Quote(sale)
+```
+
+不幸的是，这条表达式所做的工作可能是不正确：`new`为我们请求的类型分配内存，因此这条表达式将分配一个`Quote`类型的对象并且拷贝`sale`的`Quote`部分。然而，`sale`实际指向的可能是`Bulk_quote`对象，此时，该对象将被迫切掉一部分。
+
+
+
+
+
+##### 模拟虚拷贝
+
+给`Quote`类添加一个虚函数，该函数将申请一份当前对象的拷贝：
+
+```C++
+class Quote {
+public:
+	// 该虚函数返回当前对象的一份动态分配的拷贝
+	// 使用引用限定符
+	virtual Quote* clone() const & { return new Quote(*this); }
+	virtual Quote* clone() const && { return new Quote(std::move(*this)); }
+	// 其他成员与之前版本一致
+};
+
+class Bulk_quote : public Quote {
+public:
+	// 该虚函数返回当前对象的一份动态分配的拷贝
+	// 使用引用限定符
+	virtual Bulk_quote* clone() const & { return new Bulk_quote(*this); }
+	virtual Bulk_quote* clone() const && { return new Bulk_quote(std::move(*this)); }
+	// 其他成员与之前版本一致
+};
+```
+
+因为我们拥有`add_item`的拷贝和移动版本，所以我们分别定义`clone`的左值和右值版本。每个`clone`函数分配当前类型的一个新对象，其中，`const`左值引用成员将它自己拷贝给新分配的对象；右值引用成员则将自己移动到新数据中。
+
+我们可以使用`clone`很容易地写出新版本的`add_item`：
+
+```C++
+class Basket {
+public:
+	// 拷贝给定的对象
+	void add_item(const Quote &sale) {
+		items.insert(std::shared_ptr<Quote>(sale.clone()));
+	}
+	// 移动给定的对象
+	void add_item(Quote &&sale) {
+		items.insert(std::shared_ptr<Quote>(std::move(sale).clone()));
+	}
+	// 其他成员与之前版本一致
+};
+```
+
+和`add_item`本身一样，`clone`函数也根据作用于左值还是右值而分为不同的重载版本。在此例中，第一个`add_item`函数调用`clone`的`const`左值版本，第二个函数调用`clone`的右值引用版本。在右值版本中，尽管`sale`的类型是右值引用类型，但实际上`sale`本身（和任何其他变量一样）是个左值。因此，我们调用`move`把一个右值引用绑定到`sale`上。
+
+我们的`clone`函数也是一个虚函数。`sale`的动态类型（通常）决定了到底运行`Quote`的函数还是`Bulk_quote`的函数。无论我们是拷贝还是移动数据，`clone`都返回一个新分配对象的指针，该对象与`clone`所属的类型一致。我们把一个`shared_ptr`绑定到这个对象上，然后调用`insert`将这个新分配的对象添加到`items`中。注意，因为`shared_ptr`支持派生类向基类的类型转换，所以我们能把`shared_ptr<Quote>`绑定到`Bulk_quote*`上。
+
+
+
+
+
+
+
+## 9. 文本查询程序再探
+
+测试用例：
+
+```
+Alice Emma has long flowing red hair.
+Her Daddy says when the wind blows
+through her hair, it looks almost alive,
+like a fiery bird in flight.
+A beautiful fiery bird, he te1ls her ,
+magical but untamed.
+"Daddy, shush, there is no such thing , "
+she tells him, at the same time wanting
+him to tell her more.
+shyly, she asks,"I mean,Daddy , is there?"
+```
+
+目标：
+
+- 单词查询，用于得到匹配某个给定`string`的所有行：
+
+  ```
+  Executing Query for: Daddy
+  Daddy occurs 3 times
+  (line 2) Her Daddy says when the wind blows
+  (line 7) "Daddy, shush, there is no such thing, "
+  (line 10) shyly, she asks, "I mean, Daddy, is there?"
+  ```
+
+- 逻辑非查询，使用`~`运算符得到不匹配查询条件的所有行：
+
+  ```
+  Executing Query for: ~(Alice)
+  ~(Alice) occurs 9 times
+  (line 2) Her Daddy says when the wind blows
+  (line 3) through her hair, it looks almost alive,
+  (line 4) like a fiery bird in flight.
+  ...
+  ```
+
+- 逻辑或查询，使用`|`运算符返回匹配两个条件中任意一个的行：
+
+  ```
+  Executing Query for: (hair | Alice)
+  (hair | Alice) occurs 2 times
+  (line 1) Alice Emma has long flowing red hair.
+  (line 3) through her hair, it looks almost alive,
+  ```
+
+- 逻辑与查询，使用`&`运算符返回匹配全部两个条件的行：
+
+  ```
+  Executing query for: (hair & Alice)
+  (hair & Alice) occurs 1 time
+  (line 1) Alice Emma has long flowing red hair.
+  ```
+
+此外，该程序应该满足混合使用这些运算符：
+
+例：`fiery & bird | wind`：
+
+```
+Executing Query for: ((fiery & bird) | wind)
+((fiery & bird) | wind) occurs 3 times
+(line 2) Her Daddy says when the wind blows
+(line 4) like a fiery bird in flight.
+(line 5) A beautiful fiery bird, he tells her,
+```
+
+在类似上面的例子中，我们将使用C++通用的优先级规则对复杂表达式求值。因此，这条查询语句所得行应该是如下二者之一：在该行中或者`fiery`和`bird`同时出现，或者出现了`wind`。
+
+在输出内容中首先是那条查询语句，我们使用圆括号来表示查询被解释和执行的次序。与之前实现的版本一样，接下来系统将按照查询结果中行号的升序显示结果并且每一行只显示一次。
+
+
+
+
+
+### 9.1 面向对象的解决方案
+
+从之前定义的<a href="#377897">TextQuery类</a>来表示单词查询，然后从该类中派生出其他查询，这样的设计存在缺陷：
+
+原因：
+
+考虑逻辑非查询：单词查询查找一个指定的单词，为了让逻辑非查询按照单词查询的方式执行，我们将不得不定义逻辑非查询所要查找的单词。但是在一般情况下，我们无法得到这样的单词。相反，一个逻辑非查询中含有一个结果值需要取反的查询语句（单词查询或任何其他查询）；类似的，一个逻辑与查询和一个逻辑或查询各包含两个结果值需要合并的查询语句。
+
+由上述观察结果可知，我们应该将几种不同的查询建模成相互独立的类，这些类共享一个公共基类：
+
+```
+	WordQuery		// Daddy
+	NotQuery		// ~Alice
+	OrQuery			// hair | Alice
+	AndQuery		// hair & Alice
+```
+
+这些类将只包含两个操作：
+
+- `eval`，接受一个`TextQuery`对象并返回一个`QueryResult`，`eval`函数使用给定的`TextQuery`对象查找与之匹配的行。
+- `rep`，返回基础查询的`string`表示形式，`eval`函数使用`rep`创建一个表示匹配结果的`QueryResult`，输出运算符使用`rep`打印查询表达式。
+
+
+
+> 继承和组合：
+>
+> 当我们令一个类公有地继承另一个类时，派生类应当反映与基类的“是一种(is A)”关系。在设计良好的类体系当中，公有派生类的对象应该可以用在任何需要基类对象的地方。
+>
+> 类型之间的另一种常见关系是“有一个(Has A)”关系（聚合 Aggregation），具有这种关系的类暗含成员的意思。
+>
+> 在我们的书店示例中，基类表示的是按规定价格销售的书籍的报价。`Bulk_quote`“是一种”报价结果，只不过它使用的价格策略不同。我们的书店类都“有一个”价格成员和ISBN成员。
+
+
+
+
+
+##### 抽象基类
+
+在这四种查询之间并不存在彼此的继承关系，从概念上来说它们互为兄弟。因为所有这些类都共享同一个接口，所以我们需要定义一个抽象基类来表示该接口。我们将所需的抽象基类命名为`Query_base`，以此来表示它的角色是整个查询继承体系的根节点。
+
+`Query_base`类将把`eval`和`rep`定义成<a href="#588131">纯虚函数</a>，其他代表某种特定查询类型的类必须覆盖这两个函数。我们将从`Query_base`直接派生出`wordQuery`和`NotQuery`。`AndQuery`和`OrQuery`都具有系统中其他类所不具备的一个特殊属性：**它们各自包含两个运算对象**。为了对这种属性建模，我们定义另外一个名为`BinaryQuery`的抽象基类，该抽象基类用于表示含有两个运算对象的查询。`AndQuery`和`OrQuery`继承自`BinaryQuery`，而`BinaryQuery`继承自`Query_base`。由这些分析我们将得到如下图所示的类设计结果：
+
+![](./images/qb继承体系.png)
+
+
+
+##### 将层次关系隐藏于接口类中
+
+为了使程序能正常运行，我们必须首先创建查询命令，最简单的办法是编写C++表达式。例如，可以编写下面的代码来生成之前描述的复合查询：
+
+```C++
+	Query q = Query("fiery") & Query("bird") | Query("wind");
+```
+
+上面这一行代码隐含的意思是用户层代码将不会直接使用这些继承的类；
+
+相反，我们将定义一个名为`Query`的接口类，由它负责隐藏整个继承体系。`Query`类将保存一个`Query_base`指针，该指针绑定到 `Query_base`的派生类对象上。`Query`类与`Query_base`类提供的操作是相同的：`eval`用于求查询的结果，`rep`用于生成查询的`string`版本，同时`Query`也会定义一个重载的输出运算符用于显示查询。
+
+用户将通过`Query`对象的操作间接地创建并处理`Query_base`对象。我们定义`Query`对象的三个重载运算符以及一个接受`string`参数的`Query`构造函数，这些函数动态分配一个新的`Query_base`派生类的对象：
+
+- `&`运算符生成一个绑定到新的`AndQuery`对象上的`Query`对象；
+- `|`运算符生成一个绑定到新的`OrQuery`对象上的`Query`对象；
+- `~`运算符生成一个绑定到新的`NotQuery`对象上的`Query`对象；
+- 接受`string`参数的`Query`构造函数生成一个新的`WordQuery`对象。
+
+![](./images/Query创建的对象.png)
+
+
+
+##### 理解这些类的工作机理
+
+在这个应用程序中，很大一部分工作是构建代表用户查询的对象。例如，像上面这样的表达式将生成如上图所示的一系列相关对象的集合。
+
+一旦对象树构建完成后，对某一条查询语句的求值（或生成表示形式的）过程基本上就转换为沿着箭头方向依次对每个对象求值(或显示)的过程（由编译器为我们组织管理）。
+
+例如，如果我们对`q`（即树的根节点）调用`eval`函数，则该调用语句将令`q`所指的`OrQuery`对象`eval`它自己。对该`OrQuery`求值实际上是对它的两个运算对象执行`eval`操作：一个运算对象是`AndQuery`，另一个是查找单词`wind`的`WordQuery`。接下来，对`AndQuery`求值转化为对它的两个`WordQuery`求值，分别生成单词`fiery`和`bird`的查询结果。
+
+![](./images/query程序设计概述.png)
+
+
+
+### 9.2 `Query_base`类和`Query`类
+
+定义`Query_base`类：
+
+```C++
+// 这是一个抽象基类，具体的查询类型从中派生，所有成员都是private 的
+class Query_base {
+    friend class Query;
+protected:
+    using line_no = TextQuery::line_no; // 用于eval函数
+    virtual ~Query_base() = default;
+private:
+    // eval返回与当前Query匹配的QueryResult
+    virtual QueryResult eval(const TextQuery &) const = 0;
+    // rep是表示查询的一个string
+    virtual std::string rep() const = 0;
+};
+```
+
+`eval`和`rep`都是纯虚函数，因此`Query_base`是一个抽象基类。因为我们不希望用户或者派生类直接使用`Query_base`，所以它没有`public`成员。所有对`Query_base`的使用都需要通过`Query`对象，因为`Query`需要调用`Query_base`的虚函数，所以我们将`Query`声明成`Query_base`的友元。
+
+受保护的成员`line_no`将在`eval`函数内部使用。类似的，析构函数也是受保护的，因为它将（隐式地）在派生类析构函数中使用。
+
+
+
+##### `Query`类
+
+`Query`类对外提供接口，同时隐藏了`Query_base`的继承体系。每个`Query`对象都含有一个指向`Query_base`对象的`shared_ptr`。因为`Query`是`Query_base`的唯一接口，所以`Query` 必须定义自己的`eval`和`rep`版本。
+
+接受一个`string`参数的`Query`构造函数将创建一个新的`WordQuery`对象，然后将它的`shared_ptr`成员绑定到这个新创建的对象上。`&`、`|`和`~`运算符分别创建`AndQuery`、`OrQuery`和`NotQuery`对象，这些运算符将返回一个绑定到新创建的对象上的`Query`对象。为了支持这些运算符，`Query`还需要另外一个构造函数，它接受指向`Query_base`的`shared_ptr`并且存储给定的指针。我们将这个构造函数声明为私有的，原因是我们不希望一般的用户代码能随便定义`Query_base`对象。因为这个构造函数是私有的,所以我们需要将三个运算符声明为友元。
+
+```C++
+// 这是一个管理Query_base继承体系的接口类
+class Query {
+    friend Query operator~(const Query &);
+    friend Query operator|(const Query &, const Query &);
+    friend Query operator&(const Query &, const Query &);
+public:
+    Query(const std::string &); // 构建一个新的WordQuery
+    // 接口函数：调用对应的Query_base操作
+    QueryResult eval(const TextQuery &t) const { return q->eval(t); }
+    std::string rep() const { return q->rep(); }
+
+private:
+    Query(std::shared_ptr<Query_base> query) : q(query) {}
+    std::shared_ptr<Query_base> q;
+};
+```
+
+我们首先将创建`Query`对象的运算符声明为友元，之所以这么做是因为这些运算符需要访问那个私有构造函数。
+
+在`Query`的公有接口部分，我们声明了接受`string`的构造函数，不过没有对其进行定义。因为这个构造函数将要创建一个`WordQuery`对象，所以我们应该首先定义`WordQuery`类，随后才能定义接受`string`的`Query`构造函数。
+
+另外两个公有成员是`Query_base`的接口。其中，`Query`操作使用它的`Query_base`指针来调用各自的`Query_base`虚函数。实际调用哪个函数版本将由`q`所指的对象类型决定，并且直到运行时才能最终确定下来。
+
+
+
+
+
+##### `Query`的输出运算符
+
+输出运算符可以很好地解释我们的整个查询系统是如何工作的：
+
+```C++
+std::ostream &operator<<(std::ostream &os, const Query &query) {
+    // Query::rep通过它的Query_base指针对rep()进行了虚调用
+    return os << query.rep();
+}
+```
+
+当我们打印一个`Query`时，输出运算符调用`Query`类的公有`rep`成员。运算符函数通过指针成员虚调用当前`Query`所指对象的`rep`成员。也就是说，当我们编写如下代码时：
+
+```C++
+	Query andq = Query(sought1) & Query(sought2);
+	cout << andq << endl;
+```
+
+输出运算符将调用`andq`的`Query::rep`，而`Query::rep`通过它的`Query_base`指针虚调用`Query_base`版本的`rep`函数。因为`andq`指向的是一个`AndQuery`对象，所以本次的函数调用将运行`AndQuery::rep`。
