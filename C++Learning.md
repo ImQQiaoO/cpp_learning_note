@@ -22169,6 +22169,8 @@ private:
 
 
 
+
+
 ##### `Query`类
 
 `Query`类对外提供接口，同时隐藏了`Query_base`的继承体系。每个`Query`对象都含有一个指向`Query_base`对象的`shared_ptr`。因为`Query`是`Query_base`的唯一接口，所以`Query` 必须定义自己的`eval`和`rep`版本。
@@ -22222,3 +22224,245 @@ std::ostream &operator<<(std::ostream &os, const Query &query) {
 ```
 
 输出运算符将调用`andq`的`Query::rep`，而`Query::rep`通过它的`Query_base`指针虚调用`Query_base`版本的`rep`函数。因为`andq`指向的是一个`AndQuery`对象，所以本次的函数调用将运行`AndQuery::rep`。
+
+
+
+
+
+### 9.3 派生类
+
+对于`Query_base`的派生类来说，最有趣的部分是这些派生类如何表示一个真实的查询。其中`WordQuery`类最直接，它的任务就是保存要查找的单词。
+
+其他类分别操作一个或两个运算对象。`NotQuery`有一个运算对象，`AndQuery`和`OrQuery`有两个。在这些类当中，运算对象可以是`Query_base`的任意一个派生类的对象：一个`NotQuery`对象可以被用在`WordQuery`、`AndQuery`、`OrQuery`或另一个`NotQuery`中。为了支持这种灵活性，运算对象必须以`Query_base`指针的形式存储，这样我们就能把该指针绑定到任何我们需要的具体类上。
+
+然而，实际上我们的类并不存储`Query_base`指针，而是直接使用一个`Query`对象。就像用户代码可以通过接口类得到简化一样，我们也可以使用接口类来简化我们自己的类。
+
+实现：
+
+
+
+##### `WordQuery`类
+
+一个`WordQuery`查找一个给定的`string`，它是在给定的`TextQuery`对象上实际执行查询的唯一一个操作：
+
+```C++
+class WordQuery : public Query_base {
+    friend class Query;     // Query 使用 WordQuery 的构造函数
+    WordQuery(const std::string &s) : query_word(s) {}
+    // 具体的类：WordQuery 将定义所有继承而来的纯虚函数
+    QueryResult eval(const TextQuery &t) const { return t.query(query_word); }
+    std::string rep() const { return query_word; }
+    std::string query_word; // 要查找的单词
+};
+```
+
+和`Query_base`一样，`WordQuery`没有公有成员。同时，`Query`必须作为`WordQuery`的友元，这样`Query`才能访问`WordQuery`的构造函数。
+
+每个表示具体查询的类都必须定义继承而来的纯虚函数`eval`和`rep`。我们在`WordQuery`类的内部定义这两个操作：`eval`调用其`TextQuery`参数的`query`成员，由`query`成员在文件中实际进行查找；`rep`返回这个`WordQuery`表示的`string` (即`query_word`)。
+
+定义了`WordQuery`类之后，我们就能定义接受`string`的`Query`构造函数了：
+
+```C++
+	inline Query::Query(const std::string &s) : q(new WordQuery(s)) { }
+```
+
+这个构造函数分配一个`WordQuery`，然后令其指针成员指向新分配的对象。
+
+
+
+
+
+##### `NotQuery`类及`~`运算符
+
+`~`运算符生成一个`NotQuery`，其中保存着一个需要对其取反的`Query`：
+
+```C++
+class NotQuery : public Query_base {
+	friend Query operator~(const Query &);
+	NotQuery(const Query &q) : query(q) {}
+	// 具体的类：NotQuery 将定义所有继承而来的纯虚函数
+	std::string rep() const { return "~(" + query.rep() + ")"; }
+	QueryResult eval(const TextQuery &) const;
+	Query query;
+};
+
+inline Query operator~(const Query &operand) {
+	return std::shared_ptr<Query_base>(new NotQuery(operand));
+}
+```
+
+因为`NotQuery`的所有成员都是私有的，所以我们一开始就要把`~`运算符设定为友元。为了`rep`一个`NotQuery`，我们需要将`~`符号与基础的`Query`连接在一起。我们在输出的结果中加上适当的括号，这样读者就可以清楚地知道查询的优先级了。
+
+值得注意的是，在`NotQuery`自己的`rep`成员中对`rep`的调用最终执行的是一个虚调用：`query.rep()`是对`Query`类`rep`成员的非虚调用，接着`Query::rep`将调用`q->rep()`，这是一个通过`Query_base`指针进行的虚调用。
+
+`~`运算符动态分配一个新的`NotQuery`对象，其`return`语句**隐式**地使用接受一个`shared_ptr<Query_base>`的`Query`构造函数。也就是说，`return`语句等价于：
+
+```C++
+	// 分配一个新的NotQuery对象
+	// 将所得的NotQuery指针绑定到一个shared_ptr<Query_base>
+	shared_ptr<Query_base> tmp(new NotQuery(expr));
+	return Query(tmp);		// 使用接受一个shared_ptr的Query构造函数
+```
+
+
+
+
+
+##### `BinaryQuery`类
+
+`BinaryQuery`类也是一个抽象基类，它保存操作两个运算对象的查询类型所需的数据：
+
+```C++
+class BinaryQuery : public Query_base {
+protected:
+    BinaryQuery(const Query &l, const Query &r, std::string s) : lhs(l), rhs(r), opSym(s) { }
+    std::string rep() const { return "(" + lhs.rep() + " " + opSym + " " + rhs.rep() + ")"; }
+    Query lhs, rhs;			// 左侧和右侧运算对象
+    std::string opSym;		// 运算符的名字
+};
+```
+
+`BinaryQuery`中的数据是两个运算对象及相应的运算符符号，构造函数负责接受两个运算对象和一个运算符符号，然后将它们存储在对应的数据成员中。
+
+要想`rep`一个`BinaryQuery`，我们需要生成一个带括号的表达式。表达式的内容依次包括左侧运算对象、运算符以及右侧运算对象。就像我们显示`NotQuery`的方法一样，对`rep`的调用最终是对`lhs`和`rhs`所指`Query_base`对象的`rep`函数进行虚调用。
+
+> `BinaryQuery`不定义`eval`，而是继承了该纯虚函数。因此，`BinaryQuery`也是一个抽象基类，我们不能创建`BinaryQuery`类型的对象。
+
+
+
+
+
+##### `AndQuery`类、`OrQuery`类及相应的运算符
+
+`AndQuery`类和`OrQuery`类以及它们的运算符都非常相似：
+
+```C++
+class AndQuery : public BinaryQuery {
+    friend Query operator&(const Query &, const Query &);
+    AndQuery(const Query &left, const Query &right) : BinaryQuery(left, right, "&") {}
+    // 具体的类：AndQuery继承了rep并定义了其他纯虚函数
+    QueryResult eval(const TextQuery &) const;
+
+};
+
+inline Query operator&(const Query &lhs, const Query &rhs) {
+    return std::shared_ptr<Query_base>(new AndQuery(lhs, rhs));
+}
+
+class OrQuery : public BinaryQuery {
+    friend Query operator|(const Query &, const Query &);
+    OrQuery(const Query &left, const Query &right) : BinaryQuery(left, right, "|") {}
+    QueryResult eval(const TextQuery &) const override;
+};
+
+inline Query operator|(const Query &lhs, const Query &rhs) {
+    return std::shared_ptr<Query_base>(new OrQuery(lhs, rhs));
+}
+```
+
+这两个类将各自的运算符定义成友元，并且各自定义了一个构造函数通过运算符创建`BinaryQuery`基类部分。它们继承`BinaryQuery`的`rep`函数，但是覆盖了`eval`函数。
+
+和`~`运算符一样，`&`和`|`运算符也返回一个绑定到新分配对象上的`shared_ptr`。在这些运算符中，`return`语句负责将`shared_ptr`转换成`Query`。
+
+
+
+
+
+### 9.4 `eval`函数
+
+`eval`函数是我们这个查询系统的核心。每个`eval`函数作用于各自的运算对象，同时遵循的内在逻辑也有所区别：`OrQuery`的`eval`操作返回两个运算对象查询结果的并集，而`AndQuery`返回交集。与它们相比，`NotQuery`的`eval`函数更加复杂一些：它需要返回运算对象没有出现的文本行。
+
+为了支持上述`eval`函数的处理，我们需要使用`QueryResult`，在它当中定义了12.3.2节练习(第435页）添加的成员。假设`QueryResult`包含`begin`和`end`成员，它们允许我们在`QueryResult` 保存的行号`set`中进行迭代：另外假设`QueryResult`还包含一个名为`get_file`的成员，它返回一个指向待查询文件的`shared_ptr`。
+
+
+
+##### `OrQuery::eval`
+
+一个`OrQuery`表示的是它的两个运算对象结果的并集，对于每个运算对象来说，我们通过调用`eval`得到它的查询结果。因为这些运算对象的类型是`Query`，所以调用`eval`也就是调用`Query::eval`，而后者实际上是对潜在的`Query_base`对象的`eval`进行虚调用。每次调用完成后，得到的结果是一个`QueryResult`，它表示运算对象出现的行号。我们把这些行号组织在一个新`set`中：
+
+```C++
+// 返回运算对象查询结果的并集
+QueryResult OrQuery::eval(const TextQuery &text) const {
+    // 通过Query成员lhs和rhs进行的虚调用
+    // 调用eval返回每个运算对象的QueryResult
+    auto right = rhs.eval(text), left = lhs.eval(text);
+    // 将左侧运算对象的行号拷贝到结果set中
+    auto ret_lines = std::make_shared<std::set<line_no>>(left.begin(), left.end());
+    // 插入右侧运算对象所得的行号
+    ret_lines->insert(right.begin(), right.end());
+    // 返回一个新的QueryResult，它表示lhs和rhs的并集
+    return QueryResult(rep(), ret_lines, left.get_file());
+}
+```
+
+我们使用接受一对迭代器的`set`构造函数初始化`ret_lines`。一个`QueryResult` 的`begin`和`end`成员返回行号`set`的迭代器，因此，创建`ret_lines`的过程实际上是拷贝了`left`集合的元素。接下来对`ret_lines`调用`insert`，并将`right`的元素插入进来。调用结束后，`ret_lines`将包含在`left`或`right`中出现过的所有行号。
+
+`eval`函数在最后构建并返回一个表示混合查询匹配的`QueryResult`。`QueryResult`的构造函数接受三个实参：一个表示查询的`string`、一个指向匹配行号`set`的`shared_ptr`和一个指向输入文件`vector`的`shared_ptr`。我们调用`rep`生成所需的`string`，调用`get_file`获取指向文件的`shared_ptr`。因为`left`和`right`指向的是同一个文件，所以使用哪个执行`get_file`函数并不重要。
+
+
+
+
+
+##### `AndQuery::eval`
+
+`AndQuery`的`eval`和`OrQuery`很类似，唯一的区别是它调用了一个标准库算法来求得两个查询结果中共有的行：
+
+```C++
+// 返回运算对象的交集
+QueryResult AndQuery::eval(const TextQuery &text) const {
+    // 通过Query成员lhs和rhs进行的虚调用，以获得运算对象的查询结果set
+    auto left = lhs.eval(text), right = rhs.eval(text);
+    // 将左侧运算对象的行号拷贝到结果set中
+    auto ret_lines = std::make_shared<std::set<line_no>>(left.begin(), left.end());
+    // 将两个范围的交集写入一个目的迭代器中
+    std::set_intersection(left.begin(), left.end(),
+                          right.begin(), right.end(),
+                          std::inserter(*ret_lines, ret_lines->begin()));
+    return QueryResult(rep(), ret_lines, left.get_file());
+}
+```
+
+其中我们使用标准库算法`set_intersection`来合并两个`set` 。
+
+`set_intersection`算法接受五个迭代器。它使用前四个迭代器表示两个输入序列，最后一个实参表示目的位置。该算法将两个输入序列中共同出现的元素写入到目的位置中。
+
+在上述调用中我们传入一个插入迭代器作为目的位置。当`set_intersection`向这个迭代器写入内容时，实际上是向`ret_lines`插入一个新元素。
+
+和`OrQuery`的`eval`函数一样，`AndQuery`的`eval`函数也在最后构建并返回一个表示混合查询匹配的`QueryResult`。
+
+
+
+
+
+##### `NotQuery::eval`
+
+```C++
+// 返回运算对象的结果set中不存在的行
+QueryResult NotQuery::eval(const TextQuery &text) const {
+    // 通过Query运算对象对eval进行虚调用
+    auto result = query.eval(text);
+    // 开始时set为空
+    auto ret_lines = std::make_shared<std::set<line_no>>();
+    // 我们必须在运算对象出现的所有行中进行迭代
+    auto beg = result.begin(), end = result.end();
+    // 对于输入文件的每一行，如果该行不在result当中，则将其添加到ret_lines
+    auto sz = result.get_file()->size();
+    for (size_t n = 0; n != sz; ++n) {
+        // 如果我们还没有处理完result的所有行
+        // 检查当前行是否存在
+        if (beg == end || *beg != n)
+            ret_lines->insert(n); // 如果不在result当中，添加这一行
+        else if (beg != end)
+            ++beg; // 否则继续获取result的下一行（如果有的话）
+    }
+    return QueryResult(rep(), ret_lines, result.get_file());
+}
+```
+
+和其他`eval`函数一样，我们首先对当前的运算对象调用`eval`，所得的结果`QueryResult`中包含的是运算对象出现的行号，但我们想要的是运算对象未出现的行号。也就是说，我们需要的是存在于文件中，但是不在`result`中的行。
+
+要想得到最终的结果，我们需要遍历不超过输出文件大小的所有整数，并将所有不在`result`中的行号放入到`ret_lines`中。我们使用`beg`和`end`分别表示`result`的第一个元素和最后一个元素的下一位置。因为遍历的对象是一个`set`，所以当遍历结束后获得的行号将按照升序排列。
+
+循环体负责检查当前的编号是否在`result`当中。如果不在，将这个数字添加到`ret_lines`中；如果该数字属于`result`，则我们递增`result`的迭代器`beg`。
+
+一旦处理完所有行号，就返回包含`ret_lines`的一个`QueryResult`对象；和之前版本的`eval`类似，该`QueryResult`对象还包含`rep`和`get_file`的运行结果。
