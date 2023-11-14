@@ -3,6 +3,9 @@
 #
 cmake_minimum_required (VERSION 3.8)
 
+add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+
 # 如果支持，请为 MSVC 编译器启用热重载。
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)

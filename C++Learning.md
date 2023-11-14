@@ -21995,7 +21995,7 @@ Alice Emma has long flowing red hair.
 Her Daddy says when the wind blows
 through her hair, it looks almost alive,
 like a fiery bird in flight.
-A beautiful fiery bird, he te1ls her ,
+A beautiful fiery bird, he tells her ,
 magical but untamed.
 "Daddy, shush, there is no such thing , "
 she tells him, at the same time wanting
