@@ -2,6 +2,7 @@
 #include <fstream>
 
 #include "Query.h"
+#include "AndQuery.h"
 #include "OrQuery.h"
 #include "TextQuery.h"
 #include "QueryResult.h"
