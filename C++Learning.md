@@ -22466,3 +22466,56 @@ QueryResult NotQuery::eval(const TextQuery &text) const {
 循环体负责检查当前的编号是否在`result`当中。如果不在，将这个数字添加到`ret_lines`中；如果该数字属于`result`，则我们递增`result`的迭代器`beg`。
 
 一旦处理完所有行号，就返回包含`ret_lines`的一个`QueryResult`对象；和之前版本的`eval`类似，该`QueryResult`对象还包含`rep`和`get_file`的运行结果。
+
+
+
+
+
+
+
+# 模板与泛型编程
+
+一个模板就是一个创建类或函数的蓝图或者说公式。
+
+
+
+## 1. 定义模板
+
+假定我们希望编写一个函数来比较两个值，并指出第一个值是小于、等于还是大于第二个值。在实际中，我们可能想要定义多个函数，每个函数比较一种给定类型的值。我们的初次尝试可能定义多个重载函数：
+
+```C++
+	// 如果两个值相等，返回0，如果v1小返回-1，如果v2小返回1
+	int compare(const string &v1, const string &v2) {
+		if (v1 < v2) return -1;
+		if (v2 < v1) return 1;
+		return 0;
+	}
+	int compare(const double &v1, const double &v2) {
+		if (v1 < v2) return -1;
+		if (v2 < v1) return 1;
+		return 0;
+	}
+```
+
+这两个函数几乎是相同的，唯一的差异是参数的类型，函数体则完全一样。
+
+如果对每种希望比较的类型都不得不重复定义完全一样的函数体，是非常烦琐且容易出错的。更麻烦的是，在编写程序的时候，我们就要确定可能要`compare`的所有类型。如果希望能在用户提供的类型上使用此函数，这种策略就失效了。
+
+
+
+### 1.1 函数模板
+
+我们可以定义一个通用的**函数模板**，而不是为每个类型都定义一个新函数。一个函数模板就是一个公式，可用来生成针对特定类型的函数版本。`compare`的模板版本可能像下面这样：
+
+```C++
+template <typename T>
+int compare(const T &v1, const T &v2) {
+    if (v1 < v2) return -1;
+    if (v2 < v1) return 1;
+    return 0;
+}
+```
+
+模板定义以关键字`template`开始，后跟一个**模板参数列表**，这是一个逗号分隔的一个或多个模板参数的列表，用小于号(<)和大于号(>）包围起来。
+
+> 在模板定义中，模板参数列表不能为空。
