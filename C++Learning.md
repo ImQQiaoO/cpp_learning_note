@@ -22970,3 +22970,286 @@ void Blob<T>::pop_back() {
 
 ##### `Blob`构造函数
 
+与其他任何定义在类模板外的成员一样，构造函数的定义要以模板参数开始：
+
+```C++
+template<typename T>
+Blob<T>::Blob() : data(std::make_shared<std::vector<T>>()) {}
+```
+
+这段代码在作用域`Blob<T>`中定义了名为`Blob`的成员函数。类似`StrBlob`的默认构造函数，此构造函数分配一个空`vector`，并将指向`vector`的指针保存在`data`中。如前所述，我们将类模板自己的类型参数作为`vector`的模板实参来分配`vector`。
+
+类似的，接受一个`initializer_list`参数的构造函数将其类型参数`T`作为`initializer_list`参数的元素类型：
+
+```C++
+template<typename T>
+Blob<T>::Blob(std::initializer_list<T> il):
+        data(std::make_shared<std::vector<T>>(il)) {}
+```
+
+类似默认构造函数，此构造函数分配一个新的`vector`。在本例中，我们用参数`il`来初始化此`vector`。
+
+为了使用这个构造函数，我们必须传递给它一个`initializer_list`，其中的元素必须与`Blob`的元素类型兼容：
+
+```C++
+	Blob<string> articles = { "a", "an" , "the" };
+```
+
+这条语句中，构造函数的参数类型为`initializer_list<string>`。列表中的每个字符串字面常量隐式地转换为一个`string`。
+
+
+
+
+
+##### 类模板成员函数的实例化
+
+默认情况下，**一个类模板的成员函数只有当程序用到它时才进行实例化**。例如，下面代码
+
+```C++
+	// 实例化Blob<int>和接受initializer_list<int>的构造函数
+	Blob<int> squares = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	// 实例化Blob<int>::size() const
+	for (size_t i = 0; i != squares.size(); ++i) {
+		square[i] = i * i;	// 实例化Blob<int>::operator[] (size_t)
+	}
+```
+
+实例化了`Blob<int>`类和它的三个成员函数：`operator[]` 、 `size`和接受`initializer_list<int>`的构造函数。
+
+如果一个成员函数没有被使用，则它不会被实例化。**成员函数只有在被用到时才进行实例化，这一特性使得即使某种类型不能完全符合模板操作的要求，我们仍然能用该类型实例化类。**
+
+> 默认情况下，对于一个实例化了的类模板，其成员只有在使用时才被实例化。
+
+
+
+
+
+##### 在类代码内简化模板类名的使用
+
+**当我们使用一个类模板类型时必须提供模板实参，但这一规则有一个例外。在类模板自己的作用域中，我们可以直接使用模板名而不提供实参**：
+
+```C++
+// 若试图访问一个不存在的元素，BlobPtr抛出一个异常
+template<typename T>
+class BlobPtr {
+public:
+    BlobPtr() : curr(0) {}
+    BlobPtr(Blob<T> &a, std::size_t sz = 0) :
+        wptr(a.data), curr(sz) {}
+
+    T &operator*() const {
+        auto p = check(curr, "dereference past end");
+        return (*p)[curr];		// (*p)为本对象指向的vector
+    }
+
+    // 递增和递减（前置）
+    BlobPtr &operator++();
+    BlobPtr &operator--();
+
+private:
+    // 若检查成功，check返回一个指向vector的shared_ptr
+    std::shared_ptr<std::vector<T>>
+        check(std::size_t, const std::string &) const;
+	// 保存一个weak ptr，表示底层vector可能被销毁
+    std::weak_ptr<std::vector<T>> wptr;
+    std::size_t curr;		// 数组中当前位置
+};
+```
+
+在这里，`BlobPtr`的前置递增和递减成员返回`BlobPtr&`，而不是`BlobPtr<T> &`。当我们处于一个类模板的作用域中时，编译器处理模板自身引用时就好像我们已经提供了与模板参数匹配的实参一样。即，就好像我们这样编写代码一样：
+
+```C++
+	BlobPtr<T> &operator++();
+	BlobPtr<T> &operator--();
+```
+
+
+
+
+
+##### 在类模板外使用类模板名
+
+当我们在类模板外定义其成员时，必须记住，我们并不在类的作用域中，直到遇到类名才表示进入类的作用域：
+
+```C++
+// 后置：递增/递减对象但返回原值
+template<typename T>
+BlobPtr<T> BlobPtr<T>::operator ++(int) {
+    // 比处无须检查；调用前置递增时会进行检查
+    BlobPtr ret = *this;	// 保存当前值
+    ++*this;				// 推进一个元素；前置++检查递增是否合法
+    return ret;				// 返回保存的状态
+}
+```
+
+- 由于返回类型位于类的作用域之外，我们必须指出返回类型是一个实例化的`BlobPtr`，它所用类型与类实例化所用类型一致。
+
+- 在函数体内，我们已经进入类的作用域，因此在定义`ret`时无须重复模板实参。如果不提供模板实参，则编译器将假定我们使用的类型与成员实例化所用类型一致。因此，`ret`的定义与如下代码等价：
+
+  ```C++
+  	BlobPtr<T> ret = *this;
+  ```
+
+> 在一个类模板的作用域内，我们可以直接使用模板名而不必指定模板实参。
+
+
+
+
+
+##### 类模板和友元
+
+当一个类包含一个友元声明时，**类与友元各自是否是模板是相互无关的。**如果一个类模板包含一个非模板友元，则友元被授权可以访问所有模板实例。**如果友元自身是模板，类可以授权给所有友元模板实例，也可以只授权给特定实例。**
+
+解释：
+
+- ```C++
+  // 非模板友元可以访问所有模板实例
+  template <typename T>
+  class MyClass {
+      T data;
+  public:
+      MyClass(T d) : data(d) {}
+      friend void display(MyClass<T> mc) { // 非模板友元
+          cout << mc.data << endl;
+      }
+  };
+  
+  int main() {
+      MyClass<int> mc1(10);
+      display(mc1); // 输出：10
+      MyClass<double> mc2(5.5);
+      display(mc2); // 输出：5.5
+      return 0;
+  }
+  ```
+
+- ```C++
+  // 友元模板可以访问所有模板实例
+  template <typename T>
+  class MyClass {
+      T data;
+  public:
+      MyClass(T d) : data(d) {}
+      template <typename U>
+      friend void display(MyClass<U> mc); // 友元模板
+  };
+  
+  template <typename U>
+  void display(MyClass<U> mc) {
+      cout << mc.data << endl;
+  }
+  
+  int main() {
+      MyClass<int> mc1(10);
+      display(mc1); // 输出：10
+      MyClass<double> mc2(5.5);
+      display(mc2); // 输出：5.5
+      return 0;
+  }
+  ```
+
+- ```C++
+  // 友元模板只授权给特定实例
+  template <typename T>
+  class MyClass {
+      T data;
+  public:
+      MyClass(T d) : data(d) {}
+      friend void display(MyClass<int> mc); // 只授权给特定实例
+  };
+  
+  void display(MyClass<int> mc) {
+      cout << mc.data << endl;
+  }
+  
+  int main() {
+      MyClass<int> mc1(10);
+      display(mc1); // 输出：10
+      MyClass<double> mc2(5.5);
+      // display(mc2); // 错误：没有授权
+      return 0;
+  }
+  ```
+
+
+
+
+
+##### 一对一友好关系
+
+类模板与另一个（类或函数）模板间友好关系的最常见的形式是建立对应实例及其友元间的友好关系。例如，我们的`Blob`类应该将`BlobPtr`类和一个模板版本的`Blob`相等运算符定义为友元。
+
+为了引用（类或函数）模板的一个特定实例，我们必须首先声明模板自身。一个模板声明包括模板参数列表：
+
+```C++
+template <typename> class BlobPtr;
+template <typename> class Blob;
+template <typename T> bool operator==(const Blob<T> &, const Blob<T> &);
+
+template <typename T>
+class Blob {
+	// 每个Blob实例将访问权限授予用相同类型实例化的 BlobPtr和相等运算符
+	friend class BlobPtr<T>;
+	friend bool operator==<T>(const Blob<T> &, const Blob<T> &);
+	// ...
+};
+```
+
+我们首先将`Blob`、`BlobPtr`和`operator==`声明为模板。这些声明是`operator==`函数的参数声明以及`Blob`中的友元声明所需要的。
+
+友元的声明用`Blob`的模板形参作为它们自己的模板实参。因此，友好关系被限定在用相同类型实例化的`Blob`与`BlobPtr`相等运算符之间；
+
+```C++
+	Blob<char> ca;		// BlobPtr<char>和operator<char>都是本对象的友元
+	Blob<int> ia;		// BlobPtr<int>和operator<int>都是本对象的友元
+```
+
+`BlobPtr<char>`的成员可以访问`ca`（或任何其他`Blob<char>`对象）的非`public`部分，但`ca`对`ia`（或任何其他`Blob<int>`对象）或`Blob`的任何其他实例都没有特殊访问权限。
+
+
+
+
+
+##### 通用和特定的模板友好关系
+
+一个类也可以将另一个模板的每个实例都声明为自己的友元，或者限定特定的实例为友元：
+
+```C++
+// 前置声明，在模板的一个特定实例声明为友元时要用到
+template <typename T> class Pal;
+class C {	// C是一个普通的非模板类
+	friend class Pal<C>;	//用类C实例化的Pal是C的一个友元
+	// Pal2的所有实例都是C的友元;这种情况无须前置声明
+	template <typename T> friend class Pal2;
+};
+
+template <typename T> class Pal2 {	// C2本身是一个类模板
+	// C2的每个实例将相同实例化的Pal声明为友元
+	friend class Pal<T>; 	// Pal的模板声明必须在作用域内
+	// Pal2的所有实例都是C2的每个实例的友元，不需要前置声明
+	template <typename X> friend class Pal2;
+	// Pal3是一个非模板类，它是C2所有实例的友元
+	friend class Pal3;		// 不需要Pal3的前置声明
+};
+```
+
+为了让所有实例成为友元，友元声明中必须使用与类模板本身不同的模板参数。
+
+
+
+
+
+##### 令模板自己的类型参数成为友元
+
+在C++11以后，我们可以将模板类型参数声明为友元：
+
+```C++
+template <typename Type> class Bar {
+friend Type;		// 将访问权限授予用来实例化Bar的类型
+	// ...
+};
+```
+
+此处我们将用来实例化Bar的类型声明为友元。因此，对于某个类型名`Foo`，`Foo`将成为`Bar<Foo>`的友元，`Sales_data`将成为`Bar<Sales_data>`的友元，依此类推。
+
+值得注意的是，虽然友元通常来说应该是一个类或是一个函数，但我们完全可以用一个内置类型来实例化`Bar`。这种与内置类型的友好关系是允许的，以便我们能用内置类型来实例化`Bar`这样的类。
