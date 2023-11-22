@@ -13842,7 +13842,7 @@ Blob<string> b1;		// 空Blob
 
 
 
-##### 定义`StrBlob`类	p583 16.1.2 待完善	<a name="653092"> </a>
+##### 定义`StrBlob`类	<a name="653092"> </a>
 
 最终，会将`Blob`类实现为一个模板。现在先定义一个管理`string`的类，将其命名为`StrBlob`。
 
@@ -23241,7 +23241,7 @@ template <typename T> class Pal2 {	// C2本身是一个类模板
 
 ##### 令模板自己的类型参数成为友元
 
-在C++11以后，我们可以将模板类型参数声明为友元：
+在C++11以后，可以将模板类型参数声明为友元：
 
 ```C++
 template <typename Type> class Bar {
@@ -23250,6 +23250,151 @@ friend Type;		// 将访问权限授予用来实例化Bar的类型
 };
 ```
 
-此处我们将用来实例化Bar的类型声明为友元。因此，对于某个类型名`Foo`，`Foo`将成为`Bar<Foo>`的友元，`Sales_data`将成为`Bar<Sales_data>`的友元，依此类推。
+此处我们将用来实例化`Bar`的类型声明为友元。因此，对于某个类型名`Foo`，`Foo`将成为`Bar<Foo>`的友元，`Sales_data`将成为`Bar<Sales_data>`的友元，依此类推。
 
 值得注意的是，虽然友元通常来说应该是一个类或是一个函数，但我们完全可以用一个内置类型来实例化`Bar`。这种与内置类型的友好关系是允许的，以便我们能用内置类型来实例化`Bar`这样的类。
+
+
+
+
+
+##### 模板类型别名
+
+类模板的一个实例定义了一个类类型，与任何其他类类型一样，我们可以定义一个`typedef`来引用实例化的类：
+
+```C++
+	typedef Blob<string> StrBlob;
+```
+
+这条`typedef`语句允许我们运行在<a href="#653092">这里</a>编写的代码，而使用的却是用`string`实例化的模板版本的`Blob`。
+
+由于模板不是一个类型，我们不能定义一个`typedef`引用一个模板。即，无法定义一个`typedef`引用`Blob<T>`。
+
+但是，**新标准允许我们为类模板定义一个类型别名**：
+
+```C++
+	template<typename T> using twin = pair<T, T>;
+	twin<string> authors;		// author是一个pair<string, string>
+```
+
+在这段代码中，我们将`twin`定义为成员类型相同的`pair`的别名。这样，`twin`的用户只需指定一次类型。
+
+一个模板类型别名是一族类的别名：
+
+```C++
+	twin<int> win_loss;		// win_loss是一个pair<int, int>
+	twin<double> area;		// area是一个pair<double, double>
+```
+
+就像使用类模板一样，当我们使用`twin`时，需要指出希望使用哪种特定类型的`twin`。
+
+当我们定义一个模板类型别名时，可以固定一个或多个模板参数：
+
+```C++
+	template <typename T> using partNo = pair<T, unsigned>;
+	partNo<string> books;		// books是一个pair<string, unsigned>
+	partNo<Vehicle> cars;		// cars是一个pair<Vehicle, unsigned>
+	partNo<Student> kids;		// kids是一个pair<Student, unsigned>
+```
+
+这段代码中我们将`partNo`定义为一族类型的别名，这族类型是`second`成员为`unsigned`的`pair`。 **`partNo`的用户需要指出`pair`的`first`成员的类型，但不能指定`second`成员的类型。**
+
+
+
+
+
+##### 类模板的`static`成员
+
+与任何其他类相同，类模板可以声明`static`成员：
+
+```C++
+template <typename T> class Foo {
+public:
+	static std::size_t count() { return ctr; }
+	// 其他接口成员
+private:
+	static std::size_t ctr;
+	// 其他成员实现
+};
+```
+
+在这段代码中，`Foo`是一个类模板，它有一个名为`count`的`public static`成员函数和一个名为`ctr`的`private static`数据成员。每个`Foo`的实例都有其自己的`static`成员实例。即，对任意给定类型`X`，都有一个`Foo<X>::ctr`和一个`Foo<X> ::count`成员。所有`Foo<X>`类型的对象共享相同的`ctr`对象和`count`函数。例如，
+
+```C++
+	// 实例化static成员Foo<string>::ctr和Foo<string>::count
+	Foo<string> fs;
+	// 所有三个对象共享相同的Foo<int>::ctr或者Foo<int>::count成员
+	Foo<int> fi, fi2, fi3;
+```
+
+与任何其他`static`数据成员相同，模板类的每个`static`数据成员必须有且仅有一个定义。
+
+但是，类模板的每个实例都有一个独有的`static`对象。因此，与定义模板的成员函数类似，我们将`static`数据成员也定义为模板：
+
+```C++
+	template <typename T>
+	size_t Foo<T>::ctr = 0;			// 定义并初始化ctr
+```
+
+与类模板的其他任何成员类似，定义的开始部分是模板参数列表，随后是我们定义的成员的类型和名字。与往常一样，成员名包括成员的类名，对于从模板生成的类来说，类名包括模板实参。因此，当使用一个特定的模板实参类型实例化`Foo`时，将会为该类类型实例化一个独立的`ctr`，并将其初始化为0。
+
+与非模板类的静态成员相同，我们可以通过类类型对象来访问一个类模板的`static`成员，也可以使用作用域运算符直接访问成员。当然，为了通过类来直接访问`static`成员，我们必须引用一个特定的实例：
+
+```C++
+	Foo<int> fi;					// 实例化Foo<int>类和static数据成员ctr
+	auto ct = Foo<int>::count();	// 实例化Foo<int>::count
+	ct = fi.count();				// 使用Foo<int>::count
+	ct = Foo::count();				// 错误：使用哪个模板实例的count？
+```
+
+类似任何其他成员函数，**一个`static`成员函数只有在使用时才会实例化**。
+
+
+
+
+
+### 1.3 模板参数
+
+类似函数参数的名字，一个模板参数的名字也没有什么内在含义。我们通常将类型参数命名为`T`，但实际上我们可以使用任何名字：
+
+```C++
+template <typename Foo> Foo calc(const Foo &a, const Foo &b) {
+	Foo tmp = a;		// tmp的类型与参数和返回类型一样
+	// ...
+	return tmp;			// 返回类型和参数类型一样
+}
+```
+
+
+
+
+
+##### 模板参数与作用域
+
+模板参数遵循普通的作用域规则。一个模板参数名的可用范围是在其声明之后，至模板声明或定义结束之前。
+
+与任何其他名字一样，模板参数会隐藏外层作用域中声明的相同名字。但是，与大多数其他上下文不同，**在模板内不能重用模板参数名**：
+
+```C++
+typedef double A;
+template <typename A, typename B>
+void f(A a, B b) {
+	A tmp = a;		// tmp的类型为模板参数A的类型，而非double
+	double B;		// 错误：重声明模板参数B
+}
+```
+
+**正常的名字隐藏规则决定了`A`的 `typedef`被类型参数`A`隐藏。因此，`tmp`不是一个`double`，其类型是使用`f`时绑定到类型参数`A`的类型。由于我们不能重用模板参数名，声明名字为B的变量是错误的。**
+
+由于参数名不能重用，所以一个模板参数名在一个特定模板参数列表中只能出现一次：
+
+```C++
+// 错误：非法重用模板参数名V
+template <typename V, typename V>	// ...
+```
+
+
+
+
+
+##### 模板声明
