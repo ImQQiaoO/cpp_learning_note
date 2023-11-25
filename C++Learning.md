@@ -23397,4 +23397,68 @@ template <typename V, typename V>	// ...
 
 
 
-##### 模板声明
+##### 模板声明	#待完善 p617 6.13
+
+模板声明必须包含模板参数：
+
+```C++
+// 声明但不定义compare和Blob
+template <typename T> int compare(const T &, const T &);
+template <typename T> class Blob;
+```
+
+与函数参数相同，声明中的模板参数的名字不必与定义中相同：
+
+```C++
+// 3个calc都指向相同的函数模板
+template <typename T> T calc(const T &, const T &);	// 声明
+template <typename U> U calc(const U &, const U &);	// 声明
+// 模板的定义
+template <typename Type>
+Type clac (const Type &a, const Type &b) { /*...*/ }
+```
+
+**一个给定模板的每个声明和定义必须有相同数量和种类（即，类型或非类型）的参数。**
+
+> 一个特定文件所需要的所有模板的声明通常一起放置在文件开始位置，出现于任何使用这些模板的代码之前。
+
+
+
+
+
+##### 使用类的类型成员
+
+用作用域运算符（`::`）来访问`static`成员和类型成员。在非模板代码中，编译器掌握类的定义。因此，它知道通过作用域运算符访问的名字是类型还是`static`成员。例如，如果我们写下`string::size_type`，编译器有`string`的定义，从而知道`size_type`是一个类型。
+
+但对于模板代码就存在困难。例如，假定`T`是一个模板类型参数，当编译器遇到类似`T::mem`这样的代码时，它不会知道`mem`是一个类型成员还是一个`static`数据成员，直至实例化时才会知道。但是，为了处理模板，编译器必须知道名字是否表示一个类型。例如，假定`T`是一个类型参数的名字，当编译器遇到如下形式的语句时：
+
+```C++
+	T::size_type * p;
+```
+
+编译器需要知道我们是正在定义一个名为`p`的变量还是将一个名为`size_type`的`static`数据成员与名为`p`的变量相乘。
+
+默认情况下，**C++语言假定通过作用域运算符访问的名字不是类型。**因此，如果我们希望使用一个模板类型参数的类型成员，就必须显式告诉编译器该名字是一个类型。我们通过使用关键字`typename`来实现这一点：
+
+```C++
+template <typename T>
+typename T::value_type top(const T &c) {
+	if (!c.empty()) { return c.back; }
+	else { return typename T::value_type(); }
+}
+```
+
+我们的`top`函数期待一个容器类型的实参，它使用`typename`指明其返回类型并在`c`中没有元素时生成一个值初始化的元素返回给调用者。
+
+> 当我们希望通知编译器一个名字表示类型时，必须使用关键字`typename`，而不能使用`class`
+
+
+
+
+
+##### 默认模板实参
+
+**就像我们能为函数参数提供默认实参一样，我们也可以提供默认模板实参。**在新标准中，我们可以为函数和类模板提供默认实参。而更早的C++标准只允许为类模板提供默认实参。
+
+例如，我们重写`compare`，默认使用标准库的`less`函数对象模板：
+
