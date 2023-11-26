@@ -14671,7 +14671,7 @@ unique_ptr<int> clone(int p) {
 
 
 
-##### 向`unique_ptr`传递删除器	#待完善 16.1.6节（第599页）
+##### 向`unique_ptr`传递删除器	<a name="210989"> </a>
 
 类似`shared_ptr`，`unique_ptr`默认情况下用`delete`释放它指向的对象。
 
@@ -23462,3 +23462,334 @@ typename T::value_type top(const T &c) {
 
 例如，我们重写`compare`，默认使用标准库的`less`函数对象模板：
 
+```C++
+// compare有一个默认模板实参less<T>和一个默认函数实参F()
+template <typename T, typename F = less<T>>
+int compare(const T &v1, const T &v2, F f = F()) {
+	if (f(v1, v2)) return -1;
+	if (f(v2, v1)) return 1;
+	return 0;
+}
+```
+
+在这段代码中，为模板添加了第二个类型参数，名为`F`，表示可调用对象的类型；并定义了一个新的函数参数`f`，绑定到一个可调用对象上。
+
+我们为此模板参数提供了默认实参，并为其对应的函数参数也提供了默认实参。默认模板实参指出`compare`将使用标准库的`less`函数对象类，它是使用与`compare`一样的类型参数实例化的。默认函数实参指出`f`将是类型`F`的一个默认初始化的对象。
+
+当用户调用这个版本的`compare`时，可以提供自己的比较操作，但这并不是必需的：
+
+```C++
+	bool i = compare(0, 42);		// 使用less；i为-1
+	// 结果依赖于item1和item2中的isbn
+	Sales_data item1(cin), item2(cin);
+	bool j = compare(item1, item2, compareIsbn);
+```
+
+第一个调用使用默认函数实参，即，类型`less<T>`的一个默认初始化对象。在此调用中，`T`为`int`，因此可调用对象的类型为`less<int>`。`compare`的这个实例化版本将使用`less<int>`进行比较操作。
+
+在第二个调用中，我们传递给`compare`三个实参：`compareIsbn`和两个`Sales_data`类型的对象。当传递给`compare`三个实参时，第三个实参的类型必须是一个可调用对象，该可调用对象的返回类型必须能转换为`bool`值，且接受的实参类型必须与`compare`的前两个实参的类型兼容。与往常一样，模板参数的类型从它们对应的函数实参推断而来。在此调用中，T的类型被推断为`Sales_data`，`F`被推断为`compareIsbn`的类型。
+
+与函数默认实参一样，对于一个模板参数，只有当它**右侧**的所有参数都有默认实参时，它才可以有默认实参。
+
+
+
+
+
+##### 模板默认实参与类模板
+
+无论何时使用一个**类模板**，我们都必须在模板名之后接上尖括号。尖括号指出类必须从一个模板实例化而来。
+
+特别是，如果一个类模板为其所有模板参数都提供了默认实参，且我们希望使用这些默认实参，就必须在模板名之后跟一个空尖括号对：
+
+```C++
+template <class T = int> class Numbers {	// T默认为int
+public:
+	Numbers(T v = 0) : val(v) {}
+	// 对数值的各种操作
+private:
+	T val;
+};
+Numbers<long double> lots_of_precision;
+Numbers<> average_precision;	// 空<>表示我们希望使用默认类型
+```
+
+此例中我们实例化了两个`Numbers`版本：`average_precision`是用`int`代替`T`实例化得到的；`lots_of_precision`是用`long double`代替`T`实例化而得到的。
+
+
+
+
+
+### 1.4 成员模板
+
+一个类（无论是普通类还是类模板）可以包含本身是模板的成员函数。这种成员被称为成员模板。**成员模板不能是虚函数。**
+
+
+
+##### 普通（非模板）类的成员模板
+
+作为普通类包含成员模板的例子，我们定义一个类，类似`unique_ptr`所使用的<a href="#210989">默认删除器类型</a>。类似默认删除器，我们的类将包含一个重载的函数调用运算符，它接受一个指针并对此指针执行`delete`。与默认删除器不同，我们的类还将在删除器被执行时打印一条信息。由于希望删除器适用于任何类型，所以我们将调用运算符定义为一个模板：
+
+```C++
+// 函数对象类，对给定指针执行delete
+class DebugDelete {
+public:
+	DebugDelete(std::ostream &s = std::cerr) : os(s) { }
+	// 与任何函数模板相同，T的类型由编译器推断
+	template <typename T> void operator()(T *p) const {
+		os << "deleting unique_ptr" << std::endl;
+		delete p;
+	}
+private:
+	std::ostream &os;
+};
+```
+
+与任何其他模板相同，成员模板也是以模板参数列表开始的。每个`DebugDelete`对象都有一个`ostream`成员，用于写入数据；还包含一个自身是模板的成员函数。我们可以用这个类代替`delete`：
+
+```C++
+	double *p = new double;
+	DebugDelete d;		// 可像delete表达式一样使用的对象
+	d(p);				// 调用DebugDelete::operator()(double *)，释放p
+
+	int *ip = new int;
+	// 在一个临时DebugDelete对象上调用operator()(int *)
+	DebugDelete()(ip);
+```
+
+由于调用一个`DebugDelete`对象会`delete`其给定的指针，我们也可以将`DebugDelete`用作`unique_ptr`的删除器。为了重载`unique_ptr`的删除器，我们在尖括号内给出删除器类型，并提供一个这种类型的对象给`unique_ptr`的构造函数∶
+
+```c++
+	// 销毁p指向的对象
+	// 实例化DebugDelete::operator()<int>(int *)
+	unique_ptr<int, DebugDelete> p(new int, DebugDelete());
+	// 销毁sp指向的对象
+	// 实例化DebugDelete::operator()<string>(string *)
+	unique_ptr<string, DebugDelete> sp(new string, DebugDelete());
+```
+
+在本例中，我们声明`p`的删除器的类型为`DebugDelete`，并在`p`的构造函数中提供了该类型的一个未命名对象。
+
+`unique_ptr`的析构函数会调用`DebugDelete`的调用运算符。因此，无论何时`unique_ptr`的析构函数实例化时，`DebugDelete`的调用运算符都会实例化：因此，上述定义会这样实例化：
+
+```C++
+	// DebugDelete的成员模板实例化样例
+	void DebugDelete::operator()(int *p) const { delete p; }
+	void DebugDelete::operator()(string *p) const { delete p; }
+```
+
+
+
+
+
+##### 类模板的成员模板
+
+对于类模板，我们也可以为其定义成员模板。**在此情况下，类和成员各自有自己的、独立的模板参数。**
+
+例：我们将为`Blob`类定义一个构造函数，它接受两个迭代器，表示要拷贝的元素范围。由于我们希望支持不同类型序列的迭代器，因此将构造函数定义为模板：
+
+```C++
+template <typename T> class Blob {
+	template <typename It> Blob(It b, It e);
+    // ...
+};
+```
+
+此构造函数有自己的模板类型参数`It`，作为它的两个函数参数的类型。
+
+与类模板的普通函数成员不同，成员模板是函数模板。**当我们在类模板外定义一个成员模板时，必须同时为类模板和成员模板提供模板参数列表。类模板的参数列表在前，后跟成员自己的模板参数列表：**
+
+```C++
+template <typename T>	// 类的类型参数
+template <typename It>	// 构造函数的类型参数
+Blob<T>::Blob(It b, It e) : data(std::make_shared<std::vector<T>>(b, e)) { }
+```
+
+在此例中，我们定义了一个类模板的成员，类模板有一个模板类型参数，命名为`T`。而成员自身是一个函数模板，它有一个名为`It`的类型参数。
+
+
+
+
+
+##### 实例化与模板成员
+
+为了实例化一个类模板的成员模板，我们必须同时提供类和函数模板的实参。
+
+与往常一样，我们在哪个对象上调用成员模板，编译器就根据该对象的类型来推断类模板参数的实参。与普通函数模板相同，编译器通常根据传递给成员模板的函数实参来推断它的模板实参：
+
+```C++
+	int ia[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	vector<long> vi = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	list<const char *> w = {"now", "is", "the", "time"};
+	
+	// 实例化Blob<int>类及其接受两个int *参数的构造函数
+	Blob<int> a1(begin(ia), end(ia));
+	// 实例化Blob<int>类及其接受两个vector<long>::iterator参数的构造函数
+	Blob<int> a2(vi.begin(), vi.end());
+	// 实例化Blob<string>类及其接受两个vector<const char*>::iterator参数的构造函数
+	Blob<string> a3(w.begin(), w.end());
+```
+
+当我们定义`a1`时，显式地指出编译器应该实例化一个`int`版本的`Blob`。构造函数自己的类型参数则通过`begin(ia)`和`end(ia)`的类型来推断，结果为`int*`。因此，`a1`的定义实例化了如下版本：
+
+```C++
+	Blob<int>::Blob(int *, int *);
+```
+
+`a2`的定义使用了已经实例化了的`Blob<int>`类，并用`vector<short>::iterator`替换`It`来实例化构造函数。`a3`的定义（显式地）实例化了一个`string`版本的`Blob`，并（隐式地）实例化了该类的成员模板构造函数，其模板参数被绑定到`list<const char*>`。
+
+
+
+
+
+### 1.5 控制实例化
+
+> 见下面的TL;DR部分，有助于此章节的理解。
+
+当模板被使用时才会进行实例化这一特性意味着，相同的实例可能出现在多个对象文件中。当两个或多个独立编译的源文件使用了相同的模板，并提供了相同的模板参数时，每个文件中就都会有该模板的一个实例。
+
+在大系统中，在多个文件中实例化相同模板的额外开销可能非常严重。在新标准中，我们可以通过**显式实例化**来避免这种开销。一个显式实例化有如下形式：
+
+```C++
+	extern template declaration;	// 实例化声明
+	template declaration;			// 实例化定义
+```
+
+*declaration*是一个类或函数声明，其中所有模板参数已被替换为模板实参。例如，
+
+```C++
+	// 实例化声明与定义
+	extern template class Blob<string>;				// 声明
+	template int compare(const int &, const int &);	// 定义
+```
+
+当编译器遇到`extern`模板声明时，它不会在本文件中生成实例化代码。将一个实例化声明为`extern`就表示承诺在程序其他位置有该实例化的一个非`extern`声明（定义）。对于一个给定的实例化版本，可能有多个`extern`声明，但必须只有一个定义。
+
+由于编译器在使用一个模板时自动对其实例化，因此`extern`声明必须出现在任何使用此实例化版本的代码之前：
+
+```C++
+	// Application.cc
+	// 这些模板类型必须在程序其他位置进行实例化
+	extern template class Blob<string>;
+	extern template int compare(const int &, const int &);
+	Blob<string> sa1, sa2;		// 实例化会出现在其他位置
+	// Blob<int>及其接受initializer_list的构造函数在本文件中实例化
+	Blob<int> a1 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	Blob<int> a2(a1);			// 拷贝构造函数在本文件中实例化
+	int i = compare(a1[0], a2[0]);	// 实例化出现在其他位置
+```
+
+文件`Application.o`将包含`Blob<int>`的实例及其接受`initializer_list`参数的构造函数和拷贝构造函数的实例。而`compare<int>`函数和`Blob<string>`类将不在本文件中进行实例化。这些模板的定义必须出现在程序的其他文件中：
+
+```C++
+	// templateBulid.cc
+	// 实例化文件必须为每个在其他文件中声明为extern的类型和函数提供一个（非extern）的定义
+	template int compare(const int &, const int &);
+	template class Blob<string>;	// 实例化类模板的所有成员
+```
+
+当编译器遇到一个实例化定义(与声明相对）时，它为其生成代码。因此，文件`templateBuild.o`将会包含`compare`的`int`实例化版本的定义和`Blob<string>`类的定义。当我们编译此应用程序时，必须将`templateBuild.o`和`Application.o`链接到一起。
+
+> 对每个实例化声明，在程序中某个位置必须有其显式的实例化定义。
+
+
+
+> TL;DR:
+>
+> 1. 在C++中，`extern template`声明用于告诉编译器一个模板实例在别的地方已经被实例化了，所以在当前编译单元中不需要再次实例化。这可以减少编译时间和生成的代码大小。
+>
+>    例如，如果你有一个模板类：
+>
+>    ```C++
+>    template<class T>
+>    class MyClass {
+>      // ...
+>    };
+>    ```
+>
+>    并且你知道在你的程序中会频繁地使用`MyClass<int>`，你可以在一个.cpp文件中显式实例化这个模板：
+>
+>    ```C++
+>    template class MyClass<int>;
+>    ```
+>
+>    然后在其他.cpp文件中，你可以使用`extern template`来声明这个实例，以避免编译器再次实例化它：
+>
+>    ```C++
+>    extern template class MyClass<int>;
+>    ```
+>
+>    这样，`MyClass<int>`只会在一个编译单元中被实例化，而不是在每个使用它的编译单元中都实例化一次。这可以提高编译效率和减少生成的代码大小。
+>
+> 2. 如果你在代码中使用了`extern template`声明，但是在项目的任何地方都没有实际实例化这个模板，那么在链接阶段，链接器会找不到这个模板的实例，导致链接错误。
+>
+>    例如，如果你写了这样的代码：
+>
+>    ```C++
+>    extern template class MyClass<int>;
+>    ```
+>
+>    但是在你的项目中没有任何地方实际实例化`MyClass<int>`，那么当你尝试使用`MyClass<int>`时，链接器会找不到它的定义，因此会报错。
+>
+>    为了避免这种情况，你需要确保在项目的某个地方实际实例化了你用`extern template`声明的模板。这通常在一个.cpp文件中完成，例如：
+>
+>    ```C++
+>    template class MyClass<int>;
+>    ```
+>
+>    这样，链接器就能找到`MyClass<int>`的实例，链接错误就能被解决。
+
+
+
+##### 实例化定义会实例化所有成员
+
+一个类模板的实例化定义会实例化该模板的所有成员，包括内联的成员函数。当编译器遇到一个实例化定义时，它不了解程序使用哪些成员函数。因此，与处理类模板的普通实例化不同，编译器会实例化该类的所有成员。即使我们不使用某个成员，它也会被实例化。因此，我们用来显式实例化一个类模板的类型，必须能用于模板的所有成员。
+
+> 在一个类模板的实例化定义中，所用类型必须能用于模板的所有成员函数。
+
+
+
+
+
+### 1.6 效率与灵活性
+
+对模板设计者所面对的设计选择，标准库智能指针类型给出了一个很好的展示。
+
+`shared_ptr`和`unique_ptr`之间的明显不同是它们管理所保存的指针的策略前者给予我们共享指针所有权的能力；后者则独占指针。这一差异对两个类的功能来说是至关重要的。
+
+这两个类的另一个差异是它们允许用户重载默认删除器的方式。我们可以很容易地重载一个`shared_ptr`的删除器，只要在创建或`reset`指针时传递给它一个可调用对象即可。与之相反，删除器的类型是一个`unique_ptr`对象的类型的一部分。用户必须在定义`unique_ptr`时以显式模板实参的形式提供删除器的类型。因此，对于`unique_ptr`的用户来说，提供自己的删除器就更为复杂。
+
+如何处理删除器的差异实际上就是这两个类功能的差异。但是，如我们将要看到的，这一实现策略上的差异可能对性能有重要影响。
+
+
+
+##### 在运行时绑定删除器
+
+虽然我们不知道标准库类型是如何实现的，但可以推断出，`shared_ptr`必须能直接访问其删除器。即，删除器必须保存为一个指针或一个封装了指针的类（如`function`）。
+
+我们可以确定`shared_ptr`不是将删除器直接保存为一个成员，因为删除器的类型直到运行时才会知道。实际上，在一个`shared_ptr`的生存期中，我们可以随时改变其删除器的类型。我们可以使用一种类型的删除器构造一个`shared_ptr`，随后使用`reset`赋予此`shared_ptr`另一种类型的删除器。通常，类成员的类型在运行时是不能改变的。因此，不能直接保存删除器。
+
+为了考察删除器是如何正确工作的，让我们假定`shared_` ptr将它管理的指针保存在一个成员`p`中，且删除器是通过一个名为`del`的成员来访问的。则 `shared_ptr`的析构函数必须包含类似下面这样的语句：
+
+```C++
+	// del的值只有在运行时才知道；通过一个指针来调用它
+	del ? del(p) : delete p;	// del(p)需要运行时跳转到del的地址
+```
+
+由于删除器是间接保存的，调用`del(p)`需要一次运行时的跳转操作，转到`del`中保存的地址来执行对应的代码。
+
+
+
+##### 在编译时绑定删除器
+
+现在，让我们来考察`unique_ptr`可能的工作方式。在这个类中，删除器的类型是类类型的一部分。即，`unique_ptr`有两个模板参数，一个表示它所管理的指针，另一个表示删除器的类型。由于删除器的类型是`unique_ptr`类型的一部分，因此删除器成员的类型在编译时是知道的，从而删除器可以直接保存在`unique_ptr`对象中。
+
+`unique_ptr`的析构函数与`shared_ptr`的析构函数类似，也是对其保存的指针调用用户提供的删除器或执行`delete`：
+
+```C++
+	// del在编译时绑定；直接调用实例化的删除器
+	del(p);		// 无运行时额外开销
+```
+
+`del`的类型或者是默认删除器类型，或者是用户提供的类型。到底是哪种情况没有关系，应该执行的代码在编译时肯定会知道。实际上，如果删除器是类似`DebugDelete`(参见16.1.4节，第595页）之类的东西，这个调用甚至可能被编译为内联形式。
+
+通过在编译时绑定删除器，`unique_ptr`避免了间接调用删除器的运行时开销。通过在运行时绑定删除器，`shared_ptr`使用户重载删除器更为方便。
